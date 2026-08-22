@@ -64,10 +64,13 @@ body {
 }
 
 .login {
-  padding: 10px 20px;
-  border: 1px solid #ddd;
+  padding: 9px 16px;
+  border: none;
   border-radius: 20px;
-  background: white;
+  background: #222;
+  color: #fff !important;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
 }
