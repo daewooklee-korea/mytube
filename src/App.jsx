@@ -1,0 +1,486 @@
+import { useEffect, useState } from 'react'
+import './App.css'
+import Upload from './Upload'
+import Login from './Login'
+import { supabase } from './supabase'
+
+function App() {
+  const [user, setUser] = useState(null)
+
+  const [selectedVideo, setSelectedVideo] = useState(null)
+  const [showUpload, setShowUpload] = useState(false)
+
+  const [liked, setLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
+
+  const [commentText, setCommentText] = useState('')
+  const [comments, setComments] = useState([])
+
+  const [videos, setVideos] = useState([])
+
+  // 로그인 상태 확인
+  useEffect(() => {
+    checkUser()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null)
+      }
+    )
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const checkUser = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    setUser(user)
+  }
+
+  // Supabase에서 영상 목록 가져오기
+  useEffect(() => {
+    if (user) {
+      loadVideos()
+    }
+  }, [user])
+
+  const loadVideos = async () => {
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error(
+        '영상 목록 불러오기 실패:',
+        error
+      )
+      return
+    }
+
+    const formattedVideos = data.map((video) => ({
+      id: video.id,
+      title: video.title,
+      views: `조회수 ${video.views}회`,
+      time: formatTime(video.created_at),
+      video: video.video_url,
+      thumbnail: video.thumbnail_url,
+    }))
+
+    setVideos(formattedVideos)
+  }
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString)
+    const now = new Date()
+
+    const diff = Math.floor(
+      (now - date) / 1000
+    )
+
+    if (diff < 60) {
+      return '방금 전'
+    }
+
+    if (diff < 3600) {
+      return `${Math.floor(diff / 60)}분 전`
+    }
+
+    if (diff < 86400) {
+      return `${Math.floor(diff / 3600)}시간 전`
+    }
+
+    return `${Math.floor(diff / 86400)}일 전`
+  }
+
+  const handleVideoClick = (video) => {
+    if (!video.video) return
+
+    setSelectedVideo(video)
+    setLiked(false)
+    setLikeCount(0)
+    setCommentText('')
+    setComments([])
+  }
+
+  const handleLike = () => {
+    setLiked(!liked)
+
+    setLikeCount(
+      liked
+        ? likeCount - 1
+        : likeCount + 1
+    )
+  }
+
+  const handleComment = () => {
+    if (!commentText.trim()) {
+      return
+    }
+
+    const newComment = {
+      id: Date.now(),
+      text: commentText,
+    }
+
+    setComments([
+      ...comments,
+      newComment,
+    ])
+
+    setCommentText('')
+  }
+
+  const handleUpload = (newVideo) => {
+    setVideos([
+      newVideo,
+      ...videos,
+    ])
+
+    setShowUpload(false)
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+
+    setUser(null)
+    setSelectedVideo(null)
+    setShowUpload(false)
+  }
+
+  // 로그인하지 않은 경우
+  if (!user) {
+    return (
+      <Login
+        onLogin={(loggedInUser) => {
+          setUser(loggedInUser)
+        }}
+      />
+    )
+  }
+
+  return (
+    <div className="app">
+
+      {showUpload ? (
+
+        <Upload
+          onUpload={handleUpload}
+        />
+
+      ) : selectedVideo ? (
+
+        <>
+          <header className="header">
+
+            <div
+              className="logo"
+              onClick={() =>
+                setSelectedVideo(null)
+              }
+              style={{
+                cursor: 'pointer',
+              }}
+            >
+              ▶ MyTube
+            </div>
+
+            <div className="user-area">
+
+              <span>
+                {user.email}
+              </span>
+
+              <button
+                className="login"
+                onClick={handleLogout}
+              >
+                로그아웃
+              </button>
+
+            </div>
+
+          </header>
+
+          <main className="watch-page">
+
+            <button
+              className="back-button"
+              onClick={() =>
+                setSelectedVideo(null)
+              }
+            >
+              ← 홈으로
+            </button>
+
+            <div className="player">
+
+              <video
+                src={selectedVideo.video}
+                controls
+                autoPlay
+                playsInline
+              />
+
+            </div>
+
+            <h1>
+              {selectedVideo.title}
+            </h1>
+
+            <p>
+              MyTube 채널
+            </p>
+
+            <p>
+              {selectedVideo.views} ·{' '}
+              {selectedVideo.time}
+            </p>
+
+            <div className="actions">
+
+              <button
+                onClick={handleLike}
+              >
+                {liked
+                  ? '❤️ 좋아요 취소'
+                  : '👍 좋아요'
+                } {likeCount}
+              </button>
+
+              <button>
+                ↗ 공유
+              </button>
+
+            </div>
+
+            <section className="comments">
+
+              <h2>
+                댓글 {comments.length}개
+              </h2>
+
+              <div className="comment-input">
+
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={(e) =>
+                    setCommentText(
+                      e.target.value
+                    )
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleComment()
+                    }
+                  }}
+                  placeholder="댓글을 입력하세요..."
+                />
+
+                <button
+                  onClick={handleComment}
+                >
+                  댓글 등록
+                </button>
+
+              </div>
+
+              <div className="comment-list">
+
+                {comments.map(
+                  (comment) => (
+
+                    <div
+                      className="comment"
+                      key={comment.id}
+                    >
+
+                      <div className="comment-avatar">
+                        M
+                      </div>
+
+                      <div>
+
+                        <strong>
+                          MyTube 사용자
+                        </strong>
+
+                        <p>
+                          {comment.text}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                  )
+                )}
+
+              </div>
+
+            </section>
+
+          </main>
+        </>
+
+      ) : (
+
+        <>
+
+          <header className="header">
+
+            <div className="logo">
+              ▶ MyTube
+            </div>
+
+            <div className="search">
+
+              <input
+                type="text"
+                placeholder="검색"
+              />
+
+              <button>
+                🔍
+              </button>
+
+            </div>
+
+            <div className="user-area">
+
+              <span>
+                {user.email}
+              </span>
+
+              <button
+                className="login"
+                onClick={handleLogout}
+              >
+                로그아웃
+              </button>
+
+            </div>
+
+            <button
+              className="upload-button"
+              onClick={() =>
+                setShowUpload(true)
+              }
+            >
+              ＋ 업로드
+            </button>
+
+          </header>
+
+          <nav className="menu">
+
+            <button>전체</button>
+            <button>음악</button>
+            <button>브이로그</button>
+            <button>여행</button>
+            <button>코미디</button>
+            <button>최신 영상</button>
+
+          </nav>
+
+          <main className="content">
+
+            <h2>
+              추천 영상
+            </h2>
+
+            <div className="video-grid">
+
+              {videos.map(
+                (video) => (
+
+                  <div
+                    className="video-card"
+                    key={video.id}
+                    onClick={() =>
+                      handleVideoClick(
+                        video
+                      )
+                    }
+                    style={{
+                      cursor:
+                        video.video
+                          ? 'pointer'
+                          : 'default',
+                    }}
+                  >
+
+                    <div className="thumbnail">
+
+                      {video.thumbnail ? (
+
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                        />
+
+                      ) : (
+
+                        <video
+                          src={video.video}
+                          muted
+                        />
+
+                      )}
+
+                      <span>
+                        ▶
+                      </span>
+
+                    </div>
+
+                    <div className="video-info">
+
+                      <div className="avatar">
+                        M
+                      </div>
+
+                      <div>
+
+                        <h3>
+                          {video.title}
+                        </h3>
+
+                        <p>
+                          MyTube 채널
+                        </p>
+
+                        <p>
+                          {video.views} ·{' '}
+                          {video.time}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+
+          </main>
+
+        </>
+
+      )}
+
+    </div>
+  )
+}
+
+export default App
