@@ -84,16 +84,26 @@ function Upload({ onUpload }) {
     const thumbnailUrl =
       thumbnailData.publicUrl
 
-    // 5. Database에 저장
-    const { error: databaseError } =
-      await supabase
-        .from('videos')
-        .insert({
-          title: title,
-          video_url: videoUrl,
-          thumbnail_url: thumbnailUrl,
-          views: 0,
-        })
+   // 5. 현재 로그인한 사용자 확인
+const { data: { user } } = await supabase.auth.getUser()
+
+if (!user) {
+  alert('로그인이 필요합니다.')
+  setUploading(false)
+  return
+}
+
+// 6. Database에 저장
+const { error: databaseError } =
+  await supabase
+    .from('videos')
+    .insert({
+      title: title,
+      video_url: videoUrl,
+      thumbnail_url: thumbnailUrl,
+      views: 0,
+      user_id: user.id,
+    })
 
     if (databaseError) {
       console.error(databaseError)

@@ -49,6 +49,33 @@ console.log('회원가입 오류:', error)
         setLoading(false)
         return
       }
+const { data: profile, error: profileError } =
+  await supabase
+    .from('profiles')
+    .select('status, role')
+    .eq('id', data.user.id)
+    .single()
+
+if (profileError) {
+  alert('사용자 정보를 확인할 수 없습니다.')
+  await supabase.auth.signOut()
+  setLoading(false)
+  return
+}
+
+if (profile.status === 'pending') {
+  alert('관리자 승인 대기 중입니다.')
+  await supabase.auth.signOut()
+  setLoading(false)
+  return
+}
+
+if (profile.status === 'rejected') {
+  alert('가입이 승인되지 않았습니다.')
+  await supabase.auth.signOut()
+  setLoading(false)
+  return
+}
 
       onLogin(data.user)
     }

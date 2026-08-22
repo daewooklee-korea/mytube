@@ -3,10 +3,12 @@ import './App.css'
 import Upload from './Upload'
 import Login from './Login'
 import { supabase } from './supabase'
+import Admin from './Admin'
 
 function App() {
   const [user, setUser] = useState(null)
-
+  const [profile, setProfile] = useState(null)
+  const [showAdmin, setShowAdmin] = useState(false)
   const [selectedVideo, setSelectedVideo] = useState(null)
   const [showUpload, setShowUpload] = useState(false)
 
@@ -19,29 +21,65 @@ function App() {
   const [videos, setVideos] = useState([])
 
   // 로그인 상태 확인
-  useEffect(() => {
-    checkUser()
+useEffect(() => {
+  checkUser()
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null)
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(
+    (_event, session) => {
+      if (!session?.user) {
+        setUser(null)
       }
-    )
-
-    return () => {
-      subscription.unsubscribe()
     }
-  }, [])
+  )
+
+  return () => {
+    subscription.unsubscribe()
+  }
+}, [])
 
   const checkUser = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    setUser(user)
+  if (!user) {
+    setUser(null)
+    return
   }
+
+  const { data: profile, error } =
+    await supabase
+      .from('profiles')
+      .select('status, role')
+      .eq('id', user.id)
+      .single()
+
+  if (error || !profile) {
+    await supabase.auth.signOut()
+    setUser(null)
+    return
+  }
+
+  if (profile.status === 'pending') {
+    await supabase.auth.signOut()
+    setUser(null)
+    alert('관리자 승인 대기 중입니다.')
+    return
+  }
+
+  if (profile.status === 'rejected') {
+    await supabase.auth.signOut()
+    setUser(null)
+    alert('가입이 승인되지 않았습니다.')
+    return
+  }
+
+  setProfile(profile)
+  console.log('현재 profile:', profile)
+  setUser(user)
+}
 
   // Supabase에서 영상 목록 가져오기
   useEffect(() => {
@@ -146,35 +184,39 @@ function App() {
     setShowUpload(false)
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
+const handleLogout = async () => {
+  await supabase.auth.signOut()
 
-    setUser(null)
-    setSelectedVideo(null)
-    setShowUpload(false)
-  }
+  setUser(null)
+  setProfile(null)
+  setSelectedVideo(null)
+  setShowUpload(false)
+  setShowAdmin(false)
+}
 
   // 로그인하지 않은 경우
-  if (!user) {
-    return (
-      <Login
-        onLogin={(loggedInUser) => {
-          setUser(loggedInUser)
-        }}
-      />
-    )
-  }
+ if (!user) {
+  return (
+    <Login
+      onLogin={() => {
+        checkUser()
+      }}
+    />
+  )
+}
 
   return (
-    <div className="app">
+  <div className="app">
 
-      {showUpload ? (
+    {showAdmin ? (
 
-        <Upload
-          onUpload={handleUpload}
-        />
+      <Admin onClose={() => setShowAdmin(false)} />
 
-      ) : selectedVideo ? (
+    ) : showUpload ? (
+
+      <Upload onUpload={handleUpload} />
+
+    ) : selectedVideo ? (
 
         <>
           <header className="header">
@@ -191,20 +233,29 @@ function App() {
               ▶ MyTube
             </div>
 
-            <div className="user-area">
+<div className="user-area">
 
-              <span>
-                {user.email}
-              </span>
+  {profile?.role === 'admin' && (
+    <button
+      className="admin-button"
+      onClick={() => setShowAdmin(true)}
+    >
+      관리자
+    </button>
+  )}
 
-              <button
-                className="login"
-                onClick={handleLogout}
-              >
-                로그아웃
-              </button>
+  <span>
+    {user.email}
+  </span>
 
-            </div>
+  <button
+    className="login"
+    onClick={handleLogout}
+  >
+    로그아웃
+  </button>
+
+</div>
 
           </header>
 
@@ -353,29 +404,28 @@ function App() {
 
             </div>
 
-            <div className="user-area">
+           <div className="user-area">
+  {profile?.role === 'admin' && (
+    <button className="admin-button" onClick={() => setShowAdmin(true)}>
+      관리자
+    </button>
+  )}
+  <span>{user.email}</span>
+  <button className="login" onClick={handleLogout}>
+    로그아웃
+  </button>
+</div>
 
-              <span>
-                {user.email}
-              </span>
-
-              <button
-                className="login"
-                onClick={handleLogout}
-              >
-                로그아웃
-              </button>
-
-            </div>
-
-            <button
-              className="upload-button"
-              onClick={() =>
-                setShowUpload(true)
-              }
-            >
-              ＋ 업로드
-            </button>
+{(profile?.role === 'creator' || profile?.role === 'admin') && (
+  <button
+    className="upload-button"
+    onClick={() =>
+      setShowUpload(true)
+    }
+  >
+    ＋ 업로드
+  </button>
+)}
 
           </header>
 

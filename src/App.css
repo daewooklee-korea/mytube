@@ -747,17 +747,40 @@ body {
     font-size: 22px;
   }
 
-  .user-area span {
-    display: none;
-  }
+  .header {
+  flex-wrap: wrap;
+}
 
-  .login,
-  .admin-button,
-  .upload-button {
-    margin-left: 0;
-    padding: 8px 14px;
-    font-size: 14px;
-  }
+.user-area {
+  order: 2;
+  flex-basis: 100%;
+  justify-content: flex-end;
+  margin-left: 0;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.user-area span {
+  display: inline-block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-button {
+  order: 3;
+  flex-basis: 100%;
+  margin-top: 8px;
+}
+
+.login,
+.admin-button,
+.upload-button {
+  padding: 8px 14px;
+  font-size: 14px;
+}
 
   .search {
     flex-basis: 100%;
