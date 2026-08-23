@@ -612,9 +612,6 @@ console.log('필터링 결과:', filteredVideos)
 
           <main className="content">
 
-            <h2>
-              추천 영상
-            </h2>
 
             <div className="video-grid">
 
