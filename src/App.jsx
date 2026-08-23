@@ -661,34 +661,23 @@ console.log('필터링 결과:', filteredVideos)
 
                     </div>
 
-                    <div className="video-info">
+              <div className="video-info">
 
-                      <div className="avatar">
-                        M
-                      </div>
+  <div className="video-info-top">
+    <h3>
+      {video.title}
+    </h3>
 
-                      <div>
+    <span className="category-badge">
+      {video.category}
+    </span>
+  </div>
 
-                        <h3>
-                          {video.title}
-                        </h3>
+  <p>
+    {video.uploaderNickname} · {video.views} · {video.time} · ❤️ {video.likeCount}
+  </p>
 
-                       <p>
-  {video.uploaderNickname}
-</p>
-
-                       <p>
-                        {video.views} ·{' '}
-                        {video.time}
-                      </p>
-
-<p>
-  ❤️ {video.likeCount}
-</p>
-
-                      </div>
-
-                    </div>
+</div>
 
                   </div>
 
