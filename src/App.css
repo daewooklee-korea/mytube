@@ -28,8 +28,12 @@ body {
 }
 
 .logo {
-  font-size: 26px;
-  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
   color: #1a1a1a;
   white-space: nowrap;
 }
@@ -144,8 +148,8 @@ body {
   flex-shrink: 0;
 }
 
-.menu button.active {
-  background: #1a1a1a;
+.menu button:first-child {
+  background: #222;
   color: white;
 }
 
@@ -419,8 +423,18 @@ body {
 }
 
 .login-box h1 {
-  font-size: 22px;
   margin: 0 0 8px;
+}
+
+.login-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: #1a1a1a;
 }
 
 .login-box h2 {

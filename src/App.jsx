@@ -379,16 +379,16 @@ console.log('필터링 결과:', filteredVideos)
           <header className="header">
 
             <div
-              className="logo"
-              onClick={() =>
-                setSelectedVideo(null)
-              }
-              style={{
-                cursor: 'pointer',
-              }}
-            >
-              ▶ MyTube
-            </div>
+  className="logo"
+  onClick={() => setSelectedVideo(null)}
+  style={{ cursor: 'pointer' }}
+>
+  <svg width="24" height="24" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1" width="30" height="30" rx="9" fill="#1a1a1a" />
+    <path d="M13 10.5L22 16L13 21.5V10.5Z" fill="#ffffff" />
+  </svg>
+  PlayMe
+</div>
 
 <div className="user-area">
 
@@ -544,9 +544,13 @@ console.log('필터링 결과:', filteredVideos)
 
           <header className="header">
 
-            <div className="logo">
-              ▶ MyTube
-            </div>
+           <div className="logo">
+  <svg width="24" height="24" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1" width="30" height="30" rx="9" fill="#1a1a1a" />
+    <path d="M13 10.5L22 16L13 21.5V10.5Z" fill="#ffffff" />
+  </svg>
+  PlayMe
+</div>
 
            <div className="search">
 

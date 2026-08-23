@@ -88,9 +88,13 @@ if (profile.status === 'rejected') {
 
       <div className="login-box">
 
-        <h1>
-          ▶ MyTube
-        </h1>
+        <h1 className="login-logo">
+  <svg width="28" height="28" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1" width="30" height="30" rx="9" fill="#1a1a1a" />
+    <path d="M13 10.5L22 16L13 21.5V10.5Z" fill="#ffffff" />
+  </svg>
+  PlayMe
+</h1>
 
         <h2>
           {isSignup ? '회원가입' : '로그인'}
