@@ -4,7 +4,8 @@ import { supabase } from './supabase'
 function Upload({ onUpload }) {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('음악')
-  const [videoFile, setVideoFile] = useState(null)
+  const [mediaFile, setMediaFile] = useState(null)
+  const [mediaType, setMediaType] = useState(null)
   const [thumbnailFile, setThumbnailFile] = useState(null)
   const [thumbnailPreview, setThumbnailPreview] = useState(null)
   const [capturing, setCapturing] = useState(false)
@@ -13,13 +14,23 @@ function Upload({ onUpload }) {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
 
-  const handleVideoSelect = (file) => {
-    setVideoFile(file)
+  const handleMediaSelect = (file) => {
+    setMediaFile(file)
     setThumbnailFile(null)
     setThumbnailPreview(null)
 
     if (!file) return
 
+   if (file.type.startsWith('audio/')) {
+  setMediaType('audio')
+
+  const defaultCover = generateDefaultCover()
+  setThumbnailFile(defaultCover)
+  setThumbnailPreview(URL.createObjectURL(defaultCover))
+  return
+}
+
+    setMediaType('video')
     setCapturing(true)
 
     const videoUrl = URL.createObjectURL(file)
@@ -51,7 +62,17 @@ function Upload({ onUpload }) {
       }, 'image/jpeg')
     }
   }
+const generateDefaultCover = () => {
+  const svg = `
+    <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="400" fill="#1a1a1a" />
+      <text x="200" y="230" font-size="140" text-anchor="middle" fill="#ffffff">♪</text>
+    </svg>
+  `
 
+  const blob = new Blob([svg], { type: 'image/svg+xml' })
+  return new File([blob], 'default-cover.svg', { type: 'image/svg+xml' })
+}
   const handleManualThumbnail = (file) => {
     if (!file) return
 
@@ -61,44 +82,46 @@ function Upload({ onUpload }) {
 
   const handleUpload = async () => {
     if (!title.trim()) {
-      alert('영상 제목을 입력해주세요.')
+      alert('제목을 입력해주세요.')
       return
     }
 
-    if (!videoFile) {
-      alert('영상을 선택해주세요.')
+    if (!mediaFile) {
+      alert('파일을 선택해주세요.')
       return
     }
 
-    if (!thumbnailFile) {
+    if (mediaType === 'video' && !thumbnailFile) {
       alert('썸네일을 준비 중입니다. 잠시 후 다시 시도해주세요.')
       return
     }
 
+ 
     setUploading(true)
 
-    // 1. 영상 업로드
-    const videoFileName = `video-${Date.now()}.mp4`
+    // 1. 미디어 파일 업로드
+    const extension = mediaFile.name.split('.').pop()
+    const mediaFileName = `media-${Date.now()}.${extension}`
 
-    const { error: videoError } = await supabase.storage
+    const { error: mediaError } = await supabase.storage
       .from('Videos')
-      .upload(videoFileName, videoFile, {
-        contentType: videoFile.type,
+      .upload(mediaFileName, mediaFile, {
+        contentType: mediaFile.type,
         upsert: false,
       })
 
-    if (videoError) {
-      console.error(videoError)
-      alert(`영상 업로드 실패: ${videoError.message}`)
+    if (mediaError) {
+      console.error(mediaError)
+      alert(`파일 업로드 실패: ${mediaError.message}`)
       setUploading(false)
       return
     }
 
-    const { data: videoData } = supabase.storage
+    const { data: mediaData } = supabase.storage
       .from('Videos')
-      .getPublicUrl(videoFileName)
+      .getPublicUrl(mediaFileName)
 
-    const videoUrl = videoData.publicUrl
+    const mediaUrl = mediaData.publicUrl
 
     // 2. 썸네일 업로드
     const thumbnailExtension = thumbnailFile.name.split('.').pop()
@@ -138,45 +161,47 @@ function Upload({ onUpload }) {
       .from('videos')
       .insert({
         title: title,
-        video_url: videoUrl,
+        video_url: mediaUrl,
         thumbnail_url: thumbnailUrl,
         views: 0,
         user_id: user.id,
         category: category,
+        media_type: mediaType,
       })
 
     if (databaseError) {
       console.error(databaseError)
-      alert(`영상 정보 저장 실패: ${databaseError.message}`)
+      alert(`정보 저장 실패: ${databaseError.message}`)
       setUploading(false)
       return
     }
 
-    onUpload()
-
     setTitle('')
-    setVideoFile(null)
+    setMediaFile(null)
+    setMediaType(null)
     setThumbnailFile(null)
     setThumbnailPreview(null)
     setUploading(false)
 
-    alert('영상 업로드 성공!')
+    onUpload()
+
+    alert('업로드 성공!')
   }
 
   return (
     <div className="upload-page">
 
-      <h1>영상 업로드</h1>
+      <h1>업로드</h1>
 
       <div className="upload-box">
 
-        <label>영상 제목</label>
+        <label>제목</label>
 
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="영상 제목을 입력하세요"
+          placeholder="제목을 입력하세요"
         />
 
         <label>카테고리</label>
@@ -191,19 +216,21 @@ function Upload({ onUpload }) {
           <option value="코미디">코미디</option>
         </select>
 
-        <label>동영상 파일</label>
+        <label>동영상 또는 음악 파일</label>
 
         <input
           type="file"
-          accept="video/*"
-          onChange={(e) => handleVideoSelect(e.target.files[0])}
+          accept="video/*,audio/*"
+          onChange={(e) => handleMediaSelect(e.target.files[0])}
         />
 
-        {videoFile && (
-          <p>선택한 영상: {videoFile.name}</p>
+        {mediaFile && (
+          <p>
+            선택한 파일: {mediaFile.name} ({mediaType === 'audio' ? '음악' : '영상'})
+          </p>
         )}
 
-        <label>썸네일</label>
+        <label>{mediaType === 'audio' ? '커버 이미지' : '썸네일'}</label>
 
         {capturing && <p>썸네일을 캡처하는 중...</p>}
 
@@ -227,13 +254,17 @@ function Upload({ onUpload }) {
           onChange={(e) => handleManualThumbnail(e.target.files[0])}
         />
 
-        <p>영상에서 자동으로 캡처되며, 직접 이미지를 선택해 바꿀 수도 있어요.</p>
+       <p>
+  {mediaType === 'audio'
+    ? '기본 커버가 자동 적용됩니다. 직접 이미지를 선택해 바꿀 수도 있어요.'
+    : '영상에서 자동으로 캡처되며, 직접 이미지를 선택해 바꿀 수도 있어요.'}
+</p>
 
         <button
           onClick={handleUpload}
           disabled={uploading || capturing}
         >
-          {uploading ? '업로드 중...' : '영상 업로드'}
+          {uploading ? '업로드 중...' : '업로드'}
         </button>
 
       </div>

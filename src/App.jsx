@@ -132,17 +132,18 @@ const { data: profilesData, error: profilesError } = await supabase
   })
 
   const formattedVideos = data.map((video) => ({
-    id: video.id,
-    title: video.title,
-    views: `조회수 ${video.views}회`,
-    rawViews: video.views,
-    time: formatTime(video.created_at),
-    video: video.video_url,
-    thumbnail: video.thumbnail_url,
-    likeCount: likeCounts[video.id] ?? 0,
-    uploaderNickname: nicknameMap[video.user_id] ?? '알 수 없음',
-    category: video.category,
-  }))
+  id: video.id,
+  title: video.title,
+  views: `조회수 ${video.views}회`,
+  rawViews: video.views,
+  time: formatTime(video.created_at),
+  video: video.video_url,
+  thumbnail: video.thumbnail_url,
+  likeCount: likeCounts[video.id] ?? 0,
+  uploaderNickname: nicknameMap[video.user_id] ?? '알 수 없음',
+  category: video.category,
+  mediaType: video.media_type ?? 'video',
+}))
 
   setVideos(formattedVideos)
 }
@@ -430,14 +431,35 @@ console.log('필터링 결과:', filteredVideos)
 
             <div className="player">
 
-              <video
-                src={selectedVideo.video}
-                controls
-                autoPlay
-                playsInline
-              />
+  {selectedVideo.mediaType === 'audio' ? (
 
-            </div>
+    <div className="audio-player">
+
+      <img
+        src={selectedVideo.thumbnail}
+        alt={selectedVideo.title}
+      />
+
+      <audio
+        src={selectedVideo.video}
+        controls
+        autoPlay
+      />
+
+    </div>
+
+  ) : (
+
+    <video
+      src={selectedVideo.video}
+      controls
+      autoPlay
+      playsInline
+    />
+
+  )}
+
+</div>
 
             <h1>
               {selectedVideo.title}
@@ -654,7 +676,7 @@ console.log('필터링 결과:', filteredVideos)
                       )}
 
                       <span>
-                        ▶
+                          {video.mediaType === 'audio' ? '♪' : '▶'}
                       </span>
 
                     </div>
