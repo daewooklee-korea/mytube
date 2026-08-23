@@ -50,11 +50,11 @@ useEffect(() => {
   }
 
   const { data: profile, error } =
-    await supabase
-      .from('profiles')
-      .select('status, role')
-      .eq('id', user.id)
-      .single()
+  await supabase
+    .from('profiles')
+    .select('status, role, nickname')
+    .eq('id', user.id)
+    .single()
 
   if (error || !profile) {
     await supabase.auth.signOut()
@@ -102,14 +102,15 @@ useEffect(() => {
       return
     }
 
-    const formattedVideos = data.map((video) => ({
-      id: video.id,
-      title: video.title,
-      views: `조회수 ${video.views}회`,
-      time: formatTime(video.created_at),
-      video: video.video_url,
-      thumbnail: video.thumbnail_url,
-    }))
+const formattedVideos = data.map((video) => ({
+  id: video.id,
+  title: video.title,
+  views: `조회수 ${video.views}회`,
+  rawViews: video.views,
+  time: formatTime(video.created_at),
+  video: video.video_url,
+  thumbnail: video.thumbnail_url,
+}))
 
     setVideos(formattedVideos)
   }
@@ -137,43 +138,142 @@ useEffect(() => {
     return `${Math.floor(diff / 86400)}일 전`
   }
 
-  const handleVideoClick = (video) => {
-    if (!video.video) return
+  const handleVideoClick = async (video) => {
+  if (!video.video) return
 
-    setSelectedVideo(video)
-    setLiked(false)
-    setLikeCount(0)
-    setCommentText('')
-    setComments([])
-  }
+  setSelectedVideo(video)
+  setCommentText('')
+  setComments([])
 
-  const handleLike = () => {
-    setLiked(!liked)
+  // 조회수 DB에서 증가
+  const { data, error } = await supabase
+    .from('videos')
+    .update({ views: video.rawViews + 1 })
+    .eq('id', video.id)
+    .select()
+    .single()
 
-    setLikeCount(
-      liked
-        ? likeCount - 1
-        : likeCount + 1
+  if (error) {
+    console.error('조회수 업데이트 실패:', error)
+  } else {
+    setVideos((prev) =>
+      prev.map((v) =>
+        v.id === video.id
+          ? { ...v, views: `조회수 ${data.views}회`, rawViews: data.views }
+          : v
+      )
+    )
+
+    setSelectedVideo((prev) =>
+      prev ? { ...prev, views: `조회수 ${data.views}회` } : prev
     )
   }
 
-  const handleComment = () => {
-    if (!commentText.trim()) {
+    // 좋아요 정보 불러오기
+  loadLikes(video.id)
+
+  // 댓글 불러오기
+  loadComments(video.id)
+}
+
+const loadLikes = async (videoId) => {
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // 전체 좋아요 개수
+  const { count } = await supabase
+    .from('likes')
+    .select('*', { count: 'exact', head: true })
+    .eq('video_id', videoId)
+
+  setLikeCount(count ?? 0)
+
+  // 내가 눌렀는지 확인
+  const { data: myLike } = await supabase
+    .from('likes')
+    .select('id')
+    .eq('video_id', videoId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  setLiked(!!myLike)
+}
+const loadComments = async (videoId) => {
+  const { data, error } = await supabase
+    .from('comments')
+    .select('id, content, user_nickname, created_at')
+    .eq('video_id', videoId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('댓글 불러오기 실패:', error)
+    return
+  }
+
+  setComments(data)
+}
+ 
+
+  const handleLike = async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (liked) {
+    // 좋아요 취소
+    const { error } = await supabase
+      .from('likes')
+      .delete()
+      .eq('video_id', selectedVideo.id)
+      .eq('user_id', user.id)
+
+    if (error) {
+      console.error('좋아요 취소 실패:', error)
       return
     }
 
-    const newComment = {
-      id: Date.now(),
-      text: commentText,
+    setLiked(false)
+    setLikeCount((prev) => prev - 1)
+  } else {
+    // 좋아요 추가
+    const { error } = await supabase
+      .from('likes')
+      .insert({ video_id: selectedVideo.id, user_id: user.id })
+
+    if (error) {
+      console.error('좋아요 추가 실패:', error)
+      return
     }
 
-    setComments([
-      ...comments,
-      newComment,
-    ])
-
-    setCommentText('')
+    setLiked(true)
+    setLikeCount((prev) => prev + 1)
   }
+}
+
+ const handleComment = async () => {
+  if (!commentText.trim()) {
+    return
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data, error } = await supabase
+  .from('comments')
+  .insert({
+    video_id: selectedVideo.id,
+    user_id: user.id,
+    user_nickname: profile.nickname,
+    content: commentText,
+  })
+  .select()
+  .single()
+
+  if (error) {
+    console.error('댓글 등록 실패:', error)
+    alert('댓글 등록에 실패했습니다.')
+    return
+  }
+
+  setComments([...comments, data])
+  setCommentText('')
+}
 
   const handleUpload = (newVideo) => {
     setVideos([
@@ -343,38 +443,38 @@ const handleLogout = async () => {
 
               </div>
 
-              <div className="comment-list">
+           <div className="comment-list">
 
-                {comments.map(
-                  (comment) => (
+  {comments.map(
+    (comment) => (
 
-                    <div
-                      className="comment"
-                      key={comment.id}
-                    >
+      <div
+        className="comment"
+        key={comment.id}
+      >
 
-                      <div className="comment-avatar">
-                        M
-                      </div>
+        <div className="comment-avatar">
+          {comment.user_nickname?.[0]?.toUpperCase()}
+        </div>
 
-                      <div>
+        <div>
 
-                        <strong>
-                          MyTube 사용자
-                        </strong>
+          <strong>
+            {comment.user_nickname}
+          </strong>
 
-                        <p>
-                          {comment.text}
-                        </p>
+          <p>
+            {comment.content}
+          </p>
 
-                      </div>
+        </div>
 
-                    </div>
+      </div>
 
-                  )
-                )}
+    )
+  )}
 
-              </div>
+</div>
 
             </section>
 
