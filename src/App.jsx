@@ -19,6 +19,8 @@ function App() {
   const [comments, setComments] = useState([])
 
   const [videos, setVideos] = useState([])
+  const [searchText, setSearchText] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('전체')
 
   // 로그인 상태 확인
 useEffect(() => {
@@ -139,6 +141,7 @@ const { data: profilesData, error: profilesError } = await supabase
     thumbnail: video.thumbnail_url,
     likeCount: likeCounts[video.id] ?? 0,
     uploaderNickname: nicknameMap[video.user_id] ?? '알 수 없음',
+    category: video.category,
   }))
 
   setVideos(formattedVideos)
@@ -346,7 +349,19 @@ const handleLogout = async () => {
     />
   )
 }
+const filteredVideos = videos.filter((video) => {
+  const matchesSearch = video.title
+    .toLowerCase()
+    .includes(searchText.toLowerCase())
 
+  const matchesCategory =
+    selectedCategory === '전체' || video.category === selectedCategory
+
+  return matchesSearch && matchesCategory
+})
+console.log('전체 videos:', videos)
+console.log('선택된 카테고리:', selectedCategory)
+console.log('필터링 결과:', filteredVideos)
   return (
   <div className="app">
 
@@ -533,18 +548,22 @@ const handleLogout = async () => {
               ▶ MyTube
             </div>
 
-            <div className="search">
+           <div className="search">
 
-              <input
-                type="text"
-                placeholder="검색"
-              />
+  <input
+    type="text"
+    placeholder="검색"
+    value={searchText}
+    onChange={(e) =>
+      setSearchText(e.target.value)
+    }
+  />
 
-              <button>
-                🔍
-              </button>
+  <button>
+    🔍
+  </button>
 
-            </div>
+</div>
 
            <div className="user-area">
   {profile?.role === 'admin' && (
@@ -573,14 +592,19 @@ const handleLogout = async () => {
 
           <nav className="menu">
 
-            <button>전체</button>
-            <button>음악</button>
-            <button>브이로그</button>
-            <button>여행</button>
-            <button>코미디</button>
-            <button>최신 영상</button>
+  {['전체', '음악', '브이로그', '여행', '코미디'].map((category) => (
+    <button
+      key={category}
+      onClick={() => setSelectedCategory(category)}
+      className={
+        selectedCategory === category ? 'active' : ''
+      }
+    >
+      {category}
+    </button>
+  ))}
 
-          </nav>
+</nav>
 
           <main className="content">
 
@@ -590,7 +614,7 @@ const handleLogout = async () => {
 
             <div className="video-grid">
 
-              {videos.map(
+            {filteredVideos.map(
                 (video) => (
 
                   <div

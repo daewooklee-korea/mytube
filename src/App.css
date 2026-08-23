@@ -144,8 +144,8 @@ body {
   flex-shrink: 0;
 }
 
-.menu button:first-child {
-  background: #222;
+.menu button.active {
+  background: #1a1a1a;
   color: white;
 }
 

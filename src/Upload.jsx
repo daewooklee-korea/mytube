@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 
 function Upload({ onUpload }) {
   const [title, setTitle] = useState('')
+  const [category, setCategory] = useState('음악')
   const [videoFile, setVideoFile] = useState(null)
   const [thumbnailFile, setThumbnailFile] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -103,6 +104,7 @@ const { error: databaseError } =
       thumbnail_url: thumbnailUrl,
       views: 0,
       user_id: user.id,
+      category: category,
     })
 
     if (databaseError) {
@@ -148,7 +150,19 @@ const { error: databaseError } =
           }
           placeholder="영상 제목을 입력하세요"
         />
+<label>카테고리</label>
 
+<select
+  value={category}
+  onChange={(e) =>
+    setCategory(e.target.value)
+  }
+>
+  <option value="음악">음악</option>
+  <option value="브이로그">브이로그</option>
+  <option value="여행">여행</option>
+  <option value="코미디">코미디</option>
+</select>
         <label>동영상 파일</label>
 
         <input
