@@ -587,7 +587,36 @@ body {
   justify-content: space-between;
   margin-bottom: 24px;
 }
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
 
+.admin-tabs button {
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #6b6b6b;
+  padding: 9px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-tabs button.active {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+
+.admin-table input[type='text'] {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  width: 100%;
+}
 .admin-header h1 {
   font-size: 20px;
   margin: 0;

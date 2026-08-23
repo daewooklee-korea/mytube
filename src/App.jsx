@@ -365,11 +365,16 @@ console.log('필터링 결과:', filteredVideos)
   return (
   <div className="app">
 
-    {showAdmin ? (
+   {showAdmin ? (
 
-      <Admin onClose={() => setShowAdmin(false)} />
+  <Admin
+    onClose={() => {
+      setShowAdmin(false)
+      loadVideos()
+    }}
+  />
 
-    ) : showUpload ? (
+) : showUpload ? (
 
       <Upload onUpload={handleUpload} />
 
