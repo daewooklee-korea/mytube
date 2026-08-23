@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { supabase } from './supabase'
 
 function Upload({ onUpload }) {
@@ -6,7 +6,58 @@ function Upload({ onUpload }) {
   const [category, setCategory] = useState('음악')
   const [videoFile, setVideoFile] = useState(null)
   const [thumbnailFile, setThumbnailFile] = useState(null)
+  const [thumbnailPreview, setThumbnailPreview] = useState(null)
+  const [capturing, setCapturing] = useState(false)
   const [uploading, setUploading] = useState(false)
+
+  const videoRef = useRef(null)
+  const canvasRef = useRef(null)
+
+  const handleVideoSelect = (file) => {
+    setVideoFile(file)
+    setThumbnailFile(null)
+    setThumbnailPreview(null)
+
+    if (!file) return
+
+    setCapturing(true)
+
+    const videoUrl = URL.createObjectURL(file)
+    const video = videoRef.current
+    video.src = videoUrl
+
+    video.onloadeddata = () => {
+      video.currentTime = 1
+    }
+
+    video.onseeked = () => {
+      const canvas = canvasRef.current
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+      canvas.toBlob((blob) => {
+        const capturedFile = new File([blob], 'thumbnail.jpg', {
+          type: 'image/jpeg',
+        })
+
+        setThumbnailFile(capturedFile)
+        setThumbnailPreview(URL.createObjectURL(blob))
+        setCapturing(false)
+
+        URL.revokeObjectURL(videoUrl)
+      }, 'image/jpeg')
+    }
+  }
+
+  const handleManualThumbnail = (file) => {
+    if (!file) return
+
+    setThumbnailFile(file)
+    setThumbnailPreview(URL.createObjectURL(file))
+  }
 
   const handleUpload = async () => {
     if (!title.trim()) {
@@ -20,7 +71,7 @@ function Upload({ onUpload }) {
     }
 
     if (!thumbnailFile) {
-      alert('썸네일 이미지를 선택해주세요.')
+      alert('썸네일을 준비 중입니다. 잠시 후 다시 시도해주세요.')
       return
     }
 
@@ -43,31 +94,22 @@ function Upload({ onUpload }) {
       return
     }
 
-    // 2. 영상 URL 가져오기
     const { data: videoData } = supabase.storage
       .from('Videos')
       .getPublicUrl(videoFileName)
 
     const videoUrl = videoData.publicUrl
 
-    // 3. 썸네일 업로드
-    const thumbnailExtension =
-      thumbnailFile.name.split('.').pop()
+    // 2. 썸네일 업로드
+    const thumbnailExtension = thumbnailFile.name.split('.').pop()
+    const thumbnailFileName = `thumbnail-${Date.now()}.${thumbnailExtension}`
 
-    const thumbnailFileName =
-      `thumbnail-${Date.now()}.${thumbnailExtension}`
-
-    const { error: thumbnailError } =
-      await supabase.storage
-        .from('Thumbnails')
-        .upload(
-          thumbnailFileName,
-          thumbnailFile,
-          {
-            contentType: thumbnailFile.type,
-            upsert: false,
-          }
-        )
+    const { error: thumbnailError } = await supabase.storage
+      .from('Thumbnails')
+      .upload(thumbnailFileName, thumbnailFile, {
+        contentType: thumbnailFile.type,
+        upsert: false,
+      })
 
     if (thumbnailError) {
       console.error(thumbnailError)
@@ -76,36 +118,32 @@ function Upload({ onUpload }) {
       return
     }
 
-    // 4. 썸네일 URL 가져오기
-    const { data: thumbnailData } =
-      supabase.storage
-        .from('Thumbnails')
-        .getPublicUrl(thumbnailFileName)
+    const { data: thumbnailData } = supabase.storage
+      .from('Thumbnails')
+      .getPublicUrl(thumbnailFileName)
 
-    const thumbnailUrl =
-      thumbnailData.publicUrl
+    const thumbnailUrl = thumbnailData.publicUrl
 
-   // 5. 현재 로그인한 사용자 확인
-const { data: { user } } = await supabase.auth.getUser()
+    // 3. 현재 로그인한 사용자 확인
+    const { data: { user } } = await supabase.auth.getUser()
 
-if (!user) {
-  alert('로그인이 필요합니다.')
-  setUploading(false)
-  return
-}
+    if (!user) {
+      alert('로그인이 필요합니다.')
+      setUploading(false)
+      return
+    }
 
-// 6. Database에 저장
-const { error: databaseError } =
-  await supabase
-    .from('videos')
-    .insert({
-      title: title,
-      video_url: videoUrl,
-      thumbnail_url: thumbnailUrl,
-      views: 0,
-      user_id: user.id,
-      category: category,
-    })
+    // 4. Database에 저장
+    const { error: databaseError } = await supabase
+      .from('videos')
+      .insert({
+        title: title,
+        video_url: videoUrl,
+        thumbnail_url: thumbnailUrl,
+        views: 0,
+        user_id: user.id,
+        category: category,
+      })
 
     if (databaseError) {
       console.error(databaseError)
@@ -114,20 +152,12 @@ const { error: databaseError } =
       return
     }
 
-    // 6. 화면에 바로 표시
-    const newVideo = {
-      title: title,
-      views: '조회수 0회',
-      time: '방금 전',
-      video: videoUrl,
-      thumbnail: thumbnailUrl,
-    }
-
-    onUpload(newVideo)
+    onUpload()
 
     setTitle('')
     setVideoFile(null)
     setThumbnailFile(null)
+    setThumbnailPreview(null)
     setUploading(false)
 
     alert('영상 업로드 성공!')
@@ -145,66 +175,71 @@ const { error: databaseError } =
         <input
           type="text"
           value={title}
-          onChange={(e) =>
-            setTitle(e.target.value)
-          }
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="영상 제목을 입력하세요"
         />
-<label>카테고리</label>
 
-<select
-  value={category}
-  onChange={(e) =>
-    setCategory(e.target.value)
-  }
->
-  <option value="음악">음악</option>
-  <option value="브이로그">브이로그</option>
-  <option value="여행">여행</option>
-  <option value="코미디">코미디</option>
-</select>
+        <label>카테고리</label>
+
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option value="음악">음악</option>
+          <option value="브이로그">브이로그</option>
+          <option value="여행">여행</option>
+          <option value="코미디">코미디</option>
+        </select>
+
         <label>동영상 파일</label>
 
         <input
           type="file"
           accept="video/*"
-          onChange={(e) =>
-            setVideoFile(e.target.files[0])
-          }
+          onChange={(e) => handleVideoSelect(e.target.files[0])}
         />
 
         {videoFile && (
-          <p>
-            선택한 영상: {videoFile.name}
-          </p>
+          <p>선택한 영상: {videoFile.name}</p>
         )}
 
-        <label>썸네일 이미지</label>
+        <label>썸네일</label>
+
+        {capturing && <p>썸네일을 캡처하는 중...</p>}
+
+        {thumbnailPreview && (
+          <img
+            src={thumbnailPreview}
+            alt="썸네일 미리보기"
+            style={{
+              width: '160px',
+              aspectRatio: '16 / 9',
+              objectFit: 'cover',
+              borderRadius: '8px',
+              marginTop: '8px',
+            }}
+          />
+        )}
 
         <input
           type="file"
           accept="image/*"
-          onChange={(e) =>
-            setThumbnailFile(e.target.files[0])
-          }
+          onChange={(e) => handleManualThumbnail(e.target.files[0])}
         />
 
-        {thumbnailFile && (
-          <p>
-            선택한 썸네일: {thumbnailFile.name}
-          </p>
-        )}
+        <p>영상에서 자동으로 캡처되며, 직접 이미지를 선택해 바꿀 수도 있어요.</p>
 
         <button
           onClick={handleUpload}
-          disabled={uploading}
+          disabled={uploading || capturing}
         >
-          {uploading
-            ? '업로드 중...'
-            : '영상 업로드'}
+          {uploading ? '업로드 중...' : '영상 업로드'}
         </button>
 
       </div>
+
+      <video ref={videoRef} style={{ display: 'none' }} muted />
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
 
     </div>
   )

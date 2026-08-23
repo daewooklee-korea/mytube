@@ -320,14 +320,10 @@ const loadComments = async (videoId) => {
   setCommentText('')
 }
 
-  const handleUpload = (newVideo) => {
-    setVideos([
-      newVideo,
-      ...videos,
-    ])
-
-    setShowUpload(false)
-  }
+  const handleUpload = () => {
+  setShowUpload(false)
+  loadVideos()
+}
 
 const handleLogout = async () => {
   await supabase.auth.signOut()
