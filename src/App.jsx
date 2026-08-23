@@ -88,32 +88,47 @@ useEffect(() => {
     }
   }, [user])
 
-  const loadVideos = async () => {
-    const { data, error } = await supabase
-      .from('videos')
-      .select('*')
-      .order('created_at', { ascending: false })
+ const loadVideos = async () => {
+  const { data, error } = await supabase
+    .from('videos')
+    .select('*')
+    .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error(
-        '영상 목록 불러오기 실패:',
-        error
-      )
-      return
-    }
-
-const formattedVideos = data.map((video) => ({
-  id: video.id,
-  title: video.title,
-  views: `조회수 ${video.views}회`,
-  rawViews: video.views,
-  time: formatTime(video.created_at),
-  video: video.video_url,
-  thumbnail: video.thumbnail_url,
-}))
-
-    setVideos(formattedVideos)
+  if (error) {
+    console.error(
+      '영상 목록 불러오기 실패:',
+      error
+    )
+    return
   }
+
+  // 전체 좋아요 목록 불러와서 영상별로 개수 세기
+  const { data: likesData, error: likesError } = await supabase
+    .from('likes')
+    .select('video_id')
+
+  if (likesError) {
+    console.error('좋아요 불러오기 실패:', likesError)
+  }
+
+  const likeCounts = {}
+  ;(likesData ?? []).forEach((like) => {
+    likeCounts[like.video_id] = (likeCounts[like.video_id] ?? 0) + 1
+  })
+
+  const formattedVideos = data.map((video) => ({
+    id: video.id,
+    title: video.title,
+    views: `조회수 ${video.views}회`,
+    rawViews: video.views,
+    time: formatTime(video.created_at),
+    video: video.video_url,
+    thumbnail: video.thumbnail_url,
+    likeCount: likeCounts[video.id] ?? 0,
+  }))
+
+  setVideos(formattedVideos)
+}
 
   const formatTime = (dateString) => {
     const date = new Date(dateString)
@@ -145,27 +160,26 @@ const formattedVideos = data.map((video) => ({
   setCommentText('')
   setComments([])
 
-  // 조회수 DB에서 증가
-  const { data, error } = await supabase
-    .from('videos')
-    .update({ views: video.rawViews + 1 })
-    .eq('id', video.id)
-    .select()
-    .single()
+   // 조회수 DB에서 증가 (RPC 함수 호출)
+  const { error } = await supabase.rpc('increment_view_count', {
+    video_id: video.id,
+  })
 
   if (error) {
     console.error('조회수 업데이트 실패:', error)
   } else {
+    const newViews = video.rawViews + 1
+
     setVideos((prev) =>
       prev.map((v) =>
         v.id === video.id
-          ? { ...v, views: `조회수 ${data.views}회`, rawViews: data.views }
+          ? { ...v, views: `조회수 ${newViews}회`, rawViews: newViews }
           : v
       )
     )
 
     setSelectedVideo((prev) =>
-      prev ? { ...prev, views: `조회수 ${data.views}회` } : prev
+      prev ? { ...prev, views: `조회수 ${newViews}회` } : prev
     )
   }
 
@@ -231,6 +245,13 @@ const loadComments = async (videoId) => {
 
     setLiked(false)
     setLikeCount((prev) => prev - 1)
+    setVideos((prev) =>
+      prev.map((v) =>
+        v.id === selectedVideo.id
+          ? { ...v, likeCount: v.likeCount - 1 }
+          : v
+      )
+    )
   } else {
     // 좋아요 추가
     const { error } = await supabase
@@ -242,8 +263,15 @@ const loadComments = async (videoId) => {
       return
     }
 
-    setLiked(true)
+     setLiked(true)
     setLikeCount((prev) => prev + 1)
+    setVideos((prev) =>
+      prev.map((v) =>
+        v.id === selectedVideo.id
+          ? { ...v, likeCount: v.likeCount + 1 }
+          : v
+      )
+    )
   }
 }
 
@@ -390,9 +418,9 @@ const handleLogout = async () => {
             </p>
 
             <p>
-              {selectedVideo.views} ·{' '}
-              {selectedVideo.time}
-            </p>
+  {selectedVideo.views} ·{' '}
+  {selectedVideo.time}
+</p>
 
             <div className="actions">
 
@@ -607,10 +635,14 @@ const handleLogout = async () => {
                           MyTube 채널
                         </p>
 
-                        <p>
-                          {video.views} ·{' '}
-                          {video.time}
-                        </p>
+                       <p>
+                        {video.views} ·{' '}
+                        {video.time}
+                      </p>
+
+<p>
+  ❤️ {video.likeCount}
+</p>
 
                       </div>
 
