@@ -116,6 +116,19 @@ useEffect(() => {
     likeCounts[like.video_id] = (likeCounts[like.video_id] ?? 0) + 1
   })
 
+  // 업로더 닉네임 불러오기
+const { data: profilesData, error: profilesError } = await supabase
+  .rpc('get_public_profiles')
+
+  if (profilesError) {
+    console.error('업로더 정보 불러오기 실패:', profilesError)
+  }
+
+  const nicknameMap = {}
+  ;(profilesData ?? []).forEach((p) => {
+    nicknameMap[p.id] = p.nickname
+  })
+
   const formattedVideos = data.map((video) => ({
     id: video.id,
     title: video.title,
@@ -125,6 +138,7 @@ useEffect(() => {
     video: video.video_url,
     thumbnail: video.thumbnail_url,
     likeCount: likeCounts[video.id] ?? 0,
+    uploaderNickname: nicknameMap[video.user_id] ?? '알 수 없음',
   }))
 
   setVideos(formattedVideos)
@@ -414,8 +428,8 @@ const handleLogout = async () => {
             </h1>
 
             <p>
-              MyTube 채널
-            </p>
+  {selectedVideo.uploaderNickname}
+</p>
 
             <p>
   {selectedVideo.views} ·{' '}
@@ -631,9 +645,9 @@ const handleLogout = async () => {
                           {video.title}
                         </h3>
 
-                        <p>
-                          MyTube 채널
-                        </p>
+                       <p>
+  {video.uploaderNickname}
+</p>
 
                        <p>
                         {video.views} ·{' '}
