@@ -12,6 +12,8 @@ function Admin({ onClose }) {
   const [editingId, setEditingId] = useState(null)
   const [editTitle, setEditTitle] = useState('')
   const [editCategory, setEditCategory] = useState('전체')
+  const [editingNicknameId, setEditingNicknameId] = useState(null)
+  const [editNickname, setEditNickname] = useState('')
 
   useEffect(() => {
     loadProfiles()
@@ -93,7 +95,41 @@ function Admin({ onClose }) {
       )
     )
   }
+const startEditingNickname = (profile) => {
+  setEditingNicknameId(profile.id)
+  setEditNickname(profile.nickname ?? '')
+}
 
+const cancelEditingNickname = () => {
+  setEditingNicknameId(null)
+  setEditNickname('')
+}
+
+const saveNickname = async (id) => {
+  if (!editNickname.trim()) {
+    alert('닉네임을 입력해주세요.')
+    return
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ nickname: editNickname })
+    .eq('id', id)
+
+  if (error) {
+    console.error('닉네임 변경 실패:', error)
+    alert('닉네임 변경에 실패했습니다.')
+    return
+  }
+
+  setProfiles((prev) =>
+    prev.map((p) =>
+      p.id === id ? { ...p, nickname: editNickname } : p
+    )
+  )
+
+  cancelEditingNickname()
+}
   const startEditing = (video) => {
     setEditingId(video.id)
     setEditTitle(video.title)
@@ -181,21 +217,52 @@ function Admin({ onClose }) {
         ) : (
           <table className="admin-table">
             <thead>
-              <tr>
-                <th>이메일</th>
-                <th>가입일</th>
-                <th>상태</th>
-                <th>역할</th>
-                <th>작업</th>
-              </tr>
-            </thead>
-            <tbody>
-              {profiles.map((profile) => (
-                <tr key={profile.id}>
-                  <td>{profile.email}</td>
-                  <td>
-                    {new Date(profile.created_at).toLocaleDateString('ko-KR')}
-                  </td>
+  <tr>
+    <th>닉네임</th>
+    <th>이메일</th>
+    <th>가입일</th>
+    <th>상태</th>
+    <th>역할</th>
+    <th>작업</th>
+  </tr>
+</thead>
+           <tbody>
+  {profiles.map((profile) => (
+    <tr key={profile.id}>
+      <td>
+        {editingNicknameId === profile.id ? (
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <input
+              type="text"
+              value={editNickname}
+              onChange={(e) => setEditNickname(e.target.value)}
+            />
+            <button
+              className="approve-button"
+              onClick={() => saveNickname(profile.id)}
+            >
+              저장
+            </button>
+            <button
+              className="reject-button"
+              onClick={cancelEditingNickname}
+            >
+              취소
+            </button>
+          </div>
+        ) : (
+          <span
+            onClick={() => startEditingNickname(profile)}
+            style={{ cursor: 'pointer' }}
+          >
+            {profile.nickname ?? '-'} ✏️
+          </span>
+        )}
+      </td>
+      <td>{profile.email}</td>
+      <td>
+        {new Date(profile.created_at).toLocaleDateString('ko-KR')}
+      </td>
                   <td>
                     <span className={`status-badge status-${profile.status}`}>
                       {profile.status}
