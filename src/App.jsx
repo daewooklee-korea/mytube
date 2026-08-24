@@ -9,6 +9,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [showAdmin, setShowAdmin] = useState(false)
+
   const [selectedVideo, setSelectedVideo] = useState(null)
   const [showUpload, setShowUpload] = useState(false)
 
@@ -22,131 +23,176 @@ function App() {
   const [searchText, setSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('전체')
 
+  // =========================
   // 로그인 상태 확인
-useEffect(() => {
-  checkUser()
+  // =========================
 
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange(
-    (_event, session) => {
-      if (!session?.user) {
-        setUser(null)
+  useEffect(() => {
+    checkUser()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (!session?.user) {
+          setUser(null)
+        }
       }
-    }
-  )
+    )
 
-  return () => {
-    subscription.unsubscribe()
-  }
-}, [])
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const checkUser = async () => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  if (!user) {
-    setUser(null)
-    return
+    if (!user) {
+      setUser(null)
+      return
+    }
+
+    const { data: profile, error } =
+      await supabase
+        .from('profiles')
+        .select('status, role, nickname')
+        .eq('id', user.id)
+        .single()
+
+    if (error || !profile) {
+      await supabase.auth.signOut()
+      setUser(null)
+      return
+    }
+
+    if (profile.status === 'pending') {
+      await supabase.auth.signOut()
+      setUser(null)
+      alert('관리자 승인 대기 중입니다.')
+      return
+    }
+
+    if (profile.status === 'rejected') {
+      await supabase.auth.signOut()
+      setUser(null)
+      alert('가입이 승인되지 않았습니다.')
+      return
+    }
+
+    setProfile(profile)
+    console.log('현재 profile:', profile)
+    setUser(user)
   }
 
-  const { data: profile, error } =
-  await supabase
-    .from('profiles')
-    .select('status, role, nickname')
-    .eq('id', user.id)
-    .single()
+  // =========================
+  // 영상 목록
+  // =========================
 
-  if (error || !profile) {
-    await supabase.auth.signOut()
-    setUser(null)
-    return
-  }
-
-  if (profile.status === 'pending') {
-    await supabase.auth.signOut()
-    setUser(null)
-    alert('관리자 승인 대기 중입니다.')
-    return
-  }
-
-  if (profile.status === 'rejected') {
-    await supabase.auth.signOut()
-    setUser(null)
-    alert('가입이 승인되지 않았습니다.')
-    return
-  }
-
-  setProfile(profile)
-  console.log('현재 profile:', profile)
-  setUser(user)
-}
-
-  // Supabase에서 영상 목록 가져오기
   useEffect(() => {
     if (user) {
       loadVideos()
     }
   }, [user])
 
- const loadVideos = async () => {
-  const { data, error } = await supabase
-    .from('videos')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const loadVideos = async () => {
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error(
-      '영상 목록 불러오기 실패:',
-      error
+    if (error) {
+      console.error(
+        '영상 목록 불러오기 실패:',
+        error
+      )
+      return
+    }
+
+    // 전체 좋아요 목록
+    const {
+      data: likesData,
+      error: likesError,
+    } = await supabase
+      .from('likes')
+      .select('video_id')
+
+    if (likesError) {
+      console.error(
+        '좋아요 불러오기 실패:',
+        likesError
+      )
+    }
+
+    const likeCounts = {}
+
+    ;(likesData ?? []).forEach((like) => {
+      likeCounts[like.video_id] =
+        (likeCounts[like.video_id] ?? 0) + 1
+    })
+
+    // 업로더 닉네임
+    const {
+      data: profilesData,
+      error: profilesError,
+    } = await supabase.rpc(
+      'get_public_profiles'
     )
-    return
+
+    if (profilesError) {
+      console.error(
+        '업로더 정보 불러오기 실패:',
+        profilesError
+      )
+    }
+
+    const nicknameMap = {}
+
+    ;(profilesData ?? []).forEach((p) => {
+      nicknameMap[p.id] = p.nickname
+    })
+
+    const formattedVideos = data.map(
+      (video) => ({
+        id: video.id,
+        title: video.title,
+
+        views: `조회수 ${video.views}회`,
+        rawViews: video.views,
+
+        time: formatTime(
+          video.created_at
+        ),
+
+        video: video.video_url,
+        thumbnail: video.thumbnail_url,
+
+        likeCount:
+          likeCounts[video.id] ?? 0,
+
+        uploaderNickname:
+          nicknameMap[video.user_id] ??
+          '알 수 없음',
+
+        category: video.category,
+
+        mediaType:
+          video.media_type ?? 'video',
+
+        // ⭐ 설명 / 가사
+        description:
+          video.description ?? null,
+      })
+    )
+
+    setVideos(formattedVideos)
   }
 
-  // 전체 좋아요 목록 불러와서 영상별로 개수 세기
-  const { data: likesData, error: likesError } = await supabase
-    .from('likes')
-    .select('video_id')
-
-  if (likesError) {
-    console.error('좋아요 불러오기 실패:', likesError)
-  }
-
-  const likeCounts = {}
-  ;(likesData ?? []).forEach((like) => {
-    likeCounts[like.video_id] = (likeCounts[like.video_id] ?? 0) + 1
-  })
-
-  // 업로더 닉네임 불러오기
-const { data: profilesData, error: profilesError } = await supabase
-  .rpc('get_public_profiles')
-
-  if (profilesError) {
-    console.error('업로더 정보 불러오기 실패:', profilesError)
-  }
-
-  const nicknameMap = {}
-  ;(profilesData ?? []).forEach((p) => {
-    nicknameMap[p.id] = p.nickname
-  })
-
-  const formattedVideos = data.map((video) => ({
-  id: video.id,
-  title: video.title,
-  views: `조회수 ${video.views}회`,
-  rawViews: video.views,
-  time: formatTime(video.created_at),
-  video: video.video_url,
-  thumbnail: video.thumbnail_url,
-  likeCount: likeCounts[video.id] ?? 0,
-  uploaderNickname: nicknameMap[video.user_id] ?? '알 수 없음',
-  category: video.category,
-  mediaType: video.media_type ?? 'video',
-}))
-
-  setVideos(formattedVideos)
-}
+  // =========================
+  // 시간 표시
+  // =========================
 
   const formatTime = (dateString) => {
     const date = new Date(dateString)
@@ -161,260 +207,447 @@ const { data: profilesData, error: profilesError } = await supabase
     }
 
     if (diff < 3600) {
-      return `${Math.floor(diff / 60)}분 전`
+      return `${Math.floor(
+        diff / 60
+      )}분 전`
     }
 
     if (diff < 86400) {
-      return `${Math.floor(diff / 3600)}시간 전`
+      return `${Math.floor(
+        diff / 3600
+      )}시간 전`
     }
 
-    return `${Math.floor(diff / 86400)}일 전`
+    return `${Math.floor(
+      diff / 86400
+    )}일 전`
   }
 
-  const handleVideoClick = async (video) => {
-  if (!video.video) return
+  // =========================
+  // 영상 선택
+  // =========================
 
-  setSelectedVideo(video)
-  setCommentText('')
-  setComments([])
+  const handleVideoClick = async (
+    video
+  ) => {
+    if (!video.video) return
 
-   // 조회수 DB에서 증가 (RPC 함수 호출)
-  const { error } = await supabase.rpc('increment_view_count', {
-    video_id: video.id,
-  })
+    setSelectedVideo(video)
+    setCommentText('')
+    setComments([])
 
-  if (error) {
-    console.error('조회수 업데이트 실패:', error)
-  } else {
-    const newViews = video.rawViews + 1
-
-    setVideos((prev) =>
-      prev.map((v) =>
-        v.id === video.id
-          ? { ...v, views: `조회수 ${newViews}회`, rawViews: newViews }
-          : v
+    // 조회수 증가
+    const { error } =
+      await supabase.rpc(
+        'increment_view_count',
+        {
+          video_id: video.id,
+        }
       )
-    )
 
-    setSelectedVideo((prev) =>
-      prev ? { ...prev, views: `조회수 ${newViews}회` } : prev
-    )
+    if (error) {
+      console.error(
+        '조회수 업데이트 실패:',
+        error
+      )
+    } else {
+      const newViews =
+        video.rawViews + 1
+
+      setVideos((prev) =>
+        prev.map((v) =>
+          v.id === video.id
+            ? {
+                ...v,
+                views: `조회수 ${newViews}회`,
+                rawViews: newViews,
+              }
+            : v
+        )
+      )
+
+      setSelectedVideo((prev) =>
+        prev
+          ? {
+              ...prev,
+              views: `조회수 ${newViews}회`,
+            }
+          : prev
+      )
+    }
+
+    loadLikes(video.id)
+    loadComments(video.id)
   }
 
-    // 좋아요 정보 불러오기
-  loadLikes(video.id)
+  // =========================
+  // 좋아요
+  // =========================
 
-  // 댓글 불러오기
-  loadComments(video.id)
-}
+  const loadLikes = async (
+    videoId
+  ) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-const loadLikes = async (videoId) => {
-  const { data: { user } } = await supabase.auth.getUser()
+    // 전체 좋아요
+    const { count } =
+      await supabase
+        .from('likes')
+        .select('*', {
+          count: 'exact',
+          head: true,
+        })
+        .eq(
+          'video_id',
+          videoId
+        )
 
-  // 전체 좋아요 개수
-  const { count } = await supabase
-    .from('likes')
-    .select('*', { count: 'exact', head: true })
-    .eq('video_id', videoId)
+    setLikeCount(count ?? 0)
 
-  setLikeCount(count ?? 0)
+    // 내가 눌렀는지
+    const { data: myLike } =
+      await supabase
+        .from('likes')
+        .select('id')
+        .eq(
+          'video_id',
+          videoId
+        )
+        .eq(
+          'user_id',
+          user.id
+        )
+        .maybeSingle()
 
-  // 내가 눌렀는지 확인
-  const { data: myLike } = await supabase
-    .from('likes')
-    .select('id')
-    .eq('video_id', videoId)
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  setLiked(!!myLike)
-}
-const loadComments = async (videoId) => {
-  const { data, error } = await supabase
-    .from('comments')
-    .select('id, content, user_nickname, created_at')
-    .eq('video_id', videoId)
-    .order('created_at', { ascending: true })
-
-  if (error) {
-    console.error('댓글 불러오기 실패:', error)
-    return
+    setLiked(!!myLike)
   }
-
-  setComments(data)
-}
- 
 
   const handleLike = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  if (liked) {
-    // 좋아요 취소
-    const { error } = await supabase
-      .from('likes')
-      .delete()
-      .eq('video_id', selectedVideo.id)
-      .eq('user_id', user.id)
+    if (liked) {
+      const { error } =
+        await supabase
+          .from('likes')
+          .delete()
+          .eq(
+            'video_id',
+            selectedVideo.id
+          )
+          .eq(
+            'user_id',
+            user.id
+          )
+
+      if (error) {
+        console.error(
+          '좋아요 취소 실패:',
+          error
+        )
+        return
+      }
+
+      setLiked(false)
+      setLikeCount(
+        (prev) => prev - 1
+      )
+
+      setVideos((prev) =>
+        prev.map((v) =>
+          v.id === selectedVideo.id
+            ? {
+                ...v,
+                likeCount:
+                  v.likeCount - 1,
+              }
+            : v
+        )
+      )
+    } else {
+      const { error } =
+        await supabase
+          .from('likes')
+          .insert({
+            video_id:
+              selectedVideo.id,
+            user_id: user.id,
+          })
+
+      if (error) {
+        console.error(
+          '좋아요 추가 실패:',
+          error
+        )
+        return
+      }
+
+      setLiked(true)
+      setLikeCount(
+        (prev) => prev + 1
+      )
+
+      setVideos((prev) =>
+        prev.map((v) =>
+          v.id === selectedVideo.id
+            ? {
+                ...v,
+                likeCount:
+                  v.likeCount + 1,
+              }
+            : v
+        )
+      )
+    }
+  }
+
+  // =========================
+  // 댓글
+  // =========================
+
+  const loadComments = async (
+    videoId
+  ) => {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from('comments')
+      .select(
+        'id, content, user_nickname, created_at'
+      )
+      .eq(
+        'video_id',
+        videoId
+      )
+      .order(
+        'created_at',
+        {
+          ascending: true,
+        }
+      )
 
     if (error) {
-      console.error('좋아요 취소 실패:', error)
+      console.error(
+        '댓글 불러오기 실패:',
+        error
+      )
       return
     }
 
-    setLiked(false)
-    setLikeCount((prev) => prev - 1)
-    setVideos((prev) =>
-      prev.map((v) =>
-        v.id === selectedVideo.id
-          ? { ...v, likeCount: v.likeCount - 1 }
-          : v
-      )
-    )
-  } else {
-    // 좋아요 추가
-    const { error } = await supabase
-      .from('likes')
-      .insert({ video_id: selectedVideo.id, user_id: user.id })
+    setComments(data)
+  }
 
-    if (error) {
-      console.error('좋아요 추가 실패:', error)
+  const handleComment = async () => {
+    if (!commentText.trim()) {
       return
     }
 
-     setLiked(true)
-    setLikeCount((prev) => prev + 1)
-    setVideos((prev) =>
-      prev.map((v) =>
-        v.id === selectedVideo.id
-          ? { ...v, likeCount: v.likeCount + 1 }
-          : v
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    const {
+      data,
+      error,
+    } = await supabase
+      .from('comments')
+      .insert({
+        video_id:
+          selectedVideo.id,
+        user_id: user.id,
+        user_nickname:
+          profile.nickname,
+        content:
+          commentText,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error(
+        '댓글 등록 실패:',
+        error
       )
-    )
-  }
-}
+      alert(
+        '댓글 등록에 실패했습니다.'
+      )
+      return
+    }
 
- const handleComment = async () => {
-  if (!commentText.trim()) {
-    return
-  }
+    setComments([
+      ...comments,
+      data,
+    ])
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { data, error } = await supabase
-  .from('comments')
-  .insert({
-    video_id: selectedVideo.id,
-    user_id: user.id,
-    user_nickname: profile.nickname,
-    content: commentText,
-  })
-  .select()
-  .single()
-
-  if (error) {
-    console.error('댓글 등록 실패:', error)
-    alert('댓글 등록에 실패했습니다.')
-    return
+    setCommentText('')
   }
 
-  setComments([...comments, data])
-  setCommentText('')
-}
+  // =========================
+  // 업로드
+  // =========================
 
   const handleUpload = () => {
-  setShowUpload(false)
-  loadVideos()
-}
+    setShowUpload(false)
+    loadVideos()
+  }
 
-const handleLogout = async () => {
-  await supabase.auth.signOut()
+  // =========================
+  // 로그아웃
+  // =========================
 
-  setUser(null)
-  setProfile(null)
-  setSelectedVideo(null)
-  setShowUpload(false)
-  setShowAdmin(false)
-}
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
 
-  // 로그인하지 않은 경우
- if (!user) {
+    setUser(null)
+    setProfile(null)
+    setSelectedVideo(null)
+    setShowUpload(false)
+    setShowAdmin(false)
+  }
+
+  // =========================
+  // 로그인 안 된 경우
+  // =========================
+
+  if (!user) {
+    return (
+      <Login
+        onLogin={() => {
+          checkUser()
+        }}
+      />
+    )
+  }
+
+  // =========================
+  // 검색 / 카테고리
+  // =========================
+
+  const filteredVideos =
+    videos.filter((video) => {
+      const matchesSearch =
+        video.title
+          .toLowerCase()
+          .includes(
+            searchText.toLowerCase()
+          )
+
+      const matchesCategory =
+        selectedCategory ===
+          '전체' ||
+        video.category ===
+          selectedCategory
+
+      return (
+        matchesSearch &&
+        matchesCategory
+      )
+    })
+
+  // =========================
+  // 화면
+  // =========================
+
   return (
-    <Login
-      onLogin={() => {
-        checkUser()
-      }}
-    />
-  )
-}
-const filteredVideos = videos.filter((video) => {
-  const matchesSearch = video.title
-    .toLowerCase()
-    .includes(searchText.toLowerCase())
+    <div className="app">
 
-  const matchesCategory =
-    selectedCategory === '전체' || video.category === selectedCategory
+      {/* =========================
+          관리자
+      ========================= */}
 
-  return matchesSearch && matchesCategory
-})
-console.log('전체 videos:', videos)
-console.log('선택된 카테고리:', selectedCategory)
-console.log('필터링 결과:', filteredVideos)
-  return (
-  <div className="app">
+      {showAdmin ? (
 
-   {showAdmin ? (
+        <Admin
+          onClose={() => {
+            setShowAdmin(false)
+            loadVideos()
+          }}
+        />
 
-  <Admin
-    onClose={() => {
-      setShowAdmin(false)
-      loadVideos()
-    }}
-  />
+      ) : showUpload ? (
 
-) : showUpload ? (
+        <Upload
+          onUpload={handleUpload}
+        />
 
-      <Upload onUpload={handleUpload} />
+      ) : selectedVideo ? (
 
-    ) : selectedVideo ? (
+        /* =========================
+           재생 페이지
+        ========================= */
 
         <>
           <header className="header">
 
             <div
-  className="logo"
-  onClick={() => setSelectedVideo(null)}
-  style={{ cursor: 'pointer' }}
->
-  <svg width="24" height="24" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-    <rect x="1" y="1" width="30" height="30" rx="9" fill="#1a1a1a" />
-    <path d="M13 10.5L22 16L13 21.5V10.5Z" fill="#ffffff" />
-  </svg>
-  PlayMe
-</div>
+              className="logo"
+              onClick={() =>
+                setSelectedVideo(null)
+              }
+              style={{
+                cursor: 'pointer',
+              }}
+            >
 
-<div className="user-area">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 32 32"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  x="1"
+                  y="1"
+                  width="30"
+                  height="30"
+                  rx="9"
+                  fill="#1a1a1a"
+                />
 
-  {profile?.role === 'admin' && (
-    <button
-      className="admin-button"
-      onClick={() => setShowAdmin(true)}
-    >
-      관리자
-    </button>
-  )}
+                <path
+                  d="M13 10.5L22 16L13 21.5V10.5Z"
+                  fill="#ffffff"
+                />
+              </svg>
 
-  <span>
-    {user.email}
-  </span>
+              PlayMe
 
-  <button
-    className="login"
-    onClick={handleLogout}
-  >
-    로그아웃
-  </button>
+            </div>
 
-</div>
+            <div className="user-area">
+
+              {profile?.role ===
+                'admin' && (
+
+                <button
+                  className="admin-button"
+                  onClick={() =>
+                    setShowAdmin(true)
+                  }
+                >
+                  관리자
+                </button>
+
+              )}
+
+              <span>
+                {user.email}
+              </span>
+
+              <button
+                className="login"
+                onClick={
+                  handleLogout
+                }
+              >
+                로그아웃
+              </button>
+
+            </div>
 
           </header>
 
@@ -423,66 +656,93 @@ console.log('필터링 결과:', filteredVideos)
             <button
               className="back-button"
               onClick={() =>
-                setSelectedVideo(null)
+                setSelectedVideo(
+                  null
+                )
               }
             >
               ← 홈으로
             </button>
 
+            {/* =========================
+                플레이어
+            ========================= */}
+
             <div className="player">
 
-  {selectedVideo.mediaType === 'audio' ? (
+              {selectedVideo.mediaType ===
+              'audio' ? (
 
-    <div className="audio-player">
+                /*
+                 * 음악
+                 * 썸네일을 표시하지 않음
+                 */
 
-      <img
-        src={selectedVideo.thumbnail}
-        alt={selectedVideo.title}
-      />
+                <div className="audio-player">
 
-      <audio
-        src={selectedVideo.video}
-        controls
-        autoPlay
-      />
+                  <audio
+                    src={
+                      selectedVideo.video
+                    }
+                    controls
+                    autoPlay
+                    playsInline
+                  />
 
-    </div>
+                </div>
 
-  ) : (
+              ) : (
 
-    <video
-      src={selectedVideo.video}
-      controls
-      autoPlay
-      playsInline
-    />
+                /*
+                 * 영상
+                 */
 
-  )}
+                <video
+                  src={
+                    selectedVideo.video
+                  }
+                  controls
+                  autoPlay
+                  playsInline
+                />
 
-</div>
+              )}
+
+            </div>
+
+            {/* 제목 */}
 
             <h1>
               {selectedVideo.title}
             </h1>
 
-            <p>
-  {selectedVideo.uploaderNickname}
-</p>
+            {/* 업로더 */}
 
             <p>
-  {selectedVideo.views} ·{' '}
-  {selectedVideo.time}
-</p>
+              {selectedVideo.uploaderNickname}
+            </p>
+
+            {/* 조회수 */}
+
+            <p>
+              {selectedVideo.views}
+              {' · '}
+              {selectedVideo.time}
+            </p>
+
+            {/* 좋아요 / 공유 */}
 
             <div className="actions">
 
               <button
-                onClick={handleLike}
+                onClick={
+                  handleLike
+                }
               >
                 {liked
                   ? '❤️ 좋아요 취소'
-                  : '👍 좋아요'
-                } {likeCount}
+                  : '👍 좋아요'}{' '}
+                {likeCount}
               </button>
 
               <button>
@@ -490,6 +750,51 @@ console.log('필터링 결과:', filteredVideos)
               </button>
 
             </div>
+
+            {/* =========================
+                설명 / 가사
+            ========================= */}
+
+            {selectedVideo.description && (
+
+              <section className="description-section">
+
+                <h2>
+                  {selectedVideo.mediaType ===
+                  'audio'
+                    ? '가사'
+                    : '영상 설명'}
+                </h2>
+
+                <div className="description-box">
+
+                  {selectedVideo.description
+                    .split('\n')
+                    .map(
+                      (
+                        line,
+                        index
+                      ) => (
+                        <p
+                          key={
+                            index
+                          }
+                        >
+                          {line ||
+                            '\u00A0'}
+                        </p>
+                      )
+                    )}
+
+                </div>
+
+              </section>
+
+            )}
+
+            {/* =========================
+                댓글
+            ========================= */}
 
             <section className="comments">
 
@@ -501,14 +806,19 @@ console.log('필터링 결과:', filteredVideos)
 
                 <input
                   type="text"
-                  value={commentText}
+                  value={
+                    commentText
+                  }
                   onChange={(e) =>
                     setCommentText(
                       e.target.value
                     )
                   }
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (
+                      e.key ===
+                      'Enter'
+                    ) {
                       handleComment()
                     }
                   }}
@@ -516,45 +826,55 @@ console.log('필터링 결과:', filteredVideos)
                 />
 
                 <button
-                  onClick={handleComment}
+                  onClick={
+                    handleComment
+                  }
                 >
                   댓글 등록
                 </button>
 
               </div>
 
-           <div className="comment-list">
+              <div className="comment-list">
 
-  {comments.map(
-    (comment) => (
+                {comments.map(
+                  (comment) => (
 
-      <div
-        className="comment"
-        key={comment.id}
-      >
+                    <div
+                      className="comment"
+                      key={
+                        comment.id
+                      }
+                    >
 
-        <div className="comment-avatar">
-          {comment.user_nickname?.[0]?.toUpperCase()}
-        </div>
+                      <div className="comment-avatar">
+                        {comment
+                          .user_nickname?.[0]
+                          ?.toUpperCase()}
+                      </div>
 
-        <div>
+                      <div>
 
-          <strong>
-            {comment.user_nickname}
-          </strong>
+                        <strong>
+                          {
+                            comment.user_nickname
+                          }
+                        </strong>
 
-          <p>
-            {comment.content}
-          </p>
+                        <p>
+                          {
+                            comment.content
+                          }
+                        </p>
 
-        </div>
+                      </div>
 
-      </div>
+                    </div>
 
-    )
-  )}
+                  )
+                )}
 
-</div>
+              </div>
 
             </section>
 
@@ -563,87 +883,173 @@ console.log('필터링 결과:', filteredVideos)
 
       ) : (
 
+        /* =========================
+           홈
+        ========================= */
+
         <>
 
           <header className="header">
 
-           <div className="logo">
-  <svg width="24" height="24" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-    <rect x="1" y="1" width="30" height="30" rx="9" fill="#1a1a1a" />
-    <path d="M13 10.5L22 16L13 21.5V10.5Z" fill="#ffffff" />
-  </svg>
-  PlayMe
-</div>
+            <div className="logo">
 
-           <div className="search">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 32 32"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  x="1"
+                  y="1"
+                  width="30"
+                  height="30"
+                  rx="9"
+                  fill="#1a1a1a"
+                />
 
-  <input
-    type="text"
-    placeholder="검색"
-    value={searchText}
-    onChange={(e) =>
-      setSearchText(e.target.value)
-    }
-  />
+                <path
+                  d="M13 10.5L22 16L13 21.5V10.5Z"
+                  fill="#ffffff"
+                />
+              </svg>
 
-  <button>
-    🔍
-  </button>
+              PlayMe
 
-</div>
+            </div>
 
-           <div className="user-area">
-  {profile?.role === 'admin' && (
-    <button className="admin-button" onClick={() => setShowAdmin(true)}>
-      관리자
-    </button>
-  )}
-  <span>{user.email}</span>
-  <button className="login" onClick={handleLogout}>
-    로그아웃
-  </button>
-</div>
+            <div className="search">
 
-{(profile?.role === 'creator' || profile?.role === 'admin') && (
-  <button
-    className="upload-button"
-    onClick={() =>
-      setShowUpload(true)
-    }
-  >
-    ＋ 업로드
-  </button>
-)}
+              <input
+                type="text"
+                placeholder="검색"
+                value={
+                  searchText
+                }
+                onChange={(e) =>
+                  setSearchText(
+                    e.target.value
+                  )
+                }
+              />
+
+              <button>
+                🔍
+              </button>
+
+            </div>
+
+            <div className="user-area">
+
+              {profile?.role ===
+                'admin' && (
+
+                <button
+                  className="admin-button"
+                  onClick={() =>
+                    setShowAdmin(true)
+                  }
+                >
+                  관리자
+                </button>
+
+              )}
+
+              <span>
+                {user.email}
+              </span>
+
+              <button
+                className="login"
+                onClick={
+                  handleLogout
+                }
+              >
+                로그아웃
+              </button>
+
+            </div>
+
+            {(profile?.role ===
+              'creator' ||
+              profile?.role ===
+                'admin') && (
+
+              <button
+                className="upload-button"
+                onClick={() =>
+                  setShowUpload(true)
+                }
+              >
+                ＋ 업로드
+              </button>
+
+            )}
 
           </header>
 
+          {/* =========================
+              카테고리
+          ========================= */}
+
           <nav className="menu">
 
-  {['전체', '음악', '브이로그', '여행', '코미디'].map((category) => (
-    <button
-      key={category}
-      onClick={() => setSelectedCategory(category)}
-      className={
-        selectedCategory === category ? 'active' : ''
-      }
-    >
-      {category}
-    </button>
-  ))}
+            {[
+              '전체',
+              '음악',
+              '브이로그',
+              '여행',
+              '코미디',
+            ].map(
+              (category) => (
 
-</nav>
+                <button
+                  key={
+                    category
+                  }
+                  onClick={() =>
+                    setSelectedCategory(
+                      category
+                    )
+                  }
+                  className={
+                    selectedCategory ===
+                    category
+                      ? 'active'
+                      : ''
+                  }
+                >
+                  {category}
+                </button>
+
+              )
+            )}
+
+          </nav>
+
+          {/* =========================
+              영상 목록
+          ========================= */}
 
           <main className="content">
 
+            <h2>
+              {selectedCategory ===
+              '전체'
+                ? '추천 영상'
+                : selectedCategory}
+            </h2>
 
             <div className="video-grid">
 
-            {filteredVideos.map(
+              {filteredVideos.map(
                 (video) => (
 
                   <div
                     className="video-card"
-                    key={video.id}
+                    key={
+                      video.id
+                    }
                     onClick={() =>
                       handleVideoClick(
                         video
@@ -662,42 +1068,72 @@ console.log('필터링 결과:', filteredVideos)
                       {video.thumbnail ? (
 
                         <img
-                          src={video.thumbnail}
-                          alt={video.title}
+                          src={
+                            video.thumbnail
+                          }
+                          alt={
+                            video.title
+                          }
                         />
 
                       ) : (
 
                         <video
-                          src={video.video}
+                          src={
+                            video.video
+                          }
                           muted
                         />
 
                       )}
 
                       <span>
-                          {video.mediaType === 'audio' ? '♪' : '▶'}
+                        {video.mediaType ===
+                        'audio'
+                          ? '♪'
+                          : '▶'}
                       </span>
 
                     </div>
 
-              <div className="video-info">
+                    <div className="video-info">
 
-  <div className="video-info-top">
-    <h3>
-      {video.title}
-    </h3>
+                      <div className="video-info-top">
 
-    <span className="category-badge">
-      {video.category}
-    </span>
-  </div>
+                        <h3>
+                          {
+                            video.title
+                          }
+                        </h3>
 
-  <p>
-    {video.uploaderNickname} · {video.views} · {video.time} · ❤️ {video.likeCount}
-  </p>
+                        <span className="category-badge">
+                          {
+                            video.category
+                          }
+                        </span>
 
-</div>
+                      </div>
+
+                      <p>
+                        {
+                          video.uploaderNickname
+                        }
+                        {' · '}
+                        {
+                          video.views
+                        }
+                        {' · '}
+                        {
+                          video.time
+                        }
+                        {' · '}
+                        ❤️{' '}
+                        {
+                          video.likeCount
+                        }
+                      </p>
+
+                    </div>
 
                   </div>
 
