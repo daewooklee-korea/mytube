@@ -273,7 +273,6 @@ function Admin({ onClose }) {
       video.description ?? ''
     )
 
-    // 새 파일 선택 상태 초기화
     setEditMediaFile(null)
     setEditThumbnailFile(null)
   }
@@ -341,7 +340,7 @@ function Admin({ onClose }) {
   }
 
   // =========================
-  // 영상 파일 업로드
+  // 영상 / 음악 파일 업로드
   // =========================
 
   const uploadMediaFile = async (
@@ -471,8 +470,7 @@ function Admin({ onClose }) {
       return
     }
 
-    // 영상 파일을 선택했다면
-    // 기존 미디어 타입과 맞는지 확인
+    // 영상 / 음악 파일 타입 확인
     if (editMediaFile) {
       const isAudio =
         video.media_type ===
@@ -519,15 +517,12 @@ function Admin({ onClose }) {
     let newThumbnailUrl =
       video.thumbnail_url
 
-    let uploadedMedia =
-      null
-
-    let uploadedThumbnail =
-      null
+    let uploadedMedia = null
+    let uploadedThumbnail = null
 
     try {
       // =========================
-      // 1. 새 영상 / 음악 업로드
+      // 새 영상 / 음악 업로드
       // =========================
 
       if (editMediaFile) {
@@ -541,7 +536,7 @@ function Admin({ onClose }) {
       }
 
       // =========================
-      // 2. 새 썸네일 업로드
+      // 새 썸네일 업로드
       // =========================
 
       if (
@@ -557,7 +552,7 @@ function Admin({ onClose }) {
       }
 
       // =========================
-      // 3. DB 업데이트
+      // DB 업데이트
       // =========================
 
       const {
@@ -588,11 +583,9 @@ function Admin({ onClose }) {
       }
 
       // =========================
-      // 4. 기존 Storage 파일 삭제
+      // 기존 영상 파일 삭제
       // =========================
 
-      // 새 영상이 정상적으로 DB에 반영된 경우
-      // 기존 영상 파일 삭제
       if (
         editMediaFile &&
         video.video_url
@@ -623,8 +616,10 @@ function Admin({ onClose }) {
         }
       }
 
-      // 새 썸네일이 정상적으로 DB에 반영된 경우
-      // 기존 썸네일 파일 삭제
+      // =========================
+      // 기존 썸네일 삭제
+      // =========================
+
       if (
         editThumbnailFile &&
         video.thumbnail_url
@@ -656,7 +651,7 @@ function Admin({ onClose }) {
       }
 
       // =========================
-      // 5. 화면 업데이트
+      // 화면 업데이트
       // =========================
 
       setVideos((prev) =>
@@ -696,10 +691,7 @@ function Admin({ onClose }) {
         error
       )
 
-      // DB 저장이 실패했다면
-      // 방금 올린 새 파일을 삭제해서
-      // 불필요한 Storage 파일이 남지 않도록 한다.
-
+      // DB 저장 실패 시 새로 업로드된 파일 삭제
       if (uploadedMedia) {
         await supabase.storage
           .from('Videos')
@@ -772,7 +764,7 @@ function Admin({ onClose }) {
       return
     }
 
-    // DB 삭제 후 Storage 파일 삭제
+    // Storage 영상 삭제
     if (video.video_url) {
       const path =
         getStoragePath(
@@ -787,6 +779,7 @@ function Admin({ onClose }) {
       }
     }
 
+    // Storage 썸네일 삭제
     if (video.thumbnail_url) {
       const path =
         getStoragePath(
@@ -1247,16 +1240,23 @@ function Admin({ onClose }) {
 
                       <td>
 
-                        <button
-                          className="approve-button"
-                          onClick={() =>
-                            startEditing(
-                              video
-                            )
-                          }
-                        >
-                          수정
-                        </button>
+                        {/* =========================
+                            수정 버튼
+                            선택된 영상만 색상 변경
+                        ========================= */}
+
+                       <button
+  className={`approve-button ${
+    editingId === video.id
+      ? 'edit-active'
+      : ''
+  }`}
+  onClick={() =>
+    startEditing(video)
+  }
+>
+  수정
+</button>
 
                         <button
                           className="reject-button"

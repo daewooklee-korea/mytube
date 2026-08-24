@@ -346,11 +346,6 @@ video {
    Audio Player
 ========================= */
 
-/*
-  음악은 영상처럼 16:9 영역을
-  차지하지 않도록 별도로 처리한다.
-*/
-
 .player:has(.audio-player) {
   aspect-ratio: auto;
   height: auto;
@@ -889,6 +884,21 @@ video {
 
 
 /* =========================
+   선택된 수정 버튼
+   크기는 approve-button과 동일
+========================= */
+
+.approve-button.edit-active {
+  background: #e8e8e8;
+  color: #222;
+}
+
+.approve-button.edit-active:hover {
+  background: #dcdcdc;
+}
+
+
+/* =========================
    Video Edit Panel
 ========================= */
 
@@ -1016,10 +1026,7 @@ video {
 
 @media (max-width: 500px) {
 
-  /*
-    음악은 큰 플레이어 영역을
-    만들지 않는다.
-  */
+  /* 음악 */
 
   .player:has(.audio-player) {
     aspect-ratio: auto;
@@ -1043,9 +1050,8 @@ video {
     height: 48px;
   }
 
-  /*
-    영상은 기존 16:9 유지
-  */
+
+  /* 영상 */
 
   .player:not(:has(.audio-player)) {
     width: 100%;
@@ -1062,6 +1068,9 @@ video {
     display: block;
     object-fit: contain;
   }
+
+
+  /* Header */
 
   .header {
     padding: 12px 15px;
@@ -1118,6 +1127,9 @@ video {
     min-width: 52px;
   }
 
+
+  /* Menu */
+
   .menu {
     padding: 12px 15px;
     gap: 8px;
@@ -1127,6 +1139,9 @@ video {
     padding: 8px 14px;
     font-size: 13px;
   }
+
+
+  /* Content */
 
   .content {
     padding: 18px 15px;
@@ -1166,6 +1181,9 @@ video {
     font-size: 12px;
   }
 
+
+  /* Watch */
+
   .watch-page {
     padding: 16px;
   }
@@ -1179,6 +1197,9 @@ video {
     font-size: 14px;
   }
 
+
+  /* Comments */
+
   .comment-input {
     gap: 8px;
   }
@@ -1187,13 +1208,22 @@ video {
     padding: 0 14px;
   }
 
+
+  /* Login */
+
   .login-box {
     padding: 32px 24px;
   }
 
+
+  /* Upload */
+
   .upload-box {
     padding: 20px;
   }
+
+
+  /* Admin */
 
   .admin-page {
     padding: 16px;
