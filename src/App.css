@@ -320,6 +320,11 @@ video {
   background: #f2f2f2;
 }
 
+
+/* =========================
+   Video Player
+========================= */
+
 .player {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -329,38 +334,55 @@ video {
   margin-bottom: 16px;
 }
 
-.audio-player {
+.player video {
   width: 100%;
-  min-height: 100%;
-  height: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 24px;
-  background: #f5f5f5;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
-.audio-player img {
-  width: min(260px, 65%);
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  border-radius: 16px;
-  flex-shrink: 0;
+
+/* =========================
+   Audio Player
+========================= */
+
+/*
+  음악은 영상처럼 16:9 영역을
+  차지하지 않도록 별도로 처리한다.
+*/
+
+.player:has(.audio-player) {
+  aspect-ratio: auto;
+  height: auto;
+  min-height: 0;
+  background: transparent;
+  overflow: visible;
+  margin-bottom: 24px;
+}
+
+.audio-player {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .audio-player audio {
   display: block;
-  width: min(500px, 90%);
+  width: 100%;
+  max-width: 600px;
   height: 48px;
-  flex-shrink: 0;
 }
 
-.player video {
-  width: 100%;
-  height: 100%;
-}
+
+/* =========================
+   Watch Information
+========================= */
 
 .watch-page h1 {
   font-size: 20px;
@@ -372,6 +394,11 @@ video {
   font-size: 14px;
   margin: 4px 0;
 }
+
+
+/* =========================
+   Actions
+========================= */
 
 .actions {
   display: flex;
@@ -393,6 +420,37 @@ video {
 
 .actions button:hover {
   background: #eee;
+}
+
+
+/* =========================
+   Description / Lyrics
+========================= */
+
+.description-section {
+  padding: 20px 0;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 20px;
+}
+
+.description-section h2 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.description-box {
+  padding: 18px;
+  border-radius: 10px;
+  background: #f7f7f7;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: normal;
+}
+
+.description-box p {
+  margin: 0;
+  min-height: 1.7em;
 }
 
 
@@ -622,6 +680,28 @@ video {
   color: #444;
 }
 
+.upload-box textarea {
+  width: 100%;
+  min-height: 150px;
+  padding: 12px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  color: #222;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.upload-box select {
+  height: 44px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #fff;
+  font-size: 14px;
+}
+
 .upload-box p {
   font-size: 12px;
   color: #777;
@@ -667,6 +747,11 @@ video {
   margin-bottom: 24px;
 }
 
+.admin-header h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
 .admin-tabs {
   display: flex;
   gap: 8px;
@@ -688,11 +773,6 @@ video {
   background: #1a1a1a;
   color: #fff;
   border-color: #1a1a1a;
-}
-
-.admin-header h1 {
-  font-size: 20px;
-  margin: 0;
 }
 
 .admin-table {
@@ -740,6 +820,20 @@ video {
   width: 100%;
 }
 
+.admin-table select {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+}
+
+.admin-table select:focus {
+  border-color: #999;
+}
+
 .status-badge {
   display: inline-block;
   padding: 4px 12px;
@@ -761,20 +855,6 @@ video {
 .status-rejected {
   background: #fdecea;
   color: #c62828;
-}
-
-.admin-table select {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 13px;
-  background: #fff;
-  cursor: pointer;
-  outline: none;
-}
-
-.admin-table select:focus {
-  border-color: #999;
 }
 
 .approve-button,
@@ -936,16 +1016,44 @@ video {
 
 @media (max-width: 500px) {
 
-  .player {
+  /*
+    음악은 큰 플레이어 영역을
+    만들지 않는다.
+  */
+
+  .player:has(.audio-player) {
+    aspect-ratio: auto;
+    height: auto;
+    min-height: 0;
+    margin-bottom: 20px;
+    background: transparent;
+  }
+
+  .audio-player {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .audio-player audio {
+    width: 100%;
+    max-width: none;
+    height: 48px;
+  }
+
+  /*
+    영상은 기존 16:9 유지
+  */
+
+  .player:not(:has(.audio-player)) {
     width: 100%;
     aspect-ratio: 16 / 9;
+    height: auto;
     border-radius: 6px;
     margin-bottom: 20px;
     background: #000;
-  }
-
-  .player:has(.audio-player) {
-    min-height: 390px;
   }
 
   .player video {
@@ -1062,6 +1170,23 @@ video {
     padding: 16px;
   }
 
+  .description-section {
+    padding: 16px 0;
+  }
+
+  .description-box {
+    padding: 15px;
+    font-size: 14px;
+  }
+
+  .comment-input {
+    gap: 8px;
+  }
+
+  .comment-input button {
+    padding: 0 14px;
+  }
+
   .login-box {
     padding: 32px 24px;
   }
@@ -1083,28 +1208,19 @@ video {
     padding: 10px 12px;
     font-size: 13px;
   }
-  .description-section {
-  padding: 20px 0;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 20px;
-}
 
-.description-section h2 {
-  margin: 0 0 12px;
-  font-size: 17px;
-}
+  .video-edit-panel {
+    margin-top: 24px;
+    padding: 20px;
+  }
 
-.description-box {
-  padding: 18px;
-  border-radius: 10px;
-  background: #f7f7f7;
-  color: #333;
-  font-size: 14px;
-  line-height: 1.7;
-}
+  .video-edit-panel h2 {
+    font-size: 20px;
+  }
 
-.description-box p {
-  margin: 0;
-  min-height: 1.7em;
-}
+  .video-edit-panel input,
+  .video-edit-panel select,
+  .video-edit-panel textarea {
+    font-size: 14px;
+  }
 }
