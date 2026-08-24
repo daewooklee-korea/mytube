@@ -12,6 +12,7 @@ function Admin({ onClose }) {
   const [editingId, setEditingId] = useState(null)
   const [editTitle, setEditTitle] = useState('')
   const [editCategory, setEditCategory] = useState('전체')
+  const [editDescription, setEditDescription] = useState('')
   const [editingNicknameId, setEditingNicknameId] = useState(null)
   const [editNickname, setEditNickname] = useState('')
 
@@ -131,16 +132,18 @@ const saveNickname = async (id) => {
   cancelEditingNickname()
 }
   const startEditing = (video) => {
-    setEditingId(video.id)
-    setEditTitle(video.title)
-    setEditCategory(video.category ?? '전체')
-  }
+  setEditingId(video.id)
+  setEditTitle(video.title)
+  setEditCategory(video.category ?? '전체')
+  setEditDescription(video.description ?? '')
+}
 
   const cancelEditing = () => {
-    setEditingId(null)
-    setEditTitle('')
-    setEditCategory('전체')
-  }
+  setEditingId(null)
+  setEditTitle('')
+  setEditCategory('전체')
+  setEditDescription('')
+}
 
   const saveEditing = async (id) => {
     if (!editTitle.trim()) {
@@ -150,7 +153,11 @@ const saveNickname = async (id) => {
 
     const { error } = await supabase
       .from('videos')
-      .update({ title: editTitle, category: editCategory })
+     .update({
+  title: editTitle,
+  category: editCategory,
+  description: editDescription.trim() || null,
+})
       .eq('id', id)
 
     if (error) {
@@ -160,10 +167,17 @@ const saveNickname = async (id) => {
     }
 
     setVideos((prev) =>
-      prev.map((v) =>
-        v.id === id ? { ...v, title: editTitle, category: editCategory } : v
-      )
-    )
+  prev.map((v) =>
+    v.id === id
+      ? {
+          ...v,
+          title: editTitle,
+          category: editCategory,
+          description: editDescription.trim() || null,
+        }
+      : v
+  )
+)
 
     cancelEditing()
   }
@@ -327,6 +341,7 @@ const saveNickname = async (id) => {
             <thead>
               <tr>
                 <th>제목</th>
+                <th>유형</th>
                 <th>카테고리</th>
                 <th>조회수</th>
                 <th>업로드일</th>
@@ -339,12 +354,29 @@ const saveNickname = async (id) => {
                   {editingId === video.id ? (
                     <>
                       <td>
-                        <input
-                          type="text"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                        />
-                      </td>
+  <input
+    type="text"
+    value={editTitle}
+    onChange={(e) => setEditTitle(e.target.value)}
+  />
+
+  <textarea
+    value={editDescription}
+    onChange={(e) => setEditDescription(e.target.value)}
+    placeholder={
+      video.media_type === 'audio'
+        ? '가사를 입력하세요 (선택사항)'
+        : '영상 설명을 입력하세요 (선택사항)'
+    }
+    rows="5"
+    style={{
+      width: '100%',
+      marginTop: '8px',
+      padding: '8px',
+      resize: 'vertical',
+    }}
+  />
+</td>
                       <td>
                         <select
                           value={editCategory}
@@ -379,7 +411,8 @@ const saveNickname = async (id) => {
                   ) : (
                     <>
                       <td>{video.title}</td>
-                      <td>{video.category ?? '전체'}</td>
+<td>{video.media_type === 'audio' ? '음악' : '영상'}</td>
+<td>{video.category ?? '전체'}</td>
                       <td>{video.views}</td>
                       <td>
                         {new Date(video.created_at).toLocaleDateString('ko-KR')}
