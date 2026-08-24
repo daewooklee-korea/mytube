@@ -4,23 +4,29 @@ import { supabase } from './supabase'
 function Admin({ onClose }) {
   const [activeTab, setActiveTab] = useState('members')
 
-  // 회원
   const [profiles, setProfiles] = useState([])
   const [loadingProfiles, setLoadingProfiles] = useState(true)
 
-  // 영상
   const [videos, setVideos] = useState([])
   const [loadingVideos, setLoadingVideos] = useState(true)
 
-  // 영상 수정
   const [editingId, setEditingId] = useState(null)
+
   const [editTitle, setEditTitle] = useState('')
   const [editCategory, setEditCategory] = useState('전체')
   const [editDescription, setEditDescription] = useState('')
 
-  // 닉네임 수정
+  const [editMediaFile, setEditMediaFile] = useState(null)
+  const [editThumbnailFile, setEditThumbnailFile] = useState(null)
+
   const [editingNicknameId, setEditingNicknameId] = useState(null)
   const [editNickname, setEditNickname] = useState('')
+
+  const [savingVideo, setSavingVideo] = useState(false)
+
+  // =========================
+  // 초기 로딩
+  // =========================
 
   useEffect(() => {
     loadProfiles()
@@ -37,11 +43,20 @@ function Admin({ onClose }) {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('created_at', {
+        ascending: false,
+      })
 
     if (error) {
-      console.error('회원 목록 불러오기 실패:', error)
-      alert('회원 목록을 불러오지 못했습니다.')
+      console.error(
+        '회원 목록 불러오기 실패:',
+        error
+      )
+
+      alert(
+        '회원 목록을 불러오지 못했습니다.'
+      )
+
       setLoadingProfiles(false)
       return
     }
@@ -57,14 +72,26 @@ function Admin({ onClose }) {
   const loadVideos = async () => {
     setLoadingVideos(true)
 
-    const { data, error } = await supabase
+    const {
+      data,
+      error,
+    } = await supabase
       .from('videos')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('created_at', {
+        ascending: false,
+      })
 
     if (error) {
-      console.error('영상 목록 불러오기 실패:', error)
-      alert('영상 목록을 불러오지 못했습니다.')
+      console.error(
+        '영상 목록 불러오기 실패:',
+        error
+      )
+
+      alert(
+        '영상 목록을 불러오지 못했습니다.'
+      )
+
       setLoadingVideos(false)
       return
     }
@@ -77,22 +104,38 @@ function Admin({ onClose }) {
   // 회원 상태 변경
   // =========================
 
-  const updateStatus = async (id, newStatus) => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ status: newStatus })
-      .eq('id', id)
+  const updateStatus = async (
+    id,
+    newStatus
+  ) => {
+    const { error } =
+      await supabase
+        .from('profiles')
+        .update({
+          status: newStatus,
+        })
+        .eq('id', id)
 
     if (error) {
-      console.error('상태 변경 실패:', error)
-      alert('상태 변경에 실패했습니다.')
+      console.error(
+        '상태 변경 실패:',
+        error
+      )
+
+      alert(
+        '상태 변경에 실패했습니다.'
+      )
+
       return
     }
 
     setProfiles((prev) =>
       prev.map((p) =>
         p.id === id
-          ? { ...p, status: newStatus }
+          ? {
+              ...p,
+              status: newStatus,
+            }
           : p
       )
     )
@@ -102,22 +145,38 @@ function Admin({ onClose }) {
   // 회원 역할 변경
   // =========================
 
-  const updateRole = async (id, newRole) => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: newRole })
-      .eq('id', id)
+  const updateRole = async (
+    id,
+    newRole
+  ) => {
+    const { error } =
+      await supabase
+        .from('profiles')
+        .update({
+          role: newRole,
+        })
+        .eq('id', id)
 
     if (error) {
-      console.error('역할 변경 실패:', error)
-      alert('역할 변경에 실패했습니다.')
+      console.error(
+        '역할 변경 실패:',
+        error
+      )
+
+      alert(
+        '역할 변경에 실패했습니다.'
+      )
+
       return
     }
 
     setProfiles((prev) =>
       prev.map((p) =>
         p.id === id
-          ? { ...p, role: newRole }
+          ? {
+              ...p,
+              role: newRole,
+            }
           : p
       )
     )
@@ -127,32 +186,54 @@ function Admin({ onClose }) {
   // 닉네임 수정
   // =========================
 
-  const startEditingNickname = (profile) => {
-    setEditingNicknameId(profile.id)
-    setEditNickname(profile.nickname ?? '')
+  const startEditingNickname = (
+    profile
+  ) => {
+    setEditingNicknameId(
+      profile.id
+    )
+
+    setEditNickname(
+      profile.nickname ?? ''
+    )
   }
 
-  const cancelEditingNickname = () => {
-    setEditingNicknameId(null)
-    setEditNickname('')
-  }
+  const cancelEditingNickname =
+    () => {
+      setEditingNicknameId(null)
+      setEditNickname('')
+    }
 
-  const saveNickname = async (id) => {
+  const saveNickname = async (
+    id
+  ) => {
     if (!editNickname.trim()) {
-      alert('닉네임을 입력해주세요.')
+      alert(
+        '닉네임을 입력해주세요.'
+      )
+
       return
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        nickname: editNickname.trim(),
-      })
-      .eq('id', id)
+    const { error } =
+      await supabase
+        .from('profiles')
+        .update({
+          nickname:
+            editNickname.trim(),
+        })
+        .eq('id', id)
 
     if (error) {
-      console.error('닉네임 변경 실패:', error)
-      alert('닉네임 변경에 실패했습니다.')
+      console.error(
+        '닉네임 변경 실패:',
+        error
+      )
+
+      alert(
+        '닉네임 변경에 실패했습니다.'
+      )
+
       return
     }
 
@@ -161,7 +242,8 @@ function Admin({ onClose }) {
         p.id === id
           ? {
               ...p,
-              nickname: editNickname.trim(),
+              nickname:
+                editNickname.trim(),
             }
           : p
       )
@@ -174,11 +256,26 @@ function Admin({ onClose }) {
   // 영상 수정 시작
   // =========================
 
-  const startEditing = (video) => {
+  const startEditing = (
+    video
+  ) => {
     setEditingId(video.id)
-    setEditTitle(video.title ?? '')
-    setEditCategory(video.category ?? '전체')
-    setEditDescription(video.description ?? '')
+
+    setEditTitle(
+      video.title ?? ''
+    )
+
+    setEditCategory(
+      video.category ?? '전체'
+    )
+
+    setEditDescription(
+      video.description ?? ''
+    )
+
+    // 새 파일 선택 상태 초기화
+    setEditMediaFile(null)
+    setEditThumbnailFile(null)
   }
 
   // =========================
@@ -187,92 +284,533 @@ function Admin({ onClose }) {
 
   const cancelEditing = () => {
     setEditingId(null)
+
     setEditTitle('')
     setEditCategory('전체')
     setEditDescription('')
+
+    setEditMediaFile(null)
+    setEditThumbnailFile(null)
   }
+
+  // =========================
+  // Storage 경로 추출
+  // =========================
+
+  const getStoragePath = (
+    publicUrl,
+    bucketName
+  ) => {
+    if (!publicUrl) {
+      return null
+    }
+
+    try {
+      const url = new URL(
+        publicUrl
+      )
+
+      const marker =
+        `/object/public/${bucketName}/`
+
+      const index =
+        url.pathname.indexOf(
+          marker
+        )
+
+      if (index === -1) {
+        return null
+      }
+
+      const path =
+        url.pathname.substring(
+          index + marker.length
+        )
+
+      return decodeURIComponent(
+        path
+      )
+    } catch (error) {
+      console.error(
+        'Storage 경로 추출 실패:',
+        error
+      )
+
+      return null
+    }
+  }
+
+  // =========================
+  // 영상 파일 업로드
+  // =========================
+
+  const uploadMediaFile = async (
+    file
+  ) => {
+    const extension =
+      file.name
+        .split('.')
+        .pop()
+        ?.toLowerCase() ||
+      'bin'
+
+    const fileName =
+      `media-${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 8)}.${extension}`
+
+    const {
+      error,
+    } = await supabase.storage
+      .from('Videos')
+      .upload(
+        fileName,
+        file,
+        {
+          contentType:
+            file.type,
+          upsert: false,
+        }
+      )
+
+    if (error) {
+      throw error
+    }
+
+    const {
+      data,
+    } = supabase.storage
+      .from('Videos')
+      .getPublicUrl(
+        fileName
+      )
+
+    return {
+      fileName,
+      publicUrl:
+        data.publicUrl,
+    }
+  }
+
+  // =========================
+  // 썸네일 업로드
+  // =========================
+
+  const uploadThumbnailFile =
+    async (file) => {
+      const extension =
+        file.name
+          .split('.')
+          .pop()
+          ?.toLowerCase() ||
+        'jpg'
+
+      const fileName =
+        `thumbnail-${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 8)}.${extension}`
+
+      const {
+        error,
+      } = await supabase.storage
+        .from('Thumbnails')
+        .upload(
+          fileName,
+          file,
+          {
+            contentType:
+              file.type,
+            upsert: false,
+          }
+        )
+
+      if (error) {
+        throw error
+      }
+
+      const {
+        data,
+      } = supabase.storage
+        .from('Thumbnails')
+        .getPublicUrl(
+          fileName
+        )
+
+      return {
+        fileName,
+        publicUrl:
+          data.publicUrl,
+      }
+    }
 
   // =========================
   // 영상 수정 저장
   // =========================
 
-  const saveEditing = async (id) => {
+  const saveEditing = async (
+    id
+  ) => {
     if (!editTitle.trim()) {
-      alert('제목을 입력해주세요.')
-      return
-    }
-
-    const cleanedTitle = editTitle.trim()
-    const cleanedDescription =
-      editDescription.trim() || null
-
-    const { error } = await supabase
-      .from('videos')
-      .update({
-        title: cleanedTitle,
-        category: editCategory,
-        description: cleanedDescription,
-      })
-      .eq('id', id)
-
-    if (error) {
-      console.error('영상 수정 실패:', error)
-      alert('영상 수정에 실패했습니다.')
-      return
-    }
-
-    setVideos((prev) =>
-      prev.map((v) =>
-        v.id === id
-          ? {
-              ...v,
-              title: cleanedTitle,
-              category: editCategory,
-              description: cleanedDescription,
-            }
-          : v
+      alert(
+        '제목을 입력해주세요.'
       )
-    )
 
-    alert('영상 정보가 수정되었습니다.')
+      return
+    }
 
-    cancelEditing()
+    const video =
+      videos.find(
+        (v) => v.id === id
+      )
+
+    if (!video) {
+      alert(
+        '수정할 영상을 찾을 수 없습니다.'
+      )
+
+      return
+    }
+
+    // 영상 파일을 선택했다면
+    // 기존 미디어 타입과 맞는지 확인
+    if (editMediaFile) {
+      const isAudio =
+        video.media_type ===
+        'audio'
+
+      const isSelectedAudio =
+        editMediaFile.type.startsWith(
+          'audio/'
+        )
+
+      const isSelectedVideo =
+        editMediaFile.type.startsWith(
+          'video/'
+        )
+
+      if (
+        isAudio &&
+        !isSelectedAudio
+      ) {
+        alert(
+          '음악 파일에는 오디오 파일을 선택해주세요.'
+        )
+
+        return
+      }
+
+      if (
+        !isAudio &&
+        !isSelectedVideo
+      ) {
+        alert(
+          '영상 파일에는 동영상 파일을 선택해주세요.'
+        )
+
+        return
+      }
+    }
+
+    setSavingVideo(true)
+
+    let newMediaUrl =
+      video.video_url
+
+    let newThumbnailUrl =
+      video.thumbnail_url
+
+    let uploadedMedia =
+      null
+
+    let uploadedThumbnail =
+      null
+
+    try {
+      // =========================
+      // 1. 새 영상 / 음악 업로드
+      // =========================
+
+      if (editMediaFile) {
+        uploadedMedia =
+          await uploadMediaFile(
+            editMediaFile
+          )
+
+        newMediaUrl =
+          uploadedMedia.publicUrl
+      }
+
+      // =========================
+      // 2. 새 썸네일 업로드
+      // =========================
+
+      if (
+        editThumbnailFile
+      ) {
+        uploadedThumbnail =
+          await uploadThumbnailFile(
+            editThumbnailFile
+          )
+
+        newThumbnailUrl =
+          uploadedThumbnail.publicUrl
+      }
+
+      // =========================
+      // 3. DB 업데이트
+      // =========================
+
+      const {
+        error,
+      } = await supabase
+        .from('videos')
+        .update({
+          title:
+            editTitle.trim(),
+
+          category:
+            editCategory,
+
+          description:
+            editDescription.trim() ||
+            null,
+
+          video_url:
+            newMediaUrl,
+
+          thumbnail_url:
+            newThumbnailUrl,
+        })
+        .eq('id', id)
+
+      if (error) {
+        throw error
+      }
+
+      // =========================
+      // 4. 기존 Storage 파일 삭제
+      // =========================
+
+      // 새 영상이 정상적으로 DB에 반영된 경우
+      // 기존 영상 파일 삭제
+      if (
+        editMediaFile &&
+        video.video_url
+      ) {
+        const oldPath =
+          getStoragePath(
+            video.video_url,
+            'Videos'
+          )
+
+        if (oldPath) {
+          const {
+            error:
+              deleteError,
+          } =
+            await supabase.storage
+              .from('Videos')
+              .remove([
+                oldPath,
+              ])
+
+          if (deleteError) {
+            console.warn(
+              '기존 영상 파일 삭제 실패:',
+              deleteError
+            )
+          }
+        }
+      }
+
+      // 새 썸네일이 정상적으로 DB에 반영된 경우
+      // 기존 썸네일 파일 삭제
+      if (
+        editThumbnailFile &&
+        video.thumbnail_url
+      ) {
+        const oldPath =
+          getStoragePath(
+            video.thumbnail_url,
+            'Thumbnails'
+          )
+
+        if (oldPath) {
+          const {
+            error:
+              deleteError,
+          } =
+            await supabase.storage
+              .from('Thumbnails')
+              .remove([
+                oldPath,
+              ])
+
+          if (deleteError) {
+            console.warn(
+              '기존 썸네일 파일 삭제 실패:',
+              deleteError
+            )
+          }
+        }
+      }
+
+      // =========================
+      // 5. 화면 업데이트
+      // =========================
+
+      setVideos((prev) =>
+        prev.map((v) =>
+          v.id === id
+            ? {
+                ...v,
+
+                title:
+                  editTitle.trim(),
+
+                category:
+                  editCategory,
+
+                description:
+                  editDescription.trim() ||
+                  null,
+
+                video_url:
+                  newMediaUrl,
+
+                thumbnail_url:
+                  newThumbnailUrl,
+              }
+            : v
+        )
+      )
+
+      alert(
+        '영상 정보가 수정되었습니다.'
+      )
+
+      cancelEditing()
+    } catch (error) {
+      console.error(
+        '영상 수정 실패:',
+        error
+      )
+
+      // DB 저장이 실패했다면
+      // 방금 올린 새 파일을 삭제해서
+      // 불필요한 Storage 파일이 남지 않도록 한다.
+
+      if (uploadedMedia) {
+        await supabase.storage
+          .from('Videos')
+          .remove([
+            uploadedMedia.fileName,
+          ])
+      }
+
+      if (uploadedThumbnail) {
+        await supabase.storage
+          .from('Thumbnails')
+          .remove([
+            uploadedThumbnail.fileName,
+          ])
+      }
+
+      alert(
+        `영상 수정에 실패했습니다: ${
+          error.message ??
+          '알 수 없는 오류'
+        }`
+      )
+    } finally {
+      setSavingVideo(false)
+    }
   }
 
   // =========================
   // 영상 삭제
   // =========================
 
-  const deleteVideo = async (id) => {
-    const confirmed = window.confirm(
-      '이 영상을 삭제하시겠습니까? 되돌릴 수 없습니다.'
-    )
+  const deleteVideo = async (
+    id
+  ) => {
+    const confirmed =
+      window.confirm(
+        '이 영상을 삭제하시겠습니까? 되돌릴 수 없습니다.'
+      )
 
-    if (!confirmed) return
+    if (!confirmed) {
+      return
+    }
 
-    const { error } = await supabase
+    const video =
+      videos.find(
+        (v) => v.id === id
+      )
+
+    if (!video) {
+      return
+    }
+
+    const {
+      error,
+    } = await supabase
       .from('videos')
       .delete()
       .eq('id', id)
 
     if (error) {
-      console.error('영상 삭제 실패:', error)
-      alert('영상 삭제에 실패했습니다.')
+      console.error(
+        '영상 삭제 실패:',
+        error
+      )
+
+      alert(
+        '영상 삭제에 실패했습니다.'
+      )
+
       return
     }
 
+    // DB 삭제 후 Storage 파일 삭제
+    if (video.video_url) {
+      const path =
+        getStoragePath(
+          video.video_url,
+          'Videos'
+        )
+
+      if (path) {
+        await supabase.storage
+          .from('Videos')
+          .remove([path])
+      }
+    }
+
+    if (video.thumbnail_url) {
+      const path =
+        getStoragePath(
+          video.thumbnail_url,
+          'Thumbnails'
+        )
+
+      if (path) {
+        await supabase.storage
+          .from('Thumbnails')
+          .remove([path])
+      }
+    }
+
     setVideos((prev) =>
-      prev.filter((v) => v.id !== id)
+      prev.filter(
+        (v) => v.id !== id
+      )
     )
 
     if (editingId === id) {
       cancelEditing()
     }
   }
-
-  // 현재 수정 중인 영상
-  const editingVideo =
-    videos.find((video) => video.id === editingId) ?? null
 
   // =========================
   // 화면
@@ -281,10 +819,11 @@ function Admin({ onClose }) {
   return (
     <div className="admin-page">
 
-      {/* 관리자 헤더 */}
       <div className="admin-header">
 
-        <h1>관리자 페이지</h1>
+        <h1>
+          관리자 페이지
+        </h1>
 
         <button
           className="back-button"
@@ -295,97 +834,134 @@ function Admin({ onClose }) {
 
       </div>
 
-      {/* 탭 */}
+
+      {/* =========================
+          탭
+      ========================= */}
+
       <div className="admin-tabs">
 
         <button
           className={
-            activeTab === 'members'
+            activeTab ===
+            'members'
               ? 'active'
               : ''
           }
-          onClick={() => {
-            setActiveTab('members')
-            cancelEditing()
-          }}
+          onClick={() =>
+            setActiveTab(
+              'members'
+            )
+          }
         >
           회원 관리
         </button>
 
         <button
           className={
-            activeTab === 'videos'
+            activeTab ===
+            'videos'
               ? 'active'
               : ''
           }
-          onClick={() => {
-            setActiveTab('videos')
-            cancelEditing()
-          }}
+          onClick={() =>
+            setActiveTab(
+              'videos'
+            )
+          }
         >
           영상 관리
         </button>
 
       </div>
 
-      {/* ================================= */}
-      {/* 회원 관리 */}
-      {/* ================================= */}
 
-      {activeTab === 'members' && (
+      {/* =========================
+          회원 관리
+      ========================= */}
+
+      {activeTab ===
+        'members' && (
 
         loadingProfiles ? (
 
-          <p>불러오는 중...</p>
+          <p>
+            불러오는 중...
+          </p>
 
         ) : (
 
-          <div
-            style={{
-              width: '100%',
-              overflowX: 'auto',
-            }}
-          >
+          <table className="admin-table">
 
-            <table className="admin-table">
+            <thead>
 
-              <thead>
+              <tr>
 
-                <tr>
-                  <th>닉네임</th>
-                  <th>이메일</th>
-                  <th>가입일</th>
-                  <th>상태</th>
-                  <th>역할</th>
-                  <th>작업</th>
-                </tr>
+                <th>
+                  닉네임
+                </th>
 
-              </thead>
+                <th>
+                  이메일
+                </th>
 
-              <tbody>
+                <th>
+                  가입일
+                </th>
 
-                {profiles.map((profile) => (
+                <th>
+                  상태
+                </th>
 
-                  <tr key={profile.id}>
+                <th>
+                  역할
+                </th>
 
-                    {/* 닉네임 */}
+                <th>
+                  작업
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              {profiles.map(
+                (profile) => (
+
+                  <tr
+                    key={
+                      profile.id
+                    }
+                  >
+
                     <td>
 
-                      {editingNicknameId === profile.id ? (
+                      {editingNicknameId ===
+                      profile.id ? (
 
                         <div
                           style={{
-                            display: 'flex',
-                            gap: '6px',
+                            display:
+                              'flex',
+                            gap:
+                              '6px',
                           }}
                         >
 
                           <input
                             type="text"
-                            value={editNickname}
-                            onChange={(e) =>
+                            value={
+                              editNickname
+                            }
+                            onChange={(
+                              e
+                            ) =>
                               setEditNickname(
-                                e.target.value
+                                e
+                                  .target
+                                  .value
                               )
                             }
                           />
@@ -421,22 +997,23 @@ function Admin({ onClose }) {
                             )
                           }
                           style={{
-                            cursor: 'pointer',
+                            cursor:
+                              'pointer',
                           }}
                         >
-                          {profile.nickname ?? '-'} ✏️
+                          {profile.nickname ??
+                            '-'}{' '}
+                          ✏️
                         </span>
 
                       )}
 
                     </td>
 
-                    {/* 이메일 */}
                     <td>
                       {profile.email}
                     </td>
 
-                    {/* 가입일 */}
                     <td>
                       {new Date(
                         profile.created_at
@@ -445,26 +1022,31 @@ function Admin({ onClose }) {
                       )}
                     </td>
 
-                    {/* 상태 */}
                     <td>
 
                       <span
                         className={`status-badge status-${profile.status}`}
                       >
-                        {profile.status}
+                        {
+                          profile.status
+                        }
                       </span>
 
                     </td>
 
-                    {/* 역할 */}
                     <td>
 
                       <select
-                        value={profile.role}
-                        onChange={(e) =>
+                        value={
+                          profile.role
+                        }
+                        onChange={(
+                          e
+                        ) =>
                           updateRole(
                             profile.id,
-                            e.target.value
+                            e.target
+                              .value
                           )
                         }
                       >
@@ -485,12 +1067,12 @@ function Admin({ onClose }) {
 
                     </td>
 
-                    {/* 작업 */}
                     <td>
 
                       {profile.status ===
                         'pending' && (
                         <>
+
                           <button
                             className="approve-button"
                             onClick={() =>
@@ -514,11 +1096,13 @@ function Admin({ onClose }) {
                           >
                             거절
                           </button>
+
                         </>
                       )}
 
                       {profile.status ===
                         'approved' && (
+
                         <button
                           className="reject-button"
                           onClick={() =>
@@ -530,10 +1114,12 @@ function Admin({ onClose }) {
                         >
                           정지
                         </button>
+
                       )}
 
                       {profile.status ===
                         'rejected' && (
+
                         <button
                           className="approve-button"
                           onClick={() =>
@@ -545,74 +1131,92 @@ function Admin({ onClose }) {
                         >
                           재승인
                         </button>
+
                       )}
 
                     </td>
 
                   </tr>
 
-                ))}
+                )
+              )}
 
-              </tbody>
+            </tbody>
 
-            </table>
-
-          </div>
+          </table>
 
         )
-
       )}
 
-      {/* ================================= */}
-      {/* 영상 관리 */}
-      {/* ================================= */}
 
-      {activeTab === 'videos' && (
+      {/* =========================
+          영상 관리
+      ========================= */}
+
+      {activeTab ===
+        'videos' && (
 
         loadingVideos ? (
 
-          <p>불러오는 중...</p>
+          <p>
+            불러오는 중...
+          </p>
 
         ) : (
 
           <>
 
-            {/* 영상 테이블 */}
+            <table className="admin-table">
 
-            <div
-              style={{
-                width: '100%',
-                overflowX: 'auto',
-              }}
-            >
+              <thead>
 
-              <table className="admin-table">
+                <tr>
 
-                <thead>
+                  <th>
+                    제목
+                  </th>
 
-                  <tr>
-                    <th>제목</th>
-                    <th>유형</th>
-                    <th>카테고리</th>
-                    <th>조회수</th>
-                    <th>업로드일</th>
-                    <th>작업</th>
-                  </tr>
+                  <th>
+                    유형
+                  </th>
 
-                </thead>
+                  <th>
+                    카테고리
+                  </th>
 
-                <tbody>
+                  <th>
+                    조회수
+                  </th>
 
-                  {videos.map((video) => (
+                  <th>
+                    업로드일
+                  </th>
 
-                    <tr key={video.id}>
+                  <th>
+                    작업
+                  </th>
 
-                      {/* 제목 */}
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {videos.map(
+                  (video) => (
+
+                    <tr
+                      key={
+                        video.id
+                      }
+                    >
+
                       <td>
-                        {video.title}
+                        {
+                          video.title
+                        }
                       </td>
 
-                      {/* 유형 */}
                       <td>
                         {video.media_type ===
                         'audio'
@@ -620,18 +1224,19 @@ function Admin({ onClose }) {
                           : '영상'}
                       </td>
 
-                      {/* 카테고리 */}
                       <td>
-                        {video.category ??
-                          '전체'}
+                        {
+                          video.category ??
+                          '전체'
+                        }
                       </td>
 
-                      {/* 조회수 */}
                       <td>
-                        {video.views}
+                        {
+                          video.views
+                        }
                       </td>
 
-                      {/* 업로드일 */}
                       <td>
                         {new Date(
                           video.created_at
@@ -640,18 +1245,17 @@ function Admin({ onClose }) {
                         )}
                       </td>
 
-                      {/* 작업 */}
                       <td>
 
                         <button
                           className="approve-button"
                           onClick={() =>
-                            startEditing(video)
+                            startEditing(
+                              video
+                            )
                           }
                         >
-                          {editingId === video.id
-                            ? '수정 중'
-                            : '수정'}
+                          수정
                         </button>
 
                         <button
@@ -669,40 +1273,31 @@ function Admin({ onClose }) {
 
                     </tr>
 
-                  ))}
+                  )
+                )}
 
-                </tbody>
+              </tbody>
 
-              </table>
+            </table>
 
-            </div>
 
-            {/* ================================= */}
-            {/* 영상 수정 패널 */}
-            {/* ================================= */}
+            {/* =========================
+                영상 수정 패널
+            ========================= */}
 
-            {editingVideo && (
+            {editingId && (
 
               <div className="video-edit-panel">
 
                 <h2>
-                  {editingVideo.media_type ===
-                  'audio'
-                    ? '음악 수정'
-                    : '영상 수정'}
+                  영상 수정
                 </h2>
 
-                <p
-                  style={{
-                    marginBottom: '20px',
-                    color: '#777',
-                  }}
-                >
-                  {editingVideo.media_type ===
-                  'audio'
-                    ? '음악 정보와 가사를 수정할 수 있습니다.'
-                    : '영상 정보와 설명을 수정할 수 있습니다.'}
+                <p>
+                  영상 정보, 파일, 썸네일을
+                  수정할 수 있습니다.
                 </p>
+
 
                 {/* 제목 */}
 
@@ -712,13 +1307,19 @@ function Admin({ onClose }) {
 
                 <input
                   type="text"
-                  value={editTitle}
-                  onChange={(e) =>
+                  value={
+                    editTitle
+                  }
+                  onChange={(
+                    e
+                  ) =>
                     setEditTitle(
-                      e.target.value
+                      e.target
+                        .value
                     )
                   }
                 />
+
 
                 {/* 카테고리 */}
 
@@ -727,17 +1328,18 @@ function Admin({ onClose }) {
                 </label>
 
                 <select
-                  value={editCategory}
-                  onChange={(e) =>
+                  value={
+                    editCategory
+                  }
+                  onChange={(
+                    e
+                  ) =>
                     setEditCategory(
-                      e.target.value
+                      e.target
+                        .value
                     )
                   }
                 >
-
-                  <option value="전체">
-                    전체
-                  </option>
 
                   <option value="음악">
                     음악
@@ -757,51 +1359,138 @@ function Admin({ onClose }) {
 
                 </select>
 
+
+                {/* 영상 / 음악 파일 */}
+
+                <label>
+                  {videos.find(
+                    (v) =>
+                      v.id ===
+                      editingId
+                  )?.media_type ===
+                  'audio'
+                    ? '음악 파일 교체'
+                    : '동영상 파일 교체'}
+                </label>
+
+                <input
+                  type="file"
+                  accept={
+                    videos.find(
+                      (v) =>
+                        v.id ===
+                        editingId
+                    )?.media_type ===
+                    'audio'
+                      ? 'audio/*'
+                      : 'video/*'
+                  }
+                  onChange={(
+                    e
+                  ) =>
+                    setEditMediaFile(
+                      e.target
+                        .files?.[0] ??
+                        null
+                    )
+                  }
+                />
+
+                {editMediaFile && (
+
+                  <p>
+                    선택한 파일:{' '}
+                    {
+                      editMediaFile.name
+                    }
+                  </p>
+
+                )}
+
+
+                {/* 썸네일 */}
+
+                <label>
+                  썸네일 교체
+                </label>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(
+                    e
+                  ) =>
+                    setEditThumbnailFile(
+                      e.target
+                        .files?.[0] ??
+                        null
+                    )
+                  }
+                />
+
+                {editThumbnailFile && (
+
+                  <p>
+                    선택한 썸네일:{' '}
+                    {
+                      editThumbnailFile.name
+                    }
+                  </p>
+
+                )}
+
+
                 {/* 설명 / 가사 */}
 
                 <label>
-                  {editingVideo.media_type ===
-                  'audio'
-                    ? '가사'
-                    : '영상 설명'}
+                  설명 / 가사
                 </label>
 
                 <textarea
-                  value={editDescription}
-                  onChange={(e) =>
+                  value={
+                    editDescription
+                  }
+                  onChange={(
+                    e
+                  ) =>
                     setEditDescription(
-                      e.target.value
+                      e.target
+                        .value
                     )
                   }
-                  placeholder={
-                    editingVideo.media_type ===
-                    'audio'
-                      ? '가사를 입력하세요 (선택사항)'
-                      : '영상 설명을 입력하세요 (선택사항)'
-                  }
-                  rows={8}
+                  placeholder="설명이나 가사를 입력하세요 (선택사항)"
+                  rows="8"
                 />
+
 
                 {/* 버튼 */}
 
-                <div
-                  className="video-edit-buttons"
-                >
+                <div className="video-edit-buttons">
 
                   <button
                     className="approve-button"
                     onClick={() =>
                       saveEditing(
-                        editingVideo.id
+                        editingId
                       )
                     }
+                    disabled={
+                      savingVideo
+                    }
                   >
-                    저장
+                    {savingVideo
+                      ? '저장 중...'
+                      : '저장'}
                   </button>
 
                   <button
                     className="reject-button"
-                    onClick={cancelEditing}
+                    onClick={
+                      cancelEditing
+                    }
+                    disabled={
+                      savingVideo
+                    }
                   >
                     취소
                   </button>
@@ -815,7 +1504,6 @@ function Admin({ onClose }) {
           </>
 
         )
-
       )}
 
     </div>
