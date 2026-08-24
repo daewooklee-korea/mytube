@@ -2,17 +2,60 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+html {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   background: #ffffff;
   color: #1a1a1a;
   overflow-x: hidden;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img,
+video {
+  max-width: 100%;
+}
+
+
+/* =========================
+   App
+========================= */
 
 .app {
   min-height: 100vh;
 }
+
 
 /* =========================
    Header
@@ -83,8 +126,6 @@ body {
   background: #444;
 }
 
-/* ��/�쒖껌 �붾㈃ �ㅻ뜑�� �대찓�� + 踰꾪듉 臾띠쓬 */
-
 .user-area {
   display: flex;
   align-items: center;
@@ -126,6 +167,7 @@ body {
   background: #333;
 }
 
+
 /* =========================
    Menu
 ========================= */
@@ -147,10 +189,12 @@ body {
   cursor: pointer;
   flex-shrink: 0;
 }
+
 .menu button.active {
   background: #1a1a1a;
   color: white;
 }
+
 
 /* =========================
    Content
@@ -163,6 +207,7 @@ body {
 .content h2 {
   margin: 0 0 25px;
 }
+
 
 /* =========================
    Video Grid
@@ -206,6 +251,7 @@ body {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
+
 /* =========================
    Video Info
 ========================= */
@@ -248,6 +294,7 @@ body {
   font-size: 12px;
 }
 
+
 /* =========================
    Watch Page
 ========================= */
@@ -281,6 +328,7 @@ body {
   overflow: hidden;
   margin-bottom: 16px;
 }
+
 .audio-player {
   width: 100%;
   min-height: 100%;
@@ -308,6 +356,7 @@ body {
   height: 48px;
   flex-shrink: 0;
 }
+
 .player video {
   width: 100%;
   height: 100%;
@@ -345,6 +394,7 @@ body {
 .actions button:hover {
   background: #eee;
 }
+
 
 /* =========================
    Comments
@@ -424,6 +474,7 @@ body {
   font-size: 14px;
   color: #333;
 }
+
 
 /* =========================
    Login Page
@@ -520,6 +571,7 @@ body {
   text-decoration: underline;
 }
 
+
 /* =========================
    Upload Page
 ========================= */
@@ -597,6 +649,7 @@ body {
   cursor: default;
 }
 
+
 /* =========================
    Admin Page
 ========================= */
@@ -613,6 +666,7 @@ body {
   justify-content: space-between;
   margin-bottom: 24px;
 }
+
 .admin-tabs {
   display: flex;
   gap: 8px;
@@ -636,13 +690,6 @@ body {
   border-color: #1a1a1a;
 }
 
-.admin-table input[type='text'] {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 13px;
-  width: 100%;
-}
 .admin-header h1 {
   font-size: 20px;
   margin: 0;
@@ -683,6 +730,14 @@ body {
 
 .admin-table tbody tr:hover {
   background: #fafafa;
+}
+
+.admin-table input[type='text'] {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  width: 100%;
 }
 
 .status-badge {
@@ -752,11 +807,83 @@ body {
   background: #fdecea;
 }
 
+
+/* =========================
+   Video Edit Panel
+========================= */
+
+.video-edit-panel {
+  display: block;
+  width: 100%;
+  margin-top: 32px;
+  padding: 28px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.video-edit-panel h2 {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.video-edit-panel > p {
+  display: block;
+  margin: 0 0 24px;
+  color: #777;
+}
+
+.video-edit-panel label {
+  display: block;
+  width: 100%;
+  margin: 18px 0 8px;
+  font-weight: 600;
+}
+
+.video-edit-panel input,
+.video-edit-panel select,
+.video-edit-panel textarea {
+  display: block;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  background: #fff;
+  color: #222;
+  font-size: 15px;
+}
+
+.video-edit-panel input,
+.video-edit-panel select {
+  height: 44px;
+}
+
+.video-edit-panel textarea {
+  min-height: 180px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.video-edit-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.video-edit-buttons button {
+  min-width: 70px;
+}
+
+
 /* =========================
    Tablet
 ========================= */
 
 @media (max-width: 800px) {
+
   .header {
     padding: 15px 20px;
     gap: 15px;
@@ -802,70 +929,72 @@ body {
   }
 }
 
+
 /* =========================
    Mobile
 ========================= */
 
 @media (max-width: 500px) {
-    .player {
+
+  .player {
     width: 100%;
     aspect-ratio: 16 / 9;
     border-radius: 6px;
     margin-bottom: 20px;
     background: #000;
   }
+
   .player:has(.audio-player) {
     min-height: 390px;
   }
+
   .player video {
     width: 100%;
     height: 100%;
     display: block;
     object-fit: contain;
   }
+
   .header {
     padding: 12px 15px;
     gap: 10px;
+    flex-wrap: wrap;
   }
 
   .logo {
     font-size: 22px;
   }
 
-  .header {
-  flex-wrap: wrap;
-}
+  .user-area {
+    order: 2;
+    flex-basis: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+    margin-top: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 
-.user-area {
-  order: 2;
-  flex-basis: 100%;
-  justify-content: flex-end;
-  margin-left: 0;
-  margin-top: 8px;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+  .user-area span {
+    display: inline-block;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-.user-area span {
-  display: inline-block;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+  .upload-button {
+    order: 3;
+    flex-basis: 100%;
+    margin-top: 8px;
+  }
 
-.upload-button {
-  order: 3;
-  flex-basis: 100%;
-  margin-top: 8px;
-}
-
-.login,
-.admin-button,
-.upload-button {
-  padding: 8px 14px;
-  font-size: 14px;
-}
+  .login,
+  .admin-button,
+  .upload-button {
+    padding: 8px 14px;
+    font-size: 14px;
+  }
 
   .search {
     flex-basis: 100%;
@@ -954,43 +1083,4 @@ body {
     padding: 10px 12px;
     font-size: 13px;
   }
-  .video-edit-panel {
-  margin-top: 24px;
-  padding: 24px;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  background: #fafafa;
-}
-
-.video-edit-panel h2 {
-  margin: 0 0 20px;
-}
-
-.video-edit-panel label {
-  display: block;
-  margin: 16px 0 6px;
-  font-weight: 600;
-}
-
-.video-edit-panel input,
-.video-edit-panel select,
-.video-edit-panel textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  font-size: 14px;
-}
-
-.video-edit-panel textarea {
-  resize: vertical;
-  min-height: 150px;
-}
-
-.video-edit-buttons {
-  display: flex;
-  gap: 8px;
-  margin-top: 20px;
-}
 }
