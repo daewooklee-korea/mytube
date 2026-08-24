@@ -954,4 +954,43 @@ body {
     padding: 10px 12px;
     font-size: 13px;
   }
+  .video-edit-panel {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.video-edit-panel h2 {
+  margin: 0 0 20px;
+}
+
+.video-edit-panel label {
+  display: block;
+  margin: 16px 0 6px;
+  font-weight: 600;
+}
+
+.video-edit-panel input,
+.video-edit-panel select,
+.video-edit-panel textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+}
+
+.video-edit-panel textarea {
+  resize: vertical;
+  min-height: 150px;
+}
+
+.video-edit-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
 }

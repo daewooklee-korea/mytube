@@ -360,22 +360,6 @@ const saveNickname = async (id) => {
     onChange={(e) => setEditTitle(e.target.value)}
   />
 
-  <textarea
-    value={editDescription}
-    onChange={(e) => setEditDescription(e.target.value)}
-    placeholder={
-      video.media_type === 'audio'
-        ? '가사를 입력하세요 (선택사항)'
-        : '영상 설명을 입력하세요 (선택사항)'
-    }
-    rows="5"
-    style={{
-      width: '100%',
-      marginTop: '8px',
-      padding: '8px',
-      resize: 'vertical',
-    }}
-  />
 </td>
                       <td>
                         <select
@@ -437,6 +421,60 @@ const saveNickname = async (id) => {
               ))}
             </tbody>
           </table>
+          {editingId && (
+  <div className="video-edit-panel">
+
+    <h2>영상 수정</h2>
+
+    <label>제목</label>
+
+    <input
+      type="text"
+      value={editTitle}
+      onChange={(e) => setEditTitle(e.target.value)}
+    />
+
+    <label>카테고리</label>
+
+    <select
+      value={editCategory}
+      onChange={(e) => setEditCategory(e.target.value)}
+    >
+      <option value="음악">음악</option>
+      <option value="브이로그">브이로그</option>
+      <option value="여행">여행</option>
+      <option value="코미디">코미디</option>
+    </select>
+
+    <label>설명 / 가사</label>
+
+    <textarea
+      value={editDescription}
+      onChange={(e) => setEditDescription(e.target.value)}
+      placeholder="설명이나 가사를 입력하세요 (선택사항)"
+      rows="8"
+    />
+
+    <div className="video-edit-buttons">
+
+      <button
+        className="approve-button"
+        onClick={() => saveEditing(editingId)}
+      >
+        저장
+      </button>
+
+      <button
+        className="reject-button"
+        onClick={cancelEditing}
+      >
+        취소
+      </button>
+
+    </div>
+
+  </div>
+)}
         )
       )}
     </div>
