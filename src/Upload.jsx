@@ -4,6 +4,7 @@ import { supabase } from './supabase'
 function Upload({ onUpload }) {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('음악')
+  const [description, setDescription] = useState('')
   const [mediaFile, setMediaFile] = useState(null)
   const [mediaType, setMediaType] = useState(null)
   const [thumbnailFile, setThumbnailFile] = useState(null)
@@ -161,12 +162,14 @@ const generateDefaultCover = () => {
       .from('videos')
       .insert({
         title: title,
+        description: description,
         video_url: mediaUrl,
         thumbnail_url: thumbnailUrl,
         views: 0,
         user_id: user.id,
         category: category,
         media_type: mediaType,
+
       })
 
     if (databaseError) {
@@ -177,6 +180,7 @@ const generateDefaultCover = () => {
     }
 
     setTitle('')
+    setDescription('')
     setMediaFile(null)
     setMediaType(null)
     setThumbnailFile(null)
@@ -203,7 +207,20 @@ const generateDefaultCover = () => {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="제목을 입력하세요"
         />
+<label>
+  {category === '음악' ? '가사' : '설명'}
+</label>
 
+<textarea
+  value={description}
+  onChange={(e) => setDescription(e.target.value)}
+  placeholder={
+    category === '음악'
+      ? '가사를 입력하세요'
+      : '영상 설명을 입력하세요'
+  }
+  rows="8"
+/>
         <label>카테고리</label>
 
         <select
