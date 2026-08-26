@@ -5,6 +5,15 @@ import Login from './Login'
 import { supabase } from './supabase'
 import Admin from './Admin'
 
+const menuIcons = {
+  home: '⌂',
+  video: '▶',
+  music: '♫',
+  'book-open': '▤',
+  playground: '✦',
+  library: '▣',
+}
+
 function App() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -22,6 +31,11 @@ function App() {
   const [videos, setVideos] = useState([])
   const [searchText, setSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('전체')
+  const [menus, setMenus] = useState([])
+  const [loadingMenus, setLoadingMenus] = useState(false)
+  const [selectedMenu, setSelectedMenu] = useState(null)
+  const [currentRoute, setCurrentRoute] = useState('/')
+  const [recentlyPlayedIds, setRecentlyPlayedIds] = useState([])
 
   // =========================
   // 로그인 상태 확인
@@ -92,11 +106,52 @@ function App() {
   // =========================
 
   useEffect(() => {
-    if (user) {
-      loadVideos()
-    }
-  }, [user])
+  if (user && profile?.role) {
+    loadMenus()
+    loadVideos()
+  }
+}, [user, profile?.role])
+const loadMenus = async () => {
+  console.log('🔥 loadMenus 실행됨')
+  if (!profile?.role) return
 
+  setLoadingMenus(true)
+
+  const { data, error } = await supabase
+    .from('menus')
+    .select(`
+      id,
+      name,
+      parent_id,
+      level,
+      route,
+      icon,
+      sort_order,
+      is_visible,
+      is_active,
+      menu_permissions!inner (
+        role
+      )
+    `)
+    .eq('is_active', true)
+    .eq('is_visible', true)
+    .eq('menu_permissions.role', profile.role)
+    .order('level', { ascending: true })
+    .order('sort_order', { ascending: true })
+
+console.log('메뉴 조회 결과:', { data, error })
+
+  if (error) {
+    console.error('메뉴 불러오기 실패:', error)
+    setMenus([])
+    setLoadingMenus(false)
+    console.log('DB 메뉴:', data)
+    return
+  }
+
+  setMenus(data ?? [])
+  setLoadingMenus(false)
+}
   const loadVideos = async () => {
     const { data, error } = await supabase
       .from('videos')
@@ -117,7 +172,7 @@ function App() {
       error: likesError,
     } = await supabase
       .from('likes')
-      .select('video_id')
+.select('video_id, user_id')
 
     if (likesError) {
       console.error(
@@ -157,6 +212,7 @@ function App() {
     const formattedVideos = data.map(
       (video) => ({
         id: video.id,
+        userId: video.user_id,
         title: video.title,
 
         views: `조회수 ${video.views}회`,
@@ -171,7 +227,12 @@ function App() {
 
         likeCount:
           likeCounts[video.id] ?? 0,
-
+isFavorite:
+  (likesData ?? []).some(
+    (like) =>
+      like.video_id === video.id &&
+      like.user_id === user.id
+  ),
         uploaderNickname:
           nicknameMap[video.user_id] ??
           '알 수 없음',
@@ -190,6 +251,43 @@ function App() {
     setVideos(formattedVideos)
   }
 
+  const loadRecentlyPlayed = async () => {
+  const { data, error } = await supabase
+    .from('play_history')
+    .select('video_id, played_at')
+    .eq('user_id', user.id)
+    .order('played_at', { ascending: false })
+
+  if (error) {
+    console.error(
+      '최근 재생 기록 불러오기 실패:',
+      error
+    )
+    return
+  }
+
+  // 같은 콘텐츠는 가장 최근 기록 하나만 사용
+  const uniqueIds = []
+
+  ;(data ?? []).forEach((item) => {
+    if (!uniqueIds.includes(item.video_id)) {
+      uniqueIds.push(item.video_id)
+    }
+  })
+
+  setRecentlyPlayedIds(uniqueIds)
+
+  console.log(
+    '최근 재생 콘텐츠:',
+    uniqueIds
+  )
+}
+
+useEffect(() => {
+  if (currentRoute === '/library/recently-played') {
+    loadRecentlyPlayed()
+  }
+}, [currentRoute])
   // =========================
   // 시간 표시
   // =========================
@@ -235,6 +333,23 @@ function App() {
     setSelectedVideo(video)
     setCommentText('')
     setComments([])
+
+// 재생 기록 저장
+const { error: historyError } =
+  await supabase
+    .from('play_history')
+    .insert({
+      user_id: user.id,
+      video_id: video.id,
+      position: 0,
+    })
+
+if (historyError) {
+  console.error(
+    '재생 기록 저장 실패:',
+    historyError
+  )
+}
 
     // 조회수 증가
     const { error } =
@@ -363,6 +478,7 @@ function App() {
                 ...v,
                 likeCount:
                   v.likeCount - 1,
+                  isFavorite: false,
               }
             : v
         )
@@ -397,6 +513,7 @@ function App() {
                 ...v,
                 likeCount:
                   v.likeCount + 1,
+                  isFavorite: true,
               }
             : v
         )
@@ -528,26 +645,57 @@ function App() {
   // =========================
 
   const filteredVideos =
-    videos.filter((video) => {
-      const matchesSearch =
-        video.title
-          .toLowerCase()
-          .includes(
-            searchText.toLowerCase()
-          )
+  videos.filter((video) => {
+    const matchesSearch =
+      video.title
+        .toLowerCase()
+        .includes(
+          searchText.toLowerCase()
+        )
 
-      const matchesCategory =
-        selectedCategory ===
-          '전체' ||
-        video.category ===
-          selectedCategory
+    const matchesCategory =
+      selectedCategory === '전체' ||
+      video.category === selectedCategory
 
-      return (
-        matchesSearch &&
-        matchesCategory
+    const matchesMediaType =
+      currentRoute === '/music'
+        ? video.mediaType === 'audio'
+        : currentRoute === '/video'
+          ? video.mediaType !== 'audio'
+          : true
+
+    const matchesFavorites =
+      currentRoute === '/library/favorites'
+        ? video.isFavorite
+        : true
+
+    const matchesRecentlyPlayed =
+      currentRoute === '/library/recently-played'
+        ? recentlyPlayedIds.includes(video.id)
+        : true
+
+    const matchesMyMedia =
+      currentRoute === '/library/my-media'
+        ? video.userId === user.id
+        : true
+
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesMediaType &&
+      matchesMyMedia &&
+      matchesFavorites &&
+      matchesRecentlyPlayed
+    )
+  })
+const displayedVideos =
+  currentRoute === '/library/recently-played'
+    ? [...filteredVideos].sort(
+        (a, b) =>
+          recentlyPlayedIds.indexOf(a.id) -
+          recentlyPlayedIds.indexOf(b.id)
       )
-    })
-
+    : filteredVideos
   // =========================
   // 화면
   // =========================
@@ -992,40 +1140,72 @@ function App() {
               카테고리
           ========================= */}
 
-          <nav className="menu">
+          {/* =========================
+    PlayMe Navigation
+========================= */}
 
-            {[
-              '전체',
-              '음악',
-              '브이로그',
-              '여행',
-              '코미디',
-            ].map(
-              (category) => (
+<nav className="main-menu">
+  {menus
+    .filter((menu) => menu.level === 1)
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((menu) => {
+      const isSelected =
+        selectedMenu?.id === menu.id
 
-                <button
-                  key={
-                    category
-                  }
-                  onClick={() =>
-                    setSelectedCategory(
-                      category
-                    )
-                  }
-                  className={
-                    selectedCategory ===
-                    category
-                      ? 'active'
-                      : ''
-                  }
-                >
-                  {category}
-                </button>
+      return (
+        <button
+          key={menu.id}
+          className={`main-menu-item ${
+            isSelected ? 'selected' : ''
+          }`}
+          onClick={() => {
+  setSelectedMenu(menu)
+  setCurrentRoute(menu.route || '/')
+}}
+        >
+          <span className="menu-icon">
+            {menuIcons[menu.icon] || '•'}
+          </span>
 
-              )
-            )}
+          <span className="menu-label">
+            {menu.name}
+          </span>
+        </button>
+      )
+    })}
+</nav>
 
-          </nav>
+{/* =========================
+    Sub Menu
+========================= */}
+
+{selectedMenu && (
+  <nav className="sub-menu">
+    {menus
+      .filter(
+        (menu) =>
+          menu.parent_id === selectedMenu.id &&
+          menu.level === 2
+      )
+      .sort(
+        (a, b) =>
+          a.sort_order - b.sort_order
+      )
+      .map((menu) => (
+        <button
+          key={menu.id}
+          className="sub-menu-item"
+          onClick={() => {
+  setCurrentRoute(menu.route || '/')
+  console.log('하위 메뉴 선택:', menu)
+}}
+        >
+          {menu.name}
+        </button>
+      ))}
+  </nav>
+)}
+
 
           {/* =========================
               영상 목록
@@ -1034,15 +1214,20 @@ function App() {
           <main className="content">
 
             <h2>
-              {selectedCategory ===
-              '전체'
-                ? '추천 영상'
-                : selectedCategory}
-            </h2>
+  {currentRoute === '/music'
+    ? 'Music'
+    : currentRoute === '/video'
+      ? 'Video'
+      : currentRoute === '/library/my-media'
+        ? 'My Media'
+        : currentRoute === '/library/favorites'
+          ? 'Favorites'
+          : '추천 콘텐츠'}
+</h2>
 
             <div className="video-grid">
 
-              {filteredVideos.map(
+              {displayedVideos.map(
                 (video) => (
 
                   <div
