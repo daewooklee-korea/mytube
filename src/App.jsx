@@ -36,6 +36,14 @@ function App() {
   const [selectedMenu, setSelectedMenu] = useState(null)
   const [currentRoute, setCurrentRoute] = useState('/')
   const [recentlyPlayedIds, setRecentlyPlayedIds] = useState([])
+  const [playlists, setPlaylists] = useState([])
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null)
+  const [playlistItems, setPlaylistItems] = useState([])
+  const [showAddPlaylistContent, setShowAddPlaylistContent] = useState(false)
+const [selectedPlaylistVideos, setSelectedPlaylistVideos] = useState([])
+  const [showCreatePlaylist, setShowCreatePlaylist] = useState(false)
+const [playlistName, setPlaylistName] = useState('')
+const [playlistDescription, setPlaylistDescription] = useState('')
 
   // =========================
   // 로그인 상태 확인
@@ -72,7 +80,7 @@ function App() {
     const { data: profile, error } =
       await supabase
         .from('profiles')
-        .select('status, role, nickname')
+        .select('status, role, nickname, username')
         .eq('id', user.id)
         .single()
 
@@ -251,7 +259,8 @@ isFavorite:
     setVideos(formattedVideos)
   }
 
-  const loadRecentlyPlayed = async () => {
+
+const loadRecentlyPlayed = async () => {
   const { data, error } = await supabase
     .from('play_history')
     .select('video_id, played_at')
@@ -283,11 +292,236 @@ isFavorite:
   )
 }
 
+const loadPlaylists = async () => {
+  const { data, error } = await supabase
+    .from('playlists')
+    .select('*')
+    .eq('owner_id', user.id)
+    .eq('is_active', true)
+    .order('created_at', {
+      ascending: false,
+    })
+
+  if (error) {
+    console.error(
+      'Playlist 불러오기 실패:',
+      error
+    )
+    return
+  }
+
+  setPlaylists(data ?? [])
+
+  console.log(
+    '내 Playlists:',
+    data
+  )
+}
+const loadPlaylistItems = async (playlistId) => {
+
+  const { data, error } = await supabase
+    .from('playlist_items')
+    .select(`
+      id,
+      playlist_id,
+      video_id,
+      sort_order,
+      added_at
+    `)
+    .eq('playlist_id', playlistId)
+    .order('sort_order', {
+      ascending: true,
+    })
+
+  if (error) {
+    console.error(
+      'Playlist 콘텐츠 불러오기 실패:',
+      error
+    )
+    return
+  }
+
+  const videoIds = (data ?? []).map(
+    (item) => item.video_id
+  )
+
+  if (videoIds.length === 0) {
+    setPlaylistItems([])
+    console.log('Playlist 콘텐츠 없음')
+    return
+  }
+
+  const { data: rawVideos, error: videosError } =
+    await supabase
+      .from('videos')
+      .select('*')
+      .in('id', videoIds)
+
+  if (videosError) {
+    console.error(
+      'Playlist 영상 정보 불러오기 실패:',
+      videosError
+    )
+    return
+  }
+
+  const orderedVideos = videoIds
+    .map((id) => {
+      const video = rawVideos.find(
+        (item) => item.id === id
+      )
+
+      if (!video) return null
+
+      return {
+        id: video.id,
+        userId: video.user_id,
+        title: video.title,
+        views: `조회수 ${video.views}회`,
+        rawViews: video.views,
+        time: formatTime(video.created_at),
+        video: video.video_url,
+        thumbnail: video.thumbnail_url,
+        likeCount: 0,
+        isFavorite: false,
+        uploaderNickname: '알 수 없음',
+        category: video.category,
+        mediaType:
+          video.media_type ?? 'video',
+        description:
+          video.description ?? null,
+      }
+    })
+    .filter(Boolean)
+
+  setPlaylistItems(orderedVideos)
+
+  console.log(
+    'Playlist 콘텐츠:',
+    orderedVideos
+  )
+}
+
+
+const addVideosToPlaylist = async () => {
+  if (!selectedPlaylist) {
+    return
+  }
+
+  if (selectedPlaylistVideos.length === 0) {
+    alert('추가할 콘텐츠를 선택해주세요.')
+    return
+  }
+
+  const existingIds = playlistItems.map(
+    (video) => video.id
+  )
+
+  const newVideoIds =
+    selectedPlaylistVideos.filter(
+      (id) => !existingIds.includes(id)
+    )
+
+  if (newVideoIds.length === 0) {
+    alert('이미 Playlist에 추가된 콘텐츠입니다.')
+    return
+  }
+
+  const startOrder = playlistItems.length
+
+  const items = newVideoIds.map(
+    (videoId, index) => ({
+      playlist_id: selectedPlaylist.id,
+      video_id: videoId,
+      sort_order: startOrder + index,
+    })
+  )
+
+  const { error } = await supabase
+    .from('playlist_items')
+    .insert(items)
+
+  if (error) {
+    console.error(
+      'Playlist 콘텐츠 추가 실패:',
+      error
+    )
+    alert('콘텐츠 추가에 실패했습니다.')
+    return
+  }
+
+  await loadPlaylistItems(
+    selectedPlaylist.id
+  )
+
+  setSelectedPlaylistVideos([])
+  setShowAddPlaylistContent(false)
+
+  console.log(
+    'Playlist 콘텐츠 추가 완료:',
+    newVideoIds
+  )
+}
+const createPlaylist = async () => {
+  const name = playlistName.trim()
+
+  if (!name) {
+    alert('Playlist 이름을 입력해주세요.')
+    return
+  }
+
+  const { data, error } = await supabase
+    .from('playlists')
+    .insert({
+      name,
+      description:
+        playlistDescription.trim() || null,
+      owner_id: user.id,
+      visibility: 'PRIVATE',
+      is_active: true,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error(
+      'Playlist 생성 실패:',
+      error
+    )
+    alert('Playlist 생성에 실패했습니다.')
+    return
+  }
+
+  setPlaylists((prev) => [
+    data,
+    ...prev,
+  ])
+
+  setPlaylistName('')
+  setPlaylistDescription('')
+  setShowCreatePlaylist(false)
+
+  console.log(
+    'Playlist 생성 완료:',
+    data
+  )
+}
 useEffect(() => {
   if (currentRoute === '/library/recently-played') {
     loadRecentlyPlayed()
   }
-}, [currentRoute])
+
+  if (currentRoute === '/library/playlists') {
+    loadPlaylists()
+  }
+
+  if (
+    currentRoute === '/library/playlist-detail' &&
+    selectedPlaylist
+  ) {
+    loadPlaylistItems(selectedPlaylist.id)
+  }
+}, [currentRoute, selectedPlaylist])
   // =========================
   // 시간 표시
   // =========================
@@ -783,7 +1017,7 @@ const displayedVideos =
               )}
 
               <span>
-                {user.email}
+               {profile?.username}
               </span>
 
               <button
@@ -1104,7 +1338,7 @@ const displayedVideos =
               )}
 
               <span>
-                {user.email}
+               {profile?.username}
               </span>
 
               <button
@@ -1213,7 +1447,7 @@ const displayedVideos =
 
           <main className="content">
 
-            <h2>
+          <h2>
   {currentRoute === '/music'
     ? 'Music'
     : currentRoute === '/video'
@@ -1222,9 +1456,347 @@ const displayedVideos =
         ? 'My Media'
         : currentRoute === '/library/favorites'
           ? 'Favorites'
-          : '추천 콘텐츠'}
+          : currentRoute === '/library/recently-played'
+            ? 'Recently Played'
+            : currentRoute === '/library/playlists'
+  ? 'Playlists'
+  : currentRoute === '/library/playlist-detail'
+    ? selectedPlaylist?.name || 'Playlist'
+    : '추천 콘텐츠'}
 </h2>
+{currentRoute === '/library/playlist-detail' ? (
+  <div className="playlist-detail-page">
 
+    <div className="playlist-detail-header">
+      <button
+        className="back-button"
+        onClick={() => {
+          setSelectedPlaylist(null)
+          setPlaylistItems([])
+          setCurrentRoute('/library/playlists')
+        }}
+      >
+        ← Playlists
+      </button>
+
+      <h2>
+        {selectedPlaylist?.name || 'Playlist'}
+      </h2>
+
+      {selectedPlaylist?.description && (
+        <p>
+          {selectedPlaylist.description}
+        </p>
+      )}
+
+      <button
+        className="add-playlist-content-button"
+        onClick={() => {
+  setSelectedPlaylistVideos([])
+  setShowAddPlaylistContent(true)
+}}
+      >
+        ＋ 콘텐츠 추가
+      </button>
+      {showAddPlaylistContent && (
+  <div className="playlist-add-panel">
+    <div className="playlist-add-header">
+      <h3>콘텐츠 추가</h3>
+
+      <button
+        type="button"
+        onClick={() => {
+          setShowAddPlaylistContent(false)
+        }}
+      >
+        ✕
+      </button>
+    </div>
+
+    <div className="playlist-add-list">
+      {videos.map((video) => {
+        const isSelected =
+          selectedPlaylistVideos.includes(video.id)
+
+        return (
+          <div
+            key={video.id}
+            className={`playlist-add-item ${
+              isSelected ? 'selected' : ''
+            }`}
+            onClick={() => {
+              setSelectedPlaylistVideos((prev) =>
+                isSelected
+                  ? prev.filter(
+                      (id) => id !== video.id
+                    )
+                  : [...prev, video.id]
+              )
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => {}}
+            />
+
+            <div className="playlist-add-thumbnail">
+              {video.thumbnail ? (
+                <img
+                  src={video.thumbnail}
+                  alt={video.title}
+                />
+              ) : (
+                <span>
+                  {video.mediaType === 'audio'
+                    ? '♪'
+                    : '▶'}
+                </span>
+              )}
+            </div>
+
+            <div className="playlist-add-info">
+              <strong>{video.title}</strong>
+              <span>
+                {video.mediaType === 'audio'
+                  ? 'Music'
+                  : 'Video'}
+              </span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+
+    <div className="playlist-add-footer">
+      <span>
+        {selectedPlaylistVideos.length}개 선택
+      </span>
+
+      <button
+  type="button"
+  onClick={addVideosToPlaylist}
+>
+  추가하기
+</button>
+    </div>
+  </div>
+)}
+    </div>
+
+    {playlistItems.length === 0 ? (
+      <div className="empty-playlist">
+        <div className="empty-playlist-icon">
+          ♫
+        </div>
+
+        <h3>
+          아직 콘텐츠가 없습니다.
+        </h3>
+
+        <p>
+          음악이나 영상을 추가해보세요.
+        </p>
+      </div>
+    ) : (
+      <div className="video-grid">
+        {playlistItems.map((video) => (
+          <div
+            className="video-card"
+            key={video.id}
+           onClick={() => {
+  const playableVideo = {
+    ...video,
+    video: video.video ?? video.video_url,
+    mediaType:
+      video.mediaType ??
+      video.media_type ??
+      'video',
+    thumbnail:
+      video.thumbnail ??
+      video.thumbnail_url,
+  }
+
+  console.log(
+    'Playlist 재생 데이터:',
+    playableVideo
+  )
+
+  handleVideoClick(playableVideo)
+}}
+          >
+            <div className="thumbnail">
+  {video.thumbnail ? (
+    <img
+      src={video.thumbnail}
+      alt={video.title}
+    />
+  ) : video.mediaType === 'audio' ? (
+    <div className="audio-thumbnail">
+      ♪
+    </div>
+  ) : (
+    <video
+      src={video.video}
+      muted
+    />
+  )}
+
+  <span>
+    {video.mediaType === 'audio'
+      ? '♪'
+      : '▶'}
+  </span>
+</div>
+
+            <div className="video-info">
+  <h3>{video.title}</h3>
+
+  <p>
+    {video.uploaderNickname}
+    {' · '}
+    {video.views}
+  </p>
+
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      console.log(
+        'Playlist 콘텐츠 삭제:',
+        video.id
+      )
+    }}
+  >
+    삭제
+  </button>
+</div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+) : currentRoute === '/library/playlists' ? (
+  <div className="playlist-page">
+    <div className="playlist-header">
+      <div>
+        <h3>내 Playlists</h3>
+        <p>나만의 음악과 영상을 모아보세요.</p>
+      </div>
+
+      <button
+  className="create-playlist-button"
+  onClick={() => {
+    setShowCreatePlaylist(true)
+  }}
+>
+  ＋ 새 Playlist
+</button>
+    </div>
+{showCreatePlaylist && (
+  <div className="playlist-modal-overlay">
+    <div className="playlist-modal">
+      <h3>새 Playlist 만들기</h3>
+
+      <label>
+        Playlist 이름
+      </label>
+
+      <input
+        type="text"
+        value={playlistName}
+        onChange={(e) =>
+          setPlaylistName(e.target.value)
+        }
+        placeholder="Playlist 이름"
+        autoFocus
+      />
+
+      <label>
+        설명
+      </label>
+
+      <textarea
+        value={playlistDescription}
+        onChange={(e) =>
+          setPlaylistDescription(
+            e.target.value
+          )
+        }
+        placeholder="Playlist 설명 (선택)"
+        rows="3"
+      />
+
+      <div className="playlist-modal-buttons">
+        <button
+          type="button"
+          onClick={() => {
+            setPlaylistName('')
+            setPlaylistDescription('')
+            setShowCreatePlaylist(false)
+          }}
+        >
+          취소
+        </button>
+
+        <button
+          type="button"
+          onClick={createPlaylist}
+        >
+          만들기
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+    {playlists.length === 0 ? (
+      <div className="empty-playlist">
+        <div className="empty-playlist-icon">♫</div>
+        <h3>아직 Playlist가 없습니다.</h3>
+        <p>
+          좋아하는 음악과 영상을 모아
+          나만의 Playlist를 만들어보세요.
+        </p>
+      </div>
+    ) : (
+      <div className="playlist-grid">
+        {playlists.map((playlist) => (
+          <div
+            key={playlist.id}
+            className="playlist-card"
+            onClick={() => {
+  setSelectedPlaylist(playlist)
+  setCurrentRoute('/library/playlist-detail')
+  console.log(
+    'Playlist 선택:',
+    playlist
+  )
+}}
+          >
+            <div className="playlist-thumbnail">
+              {playlist.thumbnail_url ? (
+                <img
+                  src={playlist.thumbnail_url}
+                  alt={playlist.name}
+                />
+              ) : (
+                <span>♫</span>
+              )}
+            </div>
+
+            <div className="playlist-info">
+              <h3>{playlist.name}</h3>
+
+              {playlist.description && (
+                <p>{playlist.description}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+) : (
             <div className="video-grid">
 
               {displayedVideos.map(
@@ -1326,7 +1898,7 @@ const displayedVideos =
               )}
 
             </div>
-
+          )}
           </main>
 
         </>

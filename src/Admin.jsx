@@ -543,12 +543,12 @@ function Admin({ onClose }) {
         status,
         joined_at,
         profiles (
-          id,
-          email,
-          nickname,
-          role,
-          status
-        )
+  id,
+  username,
+  nickname,
+  role,
+  status
+)
       `)
       .eq('group_id', groupId)
       .order('joined_at', { ascending: true })
@@ -571,7 +571,7 @@ function Admin({ onClose }) {
   const loadAvailableMembers = async (groupId) => {
     const { data: profilesData, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, email, nickname, role, status')
+      .select('id, username, nickname, role, status')
       .eq('status', 'approved')
       .order('nickname', { ascending: true })
 
@@ -1512,8 +1512,8 @@ function Admin({ onClose }) {
                 </th>
 
                 <th>
-                  이메일
-                </th>
+  ID
+</th>
 
                 <th>
                   가입일
@@ -1621,8 +1621,8 @@ function Admin({ onClose }) {
                     </td>
 
                     <td>
-                      {profile.email}
-                    </td>
+  {profile.username ?? '-'}
+</td>
 
                     <td>
                       {new Date(
@@ -2007,7 +2007,7 @@ function Admin({ onClose }) {
 
               {availableMembers.map((profile) => (
                 <option key={profile.id} value={profile.id}>
-                  {profile.nickname || profile.email} ({profile.role})
+                  {profile.nickname || profile.username} ({profile.role})
                 </option>
               ))}
             </select>
@@ -2030,7 +2030,7 @@ function Admin({ onClose }) {
               <thead>
                 <tr>
                   <th>닉네임</th>
-                  <th>이메일</th>
+                  <th>ID</th>
                   <th>역할</th>
                   <th>상태</th>
                   <th>가입일</th>
@@ -2042,7 +2042,7 @@ function Admin({ onClose }) {
                 {groupMembers.map((member) => (
                   <tr key={member.id}>
                     <td>{member.profiles?.nickname || '-'}</td>
-                    <td>{member.profiles?.email || '-'}</td>
+                    <td>{member.profiles?.username || '-'}</td>
                     <td>{member.profiles?.role || '-'}</td>
                     <td>{member.status}</td>
                     <td>
