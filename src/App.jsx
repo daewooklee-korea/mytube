@@ -110,6 +110,10 @@ const [playlistDescription, setPlaylistDescription] = useState('')
   }, [])
 const handleInstallApp = async () => {
   if (!deferredPrompt) {
+    alert(
+      '현재 브라우저에서는 바로 설치할 수 없습니다.\n' +
+      'Chrome 또는 삼성 인터넷에서 PlayMe를 열어주세요.'
+    )
     return
   }
 
@@ -1069,14 +1073,14 @@ const displayedVideos =
     </button>
   )}
 
-  {deferredPrompt && !isInstalled && (
-    <button
-      className="install-button"
-      onClick={handleInstallApp}
-    >
-      📱 앱 설치
-    </button>
-  )}
+  {!isInstalled && (
+  <button
+    className="install-button"
+    onClick={handleInstallApp}
+  >
+    📱 앱 설치
+  </button>
+)}
 
   <span>
     {profile?.username}
