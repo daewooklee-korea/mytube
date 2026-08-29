@@ -223,3 +223,37 @@
     flex-wrap: wrap;
   }
 }
+
+.suno-slot.reserved {
+  background: #eeeeee;
+  color: #444444;
+}
+
+.suno-slot.mine {
+  background: #d9eaff;
+  color: #15508a;
+}
+
+.suno-slot.reserved:hover,
+.suno-slot.mine:hover {
+  opacity: 0.8;
+}
+
+.suno-reserver-name {
+  display: block;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.suno-error {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff1f1;
+  color: #b42318;
+  font-size: 13px;
+}
