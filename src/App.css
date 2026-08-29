@@ -1330,6 +1330,8 @@ video {
 
   overflow: hidden;
 
+  white-space: nowrap;
+
 }
 
 .admin-table thead {
@@ -2379,4 +2381,18 @@ video {
     height: 18px;
     font-size: 15px;
   }
+}
+
+.menu-admin-table {
+  white-space: nowrap;
+}
+
+.menu-admin-table th,
+.menu-admin-table td {
+  white-space: nowrap;
+}
+
+.menu-admin-table th,
+.menu-admin-table td {
+  padding: 8px 12px;
 }
