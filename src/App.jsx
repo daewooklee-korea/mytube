@@ -4,6 +4,7 @@ import Upload from './Upload'
 import Login from './Login'
 import { supabase } from './supabase'
 import Admin from './Admin'
+import SunoReservation from './SunoReservation'
 
 const menuIcons = {
   home: '⌂',
@@ -1528,10 +1529,14 @@ const displayedVideos =
             : currentRoute === '/library/playlists'
   ? 'Playlists'
   : currentRoute === '/library/playlist-detail'
-    ? selectedPlaylist?.name || 'Playlist'
+  ? selectedPlaylist?.name || 'Playlist'
+  : currentRoute === '/suno-reservation'
+    ? 'SUNO 예약'
     : '추천 콘텐츠'}
 </h2>
-{currentRoute === '/library/playlist-detail' ? (
+{currentRoute === '/suno-reservation' ? (
+  <SunoReservation />
+) : currentRoute === '/library/playlist-detail' ? (
   <div className="playlist-detail-page">
 
     <div className="playlist-detail-header">
