@@ -2350,3 +2350,29 @@ video {
 .install-button:hover {
   background: #f5f5f5;
 }
+
+/* =========================================
+   Mobile Main Navigation
+========================================= */
+
+@media (max-width: 768px) {
+  .main-menu {
+    gap: 2px;
+    padding: 8px 12px;
+  }
+
+  .main-menu-item {
+    gap: 4px;
+    height: 38px;
+    padding: 0 10px;
+    border-radius: 10px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .menu-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 15px;
+  }
+}
