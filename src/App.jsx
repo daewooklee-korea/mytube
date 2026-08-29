@@ -1059,7 +1059,12 @@ const displayedVideos =
               </svg>
 
               PlayMe
-
+ <button
+    className="install-button"
+    onClick={handleInstallApp}
+  >
+    📱 앱 설치
+  </button>
             </div>
 
           <div className="user-area">
@@ -1073,15 +1078,7 @@ const displayedVideos =
     </button>
   )}
 
-  {!isInstalled && (
-  <button
-    className="install-button"
-    onClick={handleInstallApp}
-  >
-    📱 앱 설치
-  </button>
-)}
-
+  
   <span>
     {profile?.username}
   </span>
