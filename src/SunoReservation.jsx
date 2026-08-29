@@ -101,7 +101,7 @@ function SunoReservation() {
         const { data: profileData, error: profileError } =
           await supabase
             .from('profiles')
-            .select('id, username')
+           .select('id, nickname')
             .in('id', userIds)
 
         if (profileError) {
@@ -114,14 +114,14 @@ function SunoReservation() {
       const profileMap = new Map(
         profiles.map((profile) => [
           profile.id,
-          profile.username,
+          profile.nickname,
         ])
       )
 
       const reservationsWithUser = (data || []).map(
         (reservation) => ({
           ...reservation,
-          username:
+          nickname:
             profileMap.get(reservation.user_id) ||
             '회원',
         })
@@ -372,7 +372,7 @@ function SunoReservation() {
                   >
                     {reservation && (
                       <span className="suno-reserver-name">
-                        {reservation.username}
+                        {reservation.nickname}
                       </span>
                     )}
                   </button>
