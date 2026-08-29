@@ -1058,13 +1058,8 @@ const displayedVideos =
                 />
               </svg>
 
-              PlayMe
- <button
-    className="install-button"
-    onClick={handleInstallApp}
-  >
-    📱 앱 설치
-  </button>
+              <span>PlayMe</span>
+
             </div>
 
           <div className="user-area">
@@ -1336,30 +1331,41 @@ const displayedVideos =
 
             <div className="logo">
 
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 32 32"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <rect
-                  x="1"
-                  y="1"
-                  width="30"
-                  height="30"
-                  rx="9"
-                  fill="#1a1a1a"
-                />
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 32 32"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect
+      x="1"
+      y="1"
+      width="30"
+      height="30"
+      rx="9"
+      fill="#1a1a1a"
+    />
 
-                <path
-                  d="M13 10.5L22 16L13 21.5V10.5Z"
-                  fill="#ffffff"
-                />
-              </svg>
+    <path
+      d="M13 10.5L22 16L13 21.5V10.5Z"
+      fill="#ffffff"
+    />
+  </svg>
 
-              PlayMe
+  <span>PlayMe</span>
 
-            </div>
+  <button
+    type="button"
+    className="install-button"
+    onClick={(e) => {
+      e.stopPropagation()
+      handleInstallApp()
+    }}
+  >
+    📱 앱 설치
+  </button>
+
+</div>
 
             <div className="search">
 
