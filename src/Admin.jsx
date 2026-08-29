@@ -3,6 +3,19 @@ import { supabase } from './supabase'
 
 function Admin({ onClose }) {
   const [activeTab, setActiveTab] = useState('members')
+  const [menus, setMenus] = useState([])
+const [loadingMenus, setLoadingMenus] = useState(false)
+const [showMenuForm, setShowMenuForm] = useState(false)
+const [editingMenuId, setEditingMenuId] = useState(null)
+
+const [menuName, setMenuName] = useState('')
+const [menuParentId, setMenuParentId] = useState('')
+const [menuRoute, setMenuRoute] = useState('')
+const [menuIcon, setMenuIcon] = useState('')
+const [menuSortOrder, setMenuSortOrder] = useState(0)
+const [menuVisible, setMenuVisible] = useState(true)
+const [menuActive, setMenuActive] = useState(true)
+const [savingMenu, setSavingMenu] = useState(false)
 
   const [profiles, setProfiles] = useState([])
   const [loadingProfiles, setLoadingProfiles] = useState(true)
@@ -62,6 +75,7 @@ function Admin({ onClose }) {
 
   useEffect(() => {
     loadProfiles()
+    loadMenus()
     loadVideos()
     loadGroupTypes()
     loadGroups()
@@ -72,7 +86,25 @@ function Admin({ onClose }) {
   // =========================
   // 회원 목록
   // =========================
+const loadMenus = async () => {
+  setLoadingMenus(true)
 
+  const { data, error } = await supabase
+    .from('menus')
+    .select('*')
+    .order('level', { ascending: true })
+    .order('sort_order', { ascending: true })
+
+  if (error) {
+    console.error('메뉴 목록 불러오기 실패:', error)
+    alert('메뉴 목록을 불러오지 못했습니다.')
+    setLoadingMenus(false)
+    return
+  }
+
+  setMenus(data ?? [])
+  setLoadingMenus(false)
+}
   const loadProfiles = async () => {
     setLoadingProfiles(true)
 
@@ -526,7 +558,190 @@ function Admin({ onClose }) {
 
     alert('그룹이 삭제되었습니다.')
   }
+  // =========================
+  // 메뉴 관리
+  // =========================
 
+  const resetMenuForm = () => {
+    setShowMenuForm(false)
+    setEditingMenuId(null)
+    setMenuName('')
+    setMenuParentId('')
+    setMenuRoute('')
+    setMenuIcon('')
+    setMenuSortOrder(0)
+    setMenuVisible(true)
+    setMenuActive(true)
+  }
+
+  const startCreatingMenu = () => {
+    setEditingMenuId(null)
+    setMenuName('')
+    setMenuParentId('')
+    setMenuRoute('')
+    setMenuIcon('')
+    setMenuSortOrder(0)
+    setMenuVisible(true)
+    setMenuActive(true)
+    setShowMenuForm(true)
+  }
+
+  const startEditingMenu = (menu) => {
+    setEditingMenuId(menu.id)
+    setMenuName(menu.name ?? '')
+    setMenuParentId(menu.parent_id ?? '')
+    setMenuRoute(menu.route ?? '')
+    setMenuIcon(menu.icon ?? '')
+    setMenuSortOrder(menu.sort_order ?? 0)
+    setMenuVisible(menu.is_visible ?? true)
+    setMenuActive(menu.is_active ?? true)
+    setShowMenuForm(true)
+  }
+
+  const saveMenu = async () => {
+    if (!menuName.trim()) {
+      alert('메뉴 이름을 입력해주세요.')
+      return
+    }
+
+    if (!menuRoute.trim()) {
+      alert('Route를 입력해주세요.')
+      return
+    }
+
+    setSavingMenu(true)
+
+    try {
+      const parentId = menuParentId || null
+      const level = parentId ? 2 : 1
+
+      const menuData = {
+        name: menuName.trim(),
+        parent_id: parentId,
+        level,
+        route: menuRoute.trim(),
+        icon: menuIcon.trim() || null,
+        sort_order: Number(menuSortOrder) || 0,
+        is_visible: menuVisible,
+        is_active: menuActive,
+        updated_at: new Date().toISOString(),
+      }
+
+      if (editingMenuId) {
+        const { data, error } = await supabase
+          .from('menus')
+          .update(menuData)
+          .eq('id', editingMenuId)
+          .select('*')
+          .single()
+
+        if (error) throw error
+
+        setMenus((prev) =>
+          prev.map((menu) =>
+            menu.id === editingMenuId
+              ? data
+              : menu
+          )
+        )
+
+        alert('메뉴가 수정되었습니다.')
+      } else {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+
+        const { data, error } = await supabase
+          .from('menus')
+          .insert({
+            ...menuData,
+            created_by: user?.id ?? null,
+          })
+          .select('*')
+          .single()
+
+        if (error) throw error
+
+        setMenus((prev) => [
+          ...prev,
+          data,
+        ])
+
+        alert(
+          '메뉴가 생성되었습니다.\n권한은 자동으로 생성됩니다.'
+        )
+      }
+
+      resetMenuForm()
+      await loadMenus()
+    } catch (error) {
+      console.error('메뉴 저장 실패:', error)
+
+      alert(
+        `메뉴 저장에 실패했습니다: ${
+          error.message ?? '알 수 없는 오류'
+        }`
+      )
+    } finally {
+      setSavingMenu(false)
+    }
+  }
+
+  const toggleMenuActive = async (menu) => {
+    const nextActive = !menu.is_active
+
+    const { data, error } = await supabase
+      .from('menus')
+      .update({
+        is_active: nextActive,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', menu.id)
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('메뉴 상태 변경 실패:', error)
+      alert('메뉴 상태 변경에 실패했습니다.')
+      return
+    }
+
+    setMenus((prev) =>
+      prev.map((item) =>
+        item.id === menu.id
+          ? data
+          : item
+      )
+    )
+  }
+
+  const toggleMenuVisible = async (menu) => {
+    const nextVisible = !menu.is_visible
+
+    const { data, error } = await supabase
+      .from('menus')
+      .update({
+        is_visible: nextVisible,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', menu.id)
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('메뉴 표시 상태 변경 실패:', error)
+      alert('메뉴 표시 상태 변경에 실패했습니다.')
+      return
+    }
+
+    setMenus((prev) =>
+      prev.map((item) =>
+        item.id === menu.id
+          ? data
+          : item
+      )
+    )
+  }
   // =========================
   // 그룹 멤버 목록
   // =========================
@@ -1482,6 +1697,19 @@ function Admin({ onClose }) {
         >
           영상 관리
         </button>
+
+<button
+  className={
+    activeTab === 'menus'
+      ? 'active'
+      : ''
+  }
+  onClick={() =>
+    setActiveTab('menus')
+  }
+>
+  메뉴 관리
+</button>
 
       </div>
 
