@@ -15,6 +15,7 @@ const [menuIcon, setMenuIcon] = useState('')
 const [menuSortOrder, setMenuSortOrder] = useState(0)
 const [menuVisible, setMenuVisible] = useState(true)
 const [menuActive, setMenuActive] = useState(true)
+const [selectedMenuGroupIds, setSelectedMenuGroupIds] = useState([])
 const [savingMenu, setSavingMenu] = useState(false)
 
   const [profiles, setProfiles] = useState([])
@@ -572,6 +573,7 @@ const loadMenus = async () => {
     setMenuSortOrder(0)
     setMenuVisible(true)
     setMenuActive(true)
+    setSelectedMenuGroupIds([])
   }
 
   const startCreatingMenu = () => {
@@ -583,20 +585,36 @@ const loadMenus = async () => {
     setMenuSortOrder(0)
     setMenuVisible(true)
     setMenuActive(true)
+    setSelectedMenuGroupIds([])
     setShowMenuForm(true)
   }
 
-  const startEditingMenu = (menu) => {
-    setEditingMenuId(menu.id)
-    setMenuName(menu.name ?? '')
-    setMenuParentId(menu.parent_id ?? '')
-    setMenuRoute(menu.route ?? '')
-    setMenuIcon(menu.icon ?? '')
-    setMenuSortOrder(menu.sort_order ?? 0)
-    setMenuVisible(menu.is_visible ?? true)
-    setMenuActive(menu.is_active ?? true)
-    setShowMenuForm(true)
+  const startEditingMenu = async (menu) => {
+  setEditingMenuId(menu.id)
+  setMenuName(menu.name ?? '')
+  setMenuParentId(menu.parent_id ?? '')
+  setMenuRoute(menu.route ?? '')
+  setMenuIcon(menu.icon ?? '')
+  setMenuSortOrder(menu.sort_order ?? 0)
+  setMenuVisible(menu.is_visible ?? true)
+  setMenuActive(menu.is_active ?? true)
+
+  const { data: menuGroups, error } = await supabase
+    .from('menu_groups')
+    .select('group_id')
+    .eq('menu_id', menu.id)
+
+  if (error) {
+    console.error('메뉴 그룹 조회 실패:', error)
+    setSelectedMenuGroupIds([])
+  } else {
+    setSelectedMenuGroupIds(
+      (menuGroups ?? []).map((item) => item.group_id)
+    )
   }
+
+  setShowMenuForm(true)
+}
 
   const saveMenu = async () => {
     if (!menuName.trim()) {
@@ -636,7 +654,28 @@ const loadMenus = async () => {
           .single()
 
         if (error) throw error
+// 메뉴-그룹 연결 정보 갱신
+const { error: deleteGroupError } = await supabase
+  .from('menu_groups')
+  .delete()
+  .eq('menu_id', editingMenuId)
 
+if (deleteGroupError) throw deleteGroupError
+
+if (selectedMenuGroupIds.length > 0) {
+  const menuGroupRows = selectedMenuGroupIds.map(
+    (groupId) => ({
+      menu_id: editingMenuId,
+      group_id: groupId,
+    })
+  )
+
+  const { error: insertGroupError } = await supabase
+    .from('menu_groups')
+    .insert(menuGroupRows)
+
+  if (insertGroupError) throw insertGroupError
+}
         setMenus((prev) =>
           prev.map((menu) =>
             menu.id === editingMenuId
@@ -661,6 +700,20 @@ const loadMenus = async () => {
           .single()
 
         if (error) throw error
+        if (selectedMenuGroupIds.length > 0) {
+  const menuGroupRows = selectedMenuGroupIds.map(
+    (groupId) => ({
+      menu_id: data.id,
+      group_id: groupId,
+    })
+  )
+
+  const { error: insertGroupError } = await supabase
+    .from('menu_groups')
+    .insert(menuGroupRows)
+
+  if (insertGroupError) throw insertGroupError
+}
 
         setMenus((prev) => [
           ...prev,
@@ -686,62 +739,216 @@ const loadMenus = async () => {
       setSavingMenu(false)
     }
   }
+// =========================
+// 메뉴 순서 위/아래 이동
+// =========================
+const moveMenu = async (menu, direction) => {
+  // 같은 부모를 가진 메뉴 전체를 찾는다.
+  // 활성/비활성 여부와 관계없이 순서에 포함한다.
+  const siblings = menus
+    .filter(
+      (item) =>
+        item.parent_id === menu.parent_id &&
+        item.level === menu.level
+    )
+    .sort(
+      (a, b) =>
+        (a.sort_order ?? 0) -
+        (b.sort_order ?? 0)
+    )
 
+  // 현재 메뉴의 위치
+  const currentIndex = siblings.findIndex(
+    (item) => item.id === menu.id
+  )
+
+  if (currentIndex === -1) return
+
+  // 이동할 위치
+  const targetIndex =
+    direction === 'up'
+      ? currentIndex - 1
+      : currentIndex + 1
+
+  // 이미 첫 번째 또는 마지막이면 이동하지 않는다.
+  if (
+    targetIndex < 0 ||
+    targetIndex >= siblings.length
+  ) {
+    return
+  }
+
+  // 현재 메뉴를 배열에서 제거한 후
+  // 새로운 위치에 삽입한다.
+  const reordered = [...siblings]
+
+  const [movedMenu] =
+    reordered.splice(
+      currentIndex,
+      1
+    )
+
+  reordered.splice(
+    targetIndex,
+    0,
+    movedMenu
+  )
+
+  try {
+    // 같은 부모 그룹의 순서를
+    // 1부터 다시 정리한다.
+    const updates = reordered.map(
+      (item, index) => ({
+        id: item.id,
+        sort_order: index + 1,
+      })
+    )
+
+    // Supabase DB에 순서 저장
+    for (const item of updates) {
+      const { error } = await supabase
+        .from('menus')
+        .update({
+          sort_order: item.sort_order,
+          updated_at:
+            new Date().toISOString(),
+        })
+        .eq('id', item.id)
+
+      if (error) {
+        throw error
+      }
+    }
+
+    // 화면의 메뉴 순서도 즉시 반영한다.
+    setMenus((prev) =>
+      prev.map((item) => {
+        const updated =
+          updates.find(
+            (u) => u.id === item.id
+          )
+
+        return updated
+          ? {
+              ...item,
+              sort_order:
+                updated.sort_order,
+            }
+          : item
+      })
+    )
+  } catch (error) {
+    console.error(
+      '메뉴 순서 변경 실패:',
+      error
+    )
+
+    alert(
+      `메뉴 순서 변경에 실패했습니다: ${
+        error.message ??
+        '알 수 없는 오류'
+      }`
+    )
+  }
+}
+
+// 위로 이동
+const moveMenuUp = (menu) =>
+  moveMenu(menu, 'up')
+
+// 아래로 이동
+const moveMenuDown = (menu) =>
+  moveMenu(menu, 'down')
   const toggleMenuActive = async (menu) => {
-    const nextActive = !menu.is_active
+  const nextActive = !menu.is_active
 
-    const { data, error } = await supabase
-      .from('menus')
-      .update({
-        is_active: nextActive,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', menu.id)
-      .select('*')
-      .single()
+  const { error } = await supabase
+    .from('menus')
+    .update({
+      is_active: nextActive,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', menu.id)
 
-    if (error) {
-      console.error('메뉴 상태 변경 실패:', error)
-      alert('메뉴 상태 변경에 실패했습니다.')
-      return
-    }
-
-    setMenus((prev) =>
-      prev.map((item) =>
-        item.id === menu.id
-          ? data
-          : item
-      )
+  if (error) {
+    console.error('메뉴 상태 변경 실패:', error)
+    alert(
+      `메뉴 상태 변경에 실패했습니다: ${
+        error.message ?? '알 수 없는 오류'
+      }`
     )
+    return
   }
 
-  const toggleMenuVisible = async (menu) => {
-    const nextVisible = !menu.is_visible
+  setMenus((prev) =>
+    prev.map((item) =>
+      item.id === menu.id
+        ? {
+            ...item,
+            is_active: nextActive,
+          }
+        : item
+    )
+  )
+}
 
-    const { data, error } = await supabase
-      .from('menus')
-      .update({
-        is_visible: nextVisible,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', menu.id)
-      .select('*')
+const toggleMenuVisible = async (menu) => {
+  const nextVisible = !menu.is_visible
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  console.log('메뉴 변경 사용자:', user)
+  console.log('메뉴 변경 사용자 ID:', user?.id)
+  console.log('사용자 조회 오류:', userError)
+
+  const { data: profile, error: profileError } =
+    await supabase
+      .from('profiles')
+      .select('id, username, nickname, role, status')
+      .eq('id', user?.id)
       .single()
 
-    if (error) {
-      console.error('메뉴 표시 상태 변경 실패:', error)
-      alert('메뉴 표시 상태 변경에 실패했습니다.')
-      return
-    }
+  console.log('메뉴 변경 사용자 프로필:', profile)
+  console.log('프로필 조회 오류:', profileError)
 
-    setMenus((prev) =>
-      prev.map((item) =>
-        item.id === menu.id
-          ? data
-          : item
-      )
+  const { data: adminCheck, error: adminCheckError } =
+    await supabase.rpc('is_admin')
+
+  console.log('is_admin() 결과:', adminCheck)
+  console.log('is_admin() 오류:', adminCheckError)
+
+  const { error } = await supabase
+    .from('menus')
+    .update({
+      is_visible: nextVisible,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', menu.id)
+
+  if (error) {
+    console.error('메뉴 표시 상태 변경 실패:', error)
+    alert(
+      `메뉴 표시 상태 변경에 실패했습니다: ${
+        error.message ?? '알 수 없는 오류'
+      }`
     )
+    return
   }
+
+  setMenus((prev) =>
+    prev.map((item) =>
+      item.id === menu.id
+        ? {
+            ...item,
+            is_visible: nextVisible,
+          }
+        : item
+    )
+  )
+}
   // =========================
   // 그룹 멤버 목록
   // =========================
@@ -1779,14 +1986,15 @@ const loadMenus = async () => {
                       {editingNicknameId ===
                       profile.id ? (
 
-                        <div
-                          style={{
-                            display:
-                              'flex',
-                            gap:
-                              '6px',
-                          }}
-                        >
+                      <div
+  style={{
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: '6px',
+    whiteSpace: 'nowrap',
+  }}
+>
 
                           <input
                             type="text"
@@ -2132,12 +2340,14 @@ const loadMenus = async () => {
                     </td>
                     <td>
                       <div
-                        style={{
-                          display: 'flex',
-                          gap: '6px',
-                          flexWrap: 'wrap',
-                        }}
-                      >
+  style={{
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: '6px',
+    whiteSpace: 'nowrap',
+  }}
+>
                         <button
                           className="approve-button"
                           onClick={() => startEditingGroup(group)}
@@ -2706,7 +2916,397 @@ const loadMenus = async () => {
         )
       )}
 
+      {/* =========================
+          메뉴 관리
+      ========================= */}
 
+      {activeTab === 'menus' && (
+        <div>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
+            }}
+          >
+            <h2 style={{ margin: 0 }}>메뉴 관리</h2>
+
+            <button
+              className="approve-button"
+              onClick={startCreatingMenu}
+            >
+              + 메뉴 추가
+            </button>
+          </div>
+
+          {showMenuForm && (
+            <div
+              style={{
+                border: '1px solid #ddd',
+                borderRadius: '12px',
+                padding: '20px',
+                marginBottom: '24px',
+              }}
+            >
+              <h3 style={{ marginTop: 0 }}>
+                {editingMenuId ? '메뉴 수정' : '메뉴 추가'}
+              </h3>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '12px',
+                }}
+              >
+                <div>
+                  <label>메뉴 이름</label>
+                  <input
+                    type="text"
+                    value={menuName}
+                    onChange={(e) =>
+                      setMenuName(e.target.value)
+                    }
+                    placeholder="예: AI Music"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label>상위 메뉴</label>
+                  <select
+                    value={menuParentId}
+                    onChange={(e) =>
+                      setMenuParentId(e.target.value)
+                    }
+                    style={{ width: '100%' }}
+                  >
+                    <option value="">
+                      1차 메뉴
+                    </option>
+
+                    {menus
+                      .filter(
+                        (menu) =>
+                          menu.level === 1 &&
+                          menu.id !== editingMenuId
+                      )
+                      .map((menu) => (
+                        <option
+                          key={menu.id}
+                          value={menu.id}
+                        >
+                          {menu.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label>Route</label>
+                  <input
+                    type="text"
+                    value={menuRoute}
+                    onChange={(e) =>
+                      setMenuRoute(e.target.value)
+                    }
+                    placeholder="/playground/ai-music"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label>Icon</label>
+                  <input
+                    type="text"
+                    value={menuIcon}
+                    onChange={(e) =>
+                      setMenuIcon(e.target.value)
+                    }
+                    placeholder="ai-music"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label>정렬 순서</label>
+                  <input
+                    type="number"
+                    value={menuSortOrder}
+                    onChange={(e) =>
+                      setMenuSortOrder(e.target.value)
+                    }
+                    style={{ width: '100%' }}
+                  />
+                </div>
+<div>
+  <label>연결 그룹</label>
+
+  <div
+    style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+      marginTop: '8px',
+      padding: '12px',
+      border: '1px solid #ddd',
+      borderRadius: '8px',
+      background: '#fafafa',
+    }}
+  >
+    {groups.length === 0 ? (
+      <span style={{ color: '#777' }}>
+        등록된 그룹이 없습니다.
+      </span>
+    ) : (
+      groups.map((group) => (
+        <label
+          key={group.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={selectedMenuGroupIds.includes(group.id)}
+            onChange={(e) => {
+              setSelectedMenuGroupIds((prev) =>
+                e.target.checked
+                  ? [...prev, group.id]
+                  : prev.filter(
+                      (id) => id !== group.id
+                    )
+              )
+            }}
+          />
+
+          {group.name}
+        </label>
+      ))
+    )}
+  </div>
+</div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={menuVisible}
+                    onChange={(e) =>
+                      setMenuVisible(e.target.checked)
+                    }
+                  />
+                  {' '}메뉴 표시
+                </label>
+
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={menuActive}
+                    onChange={(e) =>
+                      setMenuActive(e.target.checked)
+                    }
+                  />
+                  {' '}메뉴 활성
+                </label>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '8px',
+                  }}
+                >
+                  <button
+                    className="approve-button"
+                    onClick={saveMenu}
+                    disabled={savingMenu}
+                  >
+                    {savingMenu
+                      ? '저장 중...'
+                      : '저장'}
+                  </button>
+
+                  <button
+                    className="reject-button"
+                    onClick={resetMenuForm}
+                    disabled={savingMenu}
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {loadingMenus ? (
+            <p>메뉴를 불러오는 중...</p>
+          ) : menus.length === 0 ? (
+            <p>등록된 메뉴가 없습니다.</p>
+          ) : (
+           <table className="admin-table menu-admin-table">
+              <thead>
+  <tr>
+    <th>메뉴</th>
+    <th>레벨</th>
+    <th>순서</th>
+    <th>표시</th>
+    <th>상태</th>
+    <th>작업</th>
+  </tr>
+</thead>
+
+              <tbody>
+                              {menus
+                .filter((menu) => menu.level === 1)
+                .sort(
+                  (a, b) =>
+                    (a.sort_order ?? 0) -
+                    (b.sort_order ?? 0)
+                )
+                .flatMap((parentMenu) => {
+                  const children = menus
+                    .filter(
+                      (menu) =>
+                        menu.level === 2 &&
+                        menu.parent_id === parentMenu.id
+                    )
+                    .sort(
+                      (a, b) =>
+                        (a.sort_order ?? 0) -
+                        (b.sort_order ?? 0)
+                    )
+
+                  return [
+                    parentMenu,
+                    ...children,
+                  ]
+                })
+                .map((menu) => {
+                  const parentMenu =
+                    menu.level === 2
+                      ? menus.find(
+                          (item) =>
+                            item.id ===
+                            menu.parent_id
+                        )
+                      : null
+
+                  return (
+                    <tr key={menu.id}>
+                      <td>
+                        {menu.level === 2
+                          ? '　↳ '
+                          : ''}
+
+                        <strong>
+                          {menu.name}
+                        </strong>
+                      </td>
+
+                      <td>
+                        {menu.level}
+                      </td>
+
+                     
+
+                      <td>
+                       {menu.level === 1
+                         ? `${menu.sort_order}-0`
+                         : `${parentMenu?.sort_order ?? 0}-${menu.sort_order}`}
+                      </td>
+
+                     <td>
+  <button
+    className={
+      menu.is_visible
+        ? 'approve-button'
+        : 'reject-button'
+    }
+    onClick={() =>
+      toggleMenuVisible(menu)
+    }
+    title={
+      menu.is_visible
+        ? '클릭하면 숨김'
+        : '클릭하면 표시'
+    }
+  >
+    {menu.is_visible
+      ? '표시'
+      : '숨김'}
+  </button>
+</td>
+
+                     <td>
+  <button
+    className={
+      menu.is_active
+        ? 'approve-button'
+        : 'reject-button'
+    }
+    onClick={() =>
+      toggleMenuActive(menu)
+    }
+    title={
+      menu.is_active
+        ? '클릭하면 비활성'
+        : '클릭하면 활성'
+    }
+  >
+    {menu.is_active
+      ? 'ACTIVE'
+      : 'INACTIVE'}
+  </button>
+</td>
+
+                      <td>
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: '6px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <button
+                            className="approve-button"
+                            onClick={() =>
+                              startEditingMenu(menu)
+                            }
+                          >
+                            수정
+                          </button>
+<button
+  className="approve-button"
+  onClick={() =>
+    moveMenuUp(menu)
+  }
+  title="위로 이동"
+>
+  ↑
+</button>
+
+<button
+  className="approve-button"
+  onClick={() =>
+    moveMenuDown(menu)
+  }
+  title="아래로 이동"
+>
+  ↓
+</button>
+                        
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
       {/* =========================
           영상 접근 권한 관리
       ========================= */}
