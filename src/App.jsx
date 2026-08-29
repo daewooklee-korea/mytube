@@ -43,16 +43,48 @@ function App() {
 const [selectedPlaylistVideos, setSelectedPlaylistVideos] = useState([])
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false)
 const [playlistName, setPlaylistName] = useState('')
+const [deferredPrompt, setDeferredPrompt] = useState(null)
+const [isInstalled, setIsInstalled] = useState(false)
 const [playlistDescription, setPlaylistDescription] = useState('')
 
   // =========================
   // 로그인 상태 확인
   // =========================
 
-  useEffect(() => {
-    checkUser()
+ useEffect(() => {
 
-    const {
+  checkUser()
+
+  const handleBeforeInstallPrompt = (e) => {
+    e.preventDefault()
+    setDeferredPrompt(e)
+  }
+
+  const handleAppInstalled = () => {
+    setDeferredPrompt(null)
+    setIsInstalled(true)
+  }
+
+  window.addEventListener(
+    'beforeinstallprompt',
+    handleBeforeInstallPrompt
+  )
+
+  window.addEventListener(
+    'appinstalled',
+    handleAppInstalled
+  )
+
+  if (
+    window.matchMedia(
+      '(display-mode: standalone)'
+    ).matches ||
+    window.navigator.standalone === true
+  ) {
+    setIsInstalled(true)
+  }
+
+  const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
       (_event, session) => {
@@ -62,11 +94,37 @@ const [playlistDescription, setPlaylistDescription] = useState('')
       }
     )
 
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
+   return () => {
+  subscription.unsubscribe()
 
+  window.removeEventListener(
+    'beforeinstallprompt',
+    handleBeforeInstallPrompt
+  )
+
+  window.removeEventListener(
+    'appinstalled',
+    handleAppInstalled
+  )
+}
+  }, [])
+const handleInstallApp = async () => {
+  if (!deferredPrompt) {
+    return
+  }
+
+  deferredPrompt.prompt()
+
+  const { outcome } =
+    await deferredPrompt.userChoice
+
+  console.log(
+    '앱 설치 결과:',
+    outcome
+  )
+
+  setDeferredPrompt(null)
+}
   const checkUser = async () => {
     const {
       data: { user },
@@ -1000,36 +1058,38 @@ const displayedVideos =
 
             </div>
 
-            <div className="user-area">
+          <div className="user-area">
 
-              {profile?.role ===
-                'admin' && (
+  {profile?.role === 'admin' && (
+    <button
+      className="admin-button"
+      onClick={() => setShowAdmin(true)}
+    >
+      관리자
+    </button>
+  )}
 
-                <button
-                  className="admin-button"
-                  onClick={() =>
-                    setShowAdmin(true)
-                  }
-                >
-                  관리자
-                </button>
+  {deferredPrompt && !isInstalled && (
+    <button
+      className="install-button"
+      onClick={handleInstallApp}
+    >
+      📱 앱 설치
+    </button>
+  )}
 
-              )}
+  <span>
+    {profile?.username}
+  </span>
 
-              <span>
-               {profile?.username}
-              </span>
+  <button
+    className="login"
+    onClick={handleLogout}
+  >
+    로그아웃
+  </button>
 
-              <button
-                className="login"
-                onClick={
-                  handleLogout
-                }
-              >
-                로그아웃
-              </button>
-
-            </div>
+</div>
 
           </header>
 

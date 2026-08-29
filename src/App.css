@@ -2335,3 +2335,17 @@ video {
   justify-content: center;
   font-size: 48px;
 }
+
+.install-button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #1a1a1a;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.install-button:hover {
+  opacity: 0.85;
+}
