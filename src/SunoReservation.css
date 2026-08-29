@@ -1,0 +1,225 @@
+.suno-reservation {
+  width: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.suno-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.suno-header h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.suno-header p {
+  margin: 0;
+  color: #777;
+  font-size: 13px;
+}
+
+.suno-date-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.suno-date-controls button {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #444444;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.suno-date-controls button:hover {
+  background: #f5f5f5;
+}
+
+.suno-date-controls .suno-today-button {
+  background: #1a1a1a;
+  color: #ffffff;
+  border-color: #1a1a1a;
+}
+
+.suno-calendar {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.suno-grid {
+  display: grid;
+  grid-template-columns: 58px repeat(3, minmax(140px, 1fr));
+  min-width: 520px;
+  border-top: 1px solid #e5e5e5;
+  border-left: 1px solid #e5e5e5;
+  border-radius: 10px 10px 0 0;
+  overflow: hidden;
+}
+
+.suno-time-header,
+.suno-date-header {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: #fafafa;
+  border-right: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.suno-date-header {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.suno-date-header strong {
+  font-size: 14px;
+}
+
+.suno-date-header span {
+  font-size: 12px;
+  color: #888;
+}
+
+.suno-row {
+  display: contents;
+}
+
+.suno-time {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+  border-right: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e5e5e5;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666666;
+}
+
+.suno-slot {
+  min-height: 52px;
+  margin: 0;
+  border: 0;
+  border-right: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e5e5e5;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.suno-slot.available {
+  background: #f7f7f7;
+}
+
+.suno-slot.available:hover {
+  background: #eeeeee;
+}
+
+.suno-legend {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 12px;
+  color: #666666;
+  font-size: 12px;
+}
+
+.suno-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.suno-legend i {
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  border-radius: 3px;
+}
+
+.legend-available {
+  background: #f7f7f7;
+  border: 1px solid #dddddd;
+}
+
+.legend-reserved {
+  background: #e5e5e5;
+}
+
+.legend-mine {
+  background: #d9eaff;
+}
+
+@media (max-width: 768px) {
+  .suno-reservation {
+    padding: 16px 12px;
+  }
+
+  .suno-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .suno-header h2 {
+    font-size: 20px;
+  }
+
+  .suno-date-controls {
+    width: 100%;
+  }
+
+  .suno-date-controls button {
+    flex: 1;
+    padding: 0 7px;
+    font-size: 12px;
+  }
+
+  .suno-grid {
+    grid-template-columns: 48px repeat(3, minmax(92px, 1fr));
+    min-width: 324px;
+  }
+
+  .suno-time-header {
+    font-size: 11px;
+  }
+
+  .suno-date-header {
+    min-height: 44px;
+  }
+
+  .suno-date-header strong {
+    font-size: 13px;
+  }
+
+  .suno-date-header span {
+    font-size: 11px;
+  }
+
+  .suno-time {
+    min-height: 48px;
+    font-size: 11px;
+  }
+
+  .suno-slot {
+    min-height: 48px;
+  }
+
+  .suno-legend {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+}
