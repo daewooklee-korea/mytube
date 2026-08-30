@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import Upload from './Upload'
 import Login from './Login'
@@ -52,6 +52,57 @@ const [notifications, setNotifications] = useState([])
 const [showNotifications, setShowNotifications] = useState(false)
 const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
 const [notificationTargetUserId, setNotificationTargetUserId] = useState(null)
+  const navigationHistoryRef = useRef([])
+   // =========================
+  // 모바일 브라우저 뒤로가기
+  // =========================
+
+    useEffect(() => {
+    const handlePopState = () => {
+      const previousState =
+        navigationHistoryRef.current.pop()
+
+      if (!previousState) {
+        return
+      }
+
+      setShowAdmin(
+        previousState.showAdmin || false
+      )
+
+      setShowUpload(
+        previousState.showUpload || false
+      )
+
+      setSelectedVideo(
+        previousState.selectedVideo || null
+      )
+
+      setSelectedPlaylist(
+        previousState.selectedPlaylist || null
+      )
+
+      setSelectedMenu(
+        previousState.selectedMenu || null
+      )
+
+      setCurrentRoute(
+        previousState.currentRoute || '/'
+      )
+    }
+
+    window.addEventListener(
+      'popstate',
+      handlePopState
+    )
+
+    return () => {
+      window.removeEventListener(
+        'popstate',
+        handlePopState
+      )
+    }
+  }, [])
   // =========================
   // 로그인 상태 확인
   // =========================
@@ -698,6 +749,15 @@ useEffect(() => {
     if (!video.video) return
 
     setSelectedVideo(video)
+
+        navigationHistoryRef.current.push({
+      currentRoute,
+      selectedMenu,
+      selectedPlaylist,
+    })
+
+    window.history.pushState({}, '')
+
     setCommentText('')
     setComments([])
 
@@ -1140,7 +1200,16 @@ const displayedVideos =
   {profile?.role === 'admin' && (
     <button
       className="admin-button"
-      onClick={() => setShowAdmin(true)}
+    onClick={() => {
+  navigationHistoryRef.current.push({
+    currentRoute,
+    selectedMenu,
+    selectedPlaylist,
+  })
+
+  setShowAdmin(true)
+  window.history.pushState({}, '')
+}}
     >
       관리자
     </button>
@@ -1484,9 +1553,16 @@ const displayedVideos =
 
                 <button
                   className="admin-button"
-                  onClick={() =>
-                    setShowAdmin(true)
-                  }
+                  onClick={() => {
+  navigationHistoryRef.current.push({
+    currentRoute,
+    selectedMenu,
+    selectedPlaylist,
+  })
+
+  setShowAdmin(true)
+  window.history.pushState({}, '')
+}}
                 >
                   관리자
                 </button>
@@ -1542,7 +1618,15 @@ const displayedVideos =
     item.notification?.target_user_id ?? null
   )
   setShowNotifications(false)
-  setShowAdmin(true)
+
+navigationHistoryRef.current.push({
+  currentRoute,
+  selectedMenu,
+  selectedPlaylist,
+})
+
+setShowAdmin(true)
+window.history.pushState({}, '')
 }
 }}
 >
@@ -1573,9 +1657,16 @@ const displayedVideos =
 
               <button
                 className="upload-button"
-                onClick={() =>
-                  setShowUpload(true)
-                }
+                onClick={() => {
+  navigationHistoryRef.current.push({
+    currentRoute,
+    selectedMenu,
+    selectedPlaylist,
+  })
+
+  setShowUpload(true)
+  window.history.pushState({}, '')
+}}
               >
                 ＋ 업로드
               </button>
@@ -1606,9 +1697,16 @@ const displayedVideos =
           className={`main-menu-item ${
             isSelected ? 'selected' : ''
           }`}
-          onClick={() => {
+         onClick={() => {
+  navigationHistoryRef.current.push({
+    currentRoute,
+    selectedMenu,
+    selectedPlaylist,
+  })
+
   setSelectedMenu(menu)
   setCurrentRoute(menu.route || '/')
+  window.history.pushState({}, '')
 }}
         >
           <span className="menu-icon">
@@ -1644,7 +1742,14 @@ const displayedVideos =
           key={menu.id}
           className="sub-menu-item"
           onClick={() => {
+  navigationHistoryRef.current.push({
+    currentRoute,
+    selectedMenu,
+    selectedPlaylist,
+  })
+
   setCurrentRoute(menu.route || '/')
+  window.history.pushState({}, '')
   console.log('하위 메뉴 선택:', menu)
 }}
         >
