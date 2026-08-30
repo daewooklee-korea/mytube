@@ -1333,7 +1333,10 @@ video {
   white-space: nowrap;
 
 }
-
+.notification-target-user {
+  background: #fff3cd !important;
+  box-shadow: inset 4px 0 0 #f0ad4e;
+}
 .admin-table thead {
 
   background: #fafafa;
@@ -2395,4 +2398,99 @@ video {
 .menu-admin-table th,
 .menu-admin-table td {
   padding: 8px 12px;
+}
+
+.notification-button {
+  position: relative;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: #e53935;
+  color: #fff;
+  font-size: 10px;
+  line-height: 17px;
+  text-align: center;
+}
+
+.notification-panel {
+  position: absolute;
+  top: 70px;
+  right: 30px;
+  width: 360px;
+  max-height: 500px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.notification-header button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.notification-list {
+  max-height: 430px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.notification-item.unread {
+  background: #fafafa;
+}
+
+.notification-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.notification-title span {
+  font-size: 8px;
+  margin-right: 6px;
+}
+
+.notification-message {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.notification-date {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #999;
+}
+
+.notification-empty {
+  padding: 30px 16px;
+  text-align: center;
+  color: #999;
 }

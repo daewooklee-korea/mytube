@@ -48,6 +48,10 @@ const [deferredPrompt, setDeferredPrompt] = useState(null)
 const [isInstalled, setIsInstalled] = useState(false)
 const [playlistDescription, setPlaylistDescription] = useState('')
 
+const [notifications, setNotifications] = useState([])
+const [showNotifications, setShowNotifications] = useState(false)
+const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
+const [notificationTargetUserId, setNotificationTargetUserId] = useState(null)
   // =========================
   // 로그인 상태 확인
   // =========================
@@ -180,9 +184,75 @@ const handleInstallApp = async () => {
   if (user && profile?.role) {
     loadMenus()
     loadVideos()
+    loadNotifications()
   }
 }, [user, profile?.role])
+
+const loadNotifications = async () => {
+  if (!user?.id) return
+
+  const { data, error } = await supabase
+    .from('notification_recipients')
+    .select(`
+      id,
+      read_at,
+      created_at,
+      notification:notifications (
+  id,
+  type,
+  title,
+  message,
+  target_user_id,
+  created_at
+)
+    `)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('알림 불러오기 실패:', error)
+    return
+  }
+
+  setNotifications(data ?? [])
+
+  setUnreadNotificationCount(
+    (data ?? []).filter((item) => !item.read_at).length
+  )
+}
+const markNotificationAsRead = async (notificationRecipientId) => {
+  const readAt = new Date().toISOString()
+
+  const { error } = await supabase
+    .from('notification_recipients')
+    .update({
+      read_at: readAt,
+    })
+    .eq('id', notificationRecipientId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    console.error('알림 읽음 처리 실패:', error)
+    return
+  }
+
+  setNotifications((prev) =>
+    prev.map((item) =>
+      item.id === notificationRecipientId
+        ? {
+            ...item,
+            read_at: readAt,
+          }
+        : item
+    )
+  )
+
+  setUnreadNotificationCount((prev) =>
+    Math.max(prev - 1, 0)
+  )
+}
 const loadMenus = async () => {
+
   console.log('🔥 loadMenus 실행됨')
   if (!profile?.role) return
 
@@ -1006,12 +1076,14 @@ const displayedVideos =
 
       {showAdmin ? (
 
-        <Admin
-          onClose={() => {
-            setShowAdmin(false)
-            loadVideos()
-          }}
-        />
+      <Admin
+  initialTab="members"
+  initialUserId={notificationTargetUserId}
+  onClose={() => {
+    setShowAdmin(false)
+    loadVideos()
+  }}
+/>
 
       ) : showUpload ? (
 
@@ -1390,7 +1462,23 @@ const displayedVideos =
             </div>
 
             <div className="user-area">
-
+<button
+  type="button"
+  className="notification-button"
+  onClick={() => {
+    setShowNotifications((prev) => !prev)
+    loadNotifications()
+  }}
+>
+  🔔
+  {unreadNotificationCount > 0 && (
+    <span className="notification-badge">
+      {unreadNotificationCount > 99
+        ? '99+'
+        : unreadNotificationCount}
+    </span>
+  )}
+</button>
               {profile?.role ===
                 'admin' && (
 
@@ -1419,7 +1507,65 @@ const displayedVideos =
               </button>
 
             </div>
+{showNotifications && (
+  <div className="notification-panel">
+    <div className="notification-header">
+      <strong>알림</strong>
 
+      <button
+        type="button"
+        onClick={() => setShowNotifications(false)}
+      >
+        닫기
+      </button>
+    </div>
+
+    <div className="notification-list">
+      {notifications.length === 0 ? (
+        <div className="notification-empty">
+          새로운 알림이 없습니다.
+        </div>
+      ) : (
+        notifications.map((item) => (
+          <div
+  key={item.id}
+  className={`notification-item ${
+    item.read_at ? '' : 'unread'
+  }`}
+  onClick={async () => {
+  if (!item.read_at) {
+    await markNotificationAsRead(item.id)
+  }
+
+  if (item.notification?.type === 'signup') {
+  setNotificationTargetUserId(
+    item.notification?.target_user_id ?? null
+  )
+  setShowNotifications(false)
+  setShowAdmin(true)
+}
+}}
+>
+            <div className="notification-title">
+              {!item.read_at && <span>●</span>}
+              {item.notification?.title}
+            </div>
+
+            <div className="notification-message">
+              {item.notification?.message}
+            </div>
+
+            <div className="notification-date">
+              {new Date(
+                item.created_at
+              ).toLocaleString('ko-KR')}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+)}
             {(profile?.role ===
               'creator' ||
               profile?.role ===

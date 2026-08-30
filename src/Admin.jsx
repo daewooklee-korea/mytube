@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
-function Admin({ onClose }) {
-  const [activeTab, setActiveTab] = useState('members')
+function Admin({
+  onClose,
+  initialTab = 'members',
+  initialUserId = null,
+}) {
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [menus, setMenus] = useState([])
 const [loadingMenus, setLoadingMenus] = useState(false)
 const [showMenuForm, setShowMenuForm] = useState(false)
@@ -1975,11 +1979,14 @@ const toggleMenuVisible = async (menu) => {
               {profiles.map(
                 (profile) => (
 
-                  <tr
-                    key={
-                      profile.id
-                    }
-                  >
+                 <tr
+  key={profile.id}
+  className={
+    profile.id === initialUserId
+      ? 'notification-target-user'
+      : ''
+  }
+>
 
                     <td>
 
