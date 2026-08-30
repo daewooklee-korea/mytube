@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import './SunoReservation.css'
 import { supabase } from './supabase'
 
-const HOURS = [8, 10, 12, 14, 16, 18, 20, 22]
+const HOURS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
 
 const formatDate = (date) => {
   return `${date.getMonth() + 1}/${date.getDate()}`
@@ -222,7 +222,7 @@ function SunoReservation() {
     }
 
     const confirmed = window.confirm(
-      `${formatDate(date)} ${hour}시 ~ ${hour + 2}시\n예약하시겠습니까?`
+      `${formatDate(date)} ${hour}시 ~ ${hour + 1}시\n예약하시겠습니까?`
     )
 
     if (!confirmed) {
@@ -271,7 +271,7 @@ function SunoReservation() {
         <div>
           <h2>🎵 SUNO 예약</h2>
           <p>
-            한국시간 기준 · 2시간 단위 예약
+            한국시간 기준 · 1시간 단위 예약
           </p>
         </div>
 

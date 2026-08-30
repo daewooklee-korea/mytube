@@ -98,7 +98,7 @@
 }
 
 .suno-time {
-  min-height: 52px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,7 +111,7 @@
 }
 
 .suno-slot {
-  min-height: 52px;
+  min-height: 40px;
   margin: 0;
   border: 0;
   border-right: 1px solid #e5e5e5;
@@ -210,12 +210,12 @@
   }
 
   .suno-time {
-    min-height: 48px;
+    min-height: 38px;
     font-size: 11px;
   }
 
   .suno-slot {
-    min-height: 48px;
+    min-height: 38px;
   }
 
   .suno-legend {
