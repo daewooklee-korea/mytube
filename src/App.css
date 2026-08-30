@@ -1854,7 +1854,16 @@ video {
     gap: 8px;
 
   }
-
+  
+.notification-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+}
   .user-area span {
 
     display: inline-block;
