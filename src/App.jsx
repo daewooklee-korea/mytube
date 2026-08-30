@@ -53,6 +53,18 @@ const [showNotifications, setShowNotifications] = useState(false)
 const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
 const [notificationTargetUserId, setNotificationTargetUserId] = useState(null)
   const navigationHistoryRef = useRef([])
+    const [playMode, setPlayMode] = useState(() => {
+    return (
+      localStorage.getItem('playMode') ||
+      'once'
+    )
+  })
+
+const [playModeMenuOpen, setPlayModeMenuOpen] =
+  useState(false)
+
+  const audioRef = useRef(null)
+  const videoRef = useRef(null)
    // =========================
   // 모바일 브라우저 뒤로가기
   // =========================
@@ -1123,6 +1135,58 @@ const displayedVideos =
           recentlyPlayedIds.indexOf(b.id)
       )
     : filteredVideos
+      const handleMediaEnded = () => {
+    if (!selectedVideo) return
+
+    const currentIndex = displayedVideos.findIndex(
+      (video) => video.id === selectedVideo.id
+    )
+
+    if (currentIndex === -1) return
+
+    // 1️⃣ 반복 안 함
+    if (playMode === 'once') {
+      return
+    }
+
+    // 🔂 한 개 반복
+    if (playMode === 'single') {
+      setSelectedVideo(selectedVideo)
+      return
+    }
+
+    // 🔀 랜덤 반복
+    if (playMode === 'random') {
+      if (displayedVideos.length <= 1) {
+        setSelectedVideo(selectedVideo)
+        return
+      }
+
+      let nextIndex = currentIndex
+
+      while (nextIndex === currentIndex) {
+        nextIndex = Math.floor(
+          Math.random() * displayedVideos.length
+        )
+      }
+
+      setSelectedVideo(
+        displayedVideos[nextIndex]
+      )
+      return
+    }
+
+    // 🔁 전체 반복
+    if (playMode === 'all') {
+      const nextIndex =
+        (currentIndex + 1) %
+        displayedVideos.length
+
+      setSelectedVideo(
+        displayedVideos[nextIndex]
+      )
+    }
+  }
   // =========================
   // 화면
   // =========================
@@ -1194,7 +1258,85 @@ const displayedVideos =
               <span>PlayMe</span>
 
             </div>
+            <div className="play-mode">
+              <button
+                type="button"
+                className="play-mode-button"
+                onClick={() => {
+                  setPlayModeMenuOpen(
+                    (prev) => !prev
+                  )
+                }}
+              >
+                {playMode === 'once'
+                  ? '1️⃣ : 반복 안 함'
+                  : playMode === 'single'
+                  ? '🔂 : 한 개 반복'
+                  : playMode === 'all'
+                  ? '🔁 : 전체 반복'
+                  : '🔀 : 랜덤 반복'}
+              </button>
 
+              {playModeMenuOpen && (
+                <div className="play-mode-menu">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlayMode('once')
+                      localStorage.setItem(
+                        'playMode',
+                        'once'
+                      )
+                      setPlayModeMenuOpen(false)
+                    }}
+                  >
+                    1️⃣ : 반복 안 함
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlayMode('single')
+                      localStorage.setItem(
+                        'playMode',
+                        'single'
+                      )
+                      setPlayModeMenuOpen(false)
+                    }}
+                  >
+                    🔂 : 한 개 반복
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlayMode('all')
+                      localStorage.setItem(
+                        'playMode',
+                        'all'
+                      )
+                      setPlayModeMenuOpen(false)
+                    }}
+                  >
+                    🔁 : 전체 반복
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlayMode('random')
+                      localStorage.setItem(
+                        'playMode',
+                        'random'
+                      )
+                      setPlayModeMenuOpen(false)
+                    }}
+                  >
+                    🔀 : 랜덤 반복
+                  </button>
+                </div>
+              )}
+            </div>
           <div className="user-area">
 
   {profile?.role === 'admin' && (
@@ -1261,13 +1403,13 @@ const displayedVideos =
                 <div className="audio-player">
 
                   <audio
-                    src={
-                      selectedVideo.video
-                    }
-                    controls
-                    autoPlay
-                    playsInline
-                  />
+  ref={audioRef}
+  src={selectedVideo.video}
+  controls
+  autoPlay
+  playsInline
+  onEnded={handleMediaEnded}
+/>
 
                 </div>
 
@@ -1278,13 +1420,13 @@ const displayedVideos =
                  */
 
                 <video
-                  src={
-                    selectedVideo.video
-                  }
-                  controls
-                  autoPlay
-                  playsInline
-                />
+  ref={videoRef}
+  src={selectedVideo.video}
+  controls
+  autoPlay
+  playsInline
+  onEnded={handleMediaEnded}
+/>
 
               )}
 
