@@ -1877,7 +1877,22 @@ video {
     white-space: nowrap;
 
   }
+  .play-mode {
+    flex-shrink: 0;
+    margin-left: 0;
+  }
 
+  .play-mode-button {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .play-mode-menu {
+    left: 0;
+    right: auto;
+    min-width: 145px;
+  }
   .upload-button {
 
     order: 3;
