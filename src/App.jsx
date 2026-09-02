@@ -1150,10 +1150,16 @@ const displayedVideos =
     }
 
     // 🔂 한 개 반복
-    if (playMode === 'single') {
-      setSelectedVideo(selectedVideo)
-      return
-    }
+if (playMode === 'single') {
+  const media = audioRef.current || videoRef.current
+
+  if (media) {
+    media.currentTime = 0
+    media.play()
+  }
+
+  return
+}
 
     // 🔀 랜덤 반복
     if (playMode === 'random') {
