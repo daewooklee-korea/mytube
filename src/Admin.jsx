@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 
 function Admin({
@@ -22,8 +22,22 @@ const [menuActive, setMenuActive] = useState(true)
 const [selectedMenuGroupIds, setSelectedMenuGroupIds] = useState([])
 const [savingMenu, setSavingMenu] = useState(false)
 
+  const [categories, setCategories] = useState([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
+  const [showCategoryForm, setShowCategoryForm] = useState(false)
+  const [editingCategoryId, setEditingCategoryId] = useState(null)
+
+  const [categoryMenuId, setCategoryMenuId] = useState('')
+  const [categoryName, setCategoryName] = useState('')
+  const [categorySortOrder, setCategorySortOrder] = useState(0)
+  const [categoryActive, setCategoryActive] = useState(true)
+  const [savingCategory, setSavingCategory] = useState(false)
+
   const [profiles, setProfiles] = useState([])
   const [loadingProfiles, setLoadingProfiles] = useState(true)
+  const [memberSearchText, setMemberSearchText] = useState('')
+  const [memberStatusFilter, setMemberStatusFilter] = useState('all')
+  const [memberRoleFilter, setMemberRoleFilter] = useState('all')
 
   const [videos, setVideos] = useState([])
   const [loadingVideos, setLoadingVideos] = useState(true)
@@ -31,16 +45,84 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [editingId, setEditingId] = useState(null)
 
   const [editTitle, setEditTitle] = useState('')
-  const [editCategory, setEditCategory] = useState('전체')
+  const [editMediaType, setEditMediaType] = useState('video')
+  const [editPrimaryMenuId, setEditPrimaryMenuId] = useState('')
+  const [editSubMenuId, setEditSubMenuId] = useState('')
   const [editDescription, setEditDescription] = useState('')
 
   const [editMediaFile, setEditMediaFile] = useState(null)
   const [editThumbnailFile, setEditThumbnailFile] = useState(null)
+  const [editThumbnailPreview, setEditThumbnailPreview] = useState(null)
+  const [capturingEditThumbnail, setCapturingEditThumbnail] = useState(false)
 
   const [editingNicknameId, setEditingNicknameId] = useState(null)
   const [editNickname, setEditNickname] = useState('')
 
   const [savingVideo, setSavingVideo] = useState(false)
+  const editVideoRef = useRef(null)
+  const editCanvasRef = useRef(null)
+
+  const mediaTypeOptions = {
+    audio: { label: '🎵 음악', accept: 'audio/*' },
+    video: { label: '🎬 동영상', accept: 'video/*' },
+    image: { label: '🖼 이미지', accept: 'image/*' },
+    document: {
+      label: '📄 문서',
+      accept:
+        'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,.doc,.docx',
+    },
+  }
+
+  const contentMediaTypePresentation = {
+    audio: { icon: '🎵', label: '음악' },
+    video: { icon: '🎬', label: '동영상' },
+    image: { icon: '🖼️', label: '이미지' },
+    document: { icon: '📄', label: '문서' },
+  }
+
+  const getVideoStatusPresentation = (status) => {
+    if (status === 'ACTIVE') {
+      return {
+        label: '🟢 표시',
+        className: 'content-status-active',
+        toggleable: true,
+      }
+    }
+
+    if (status === 'HIDDEN') {
+      return {
+        label: '⚪ 숨김',
+        className: 'content-status-hidden',
+        toggleable: true,
+      }
+    }
+
+    return {
+      label: '⚠️ 확인 필요',
+      className: 'content-status-unknown',
+      toggleable: false,
+    }
+  }
+
+  const getContentMenuLabel = (menuId) => {
+    const subMenu = menus.find(
+      (menu) =>
+        menu.id === menuId &&
+        menu.level === 2
+    )
+
+    if (!subMenu) return '미지정'
+
+    const primaryMenu = menus.find(
+      (menu) =>
+        menu.id === subMenu.parent_id &&
+        menu.level === 1
+    )
+
+    if (!primaryMenu) return '미지정'
+
+    return `${primaryMenu.name} › ${subMenu.name}`
+  }
 
   // =========================
   // 영상 접근 권한 관리
@@ -69,6 +151,7 @@ const [savingMenu, setSavingMenu] = useState(false)
   // 그룹 멤버 관리
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState(null)
   const [groupMembers, setGroupMembers] = useState([])
+  const [groupMemberships, setGroupMemberships] = useState([])
   const [loadingGroupMembers, setLoadingGroupMembers] = useState(false)
   const [availableMembers, setAvailableMembers] = useState([])
   const [selectedUserId, setSelectedUserId] = useState('')
@@ -81,9 +164,11 @@ const [savingMenu, setSavingMenu] = useState(false)
   useEffect(() => {
     loadProfiles()
     loadMenus()
+        loadCategories()
     loadVideos()
     loadGroupTypes()
     loadGroups()
+    loadGroupMemberships()
     loadPermissionGroups()
     loadVideoPermissionSummaries()
   }, [])
@@ -110,6 +195,25 @@ const loadMenus = async () => {
   setMenus(data ?? [])
   setLoadingMenus(false)
 }
+  const loadCategories = async () => {
+    setLoadingCategories(true)
+
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('menu_id', { ascending: true })
+      .order('sort_order', { ascending: true })
+
+    if (error) {
+      console.error('카테고리 목록 불러오기 실패:', error)
+      alert('카테고리 목록을 불러오지 못했습니다.')
+      setLoadingCategories(false)
+      return
+    }
+
+    setCategories(data ?? [])
+    setLoadingCategories(false)
+  }
   const loadProfiles = async () => {
     setLoadingProfiles(true)
 
@@ -289,6 +393,26 @@ const loadMenus = async () => {
     setPermissionGroupIds([])
   }
 
+  useEffect(() => {
+    if (!selectedPermissionVideoId) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !savingVideoPermission) {
+        closeVideoPermission()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedPermissionVideoId, savingVideoPermission])
+
   // =========================
   // 영상 접근 권한 저장
   // =========================
@@ -345,6 +469,7 @@ const loadMenus = async () => {
 
       await loadVideoPermission(selectedPermissionVideoId)
       await loadVideoPermissionSummaries()
+      closeVideoPermission()
     } catch (error) {
       console.error('영상 권한 저장 실패:', error)
       alert(
@@ -405,6 +530,20 @@ const loadMenus = async () => {
 
     setGroups(data ?? [])
     setLoadingGroups(false)
+  }
+
+  const loadGroupMemberships = async () => {
+    const { data, error } = await supabase
+      .from('group_members')
+      .select('group_id, user_id')
+
+    if (error) {
+      console.error('그룹 멤버십 불러오기 실패:', error)
+      setGroupMemberships([])
+      return
+    }
+
+    setGroupMemberships(data ?? [])
   }
 
   const resetGroupForm = () => {
@@ -634,16 +773,38 @@ const loadMenus = async () => {
     setSavingMenu(true)
 
     try {
-      const parentId = menuParentId || null
+            const parentId = menuParentId || null
       const level = parentId ? 2 : 1
+
+      let sortOrder = Number(menuSortOrder) || 0
+
+      if (!editingMenuId) {
+        const siblingMenus = menus.filter(
+          (menu) =>
+            (menu.parent_id || null) === parentId
+        )
+
+        const maxSortOrder = siblingMenus.reduce(
+          (max, menu) =>
+            Math.max(
+              max,
+              Number(menu.sort_order) || 0
+            ),
+          0
+        )
+
+        sortOrder = maxSortOrder + 1
+      }
 
       const menuData = {
         name: menuName.trim(),
         parent_id: parentId,
         level,
         route: menuRoute.trim(),
-        icon: menuIcon.trim() || null,
-        sort_order: Number(menuSortOrder) || 0,
+        icon: level === 1
+          ? menuIcon.trim() || null
+          : null,
+        sort_order: sortOrder,
         is_visible: menuVisible,
         is_active: menuActive,
         updated_at: new Date().toISOString(),
@@ -954,6 +1115,169 @@ const toggleMenuVisible = async (menu) => {
   )
 }
   // =========================
+  // 카테고리 관리
+  // =========================
+
+  const resetCategoryForm = () => {
+    setShowCategoryForm(false)
+    setEditingCategoryId(null)
+    setCategoryMenuId('')
+    setCategoryName('')
+    setCategorySortOrder(0)
+    setCategoryActive(true)
+  }
+
+  const startCreatingCategory = () => {
+    setEditingCategoryId(null)
+    setCategoryMenuId('')
+    setCategoryName('')
+    setCategorySortOrder(0)
+    setCategoryActive(true)
+    setShowCategoryForm(true)
+  }
+
+  const startEditingCategory = (category) => {
+    setEditingCategoryId(category.id)
+    setCategoryMenuId(category.menu_id ?? '')
+    setCategoryName(category.name ?? '')
+    setCategorySortOrder(category.sort_order ?? 0)
+    setCategoryActive(category.is_active ?? true)
+    setShowCategoryForm(true)
+  }
+
+  const saveCategory = async () => {
+    if (!categoryMenuId) {
+      alert('2차 메뉴를 선택해주세요.')
+      return
+    }
+
+    if (!categoryName.trim()) {
+      alert('카테고리 이름을 입력해주세요.')
+      return
+    }
+
+    setSavingCategory(true)
+
+    try {
+      let sortOrder = Number(categorySortOrder) || 0
+
+      if (!editingCategoryId) {
+        const siblingCategories = categories.filter(
+          (category) =>
+            category.menu_id === categoryMenuId
+        )
+
+        const maxSortOrder = siblingCategories.reduce(
+          (max, category) =>
+            Math.max(
+              max,
+              Number(category.sort_order) || 0
+            ),
+          0
+        )
+
+        sortOrder = maxSortOrder + 1
+      }
+
+      const categoryData = {
+        menu_id: categoryMenuId,
+        name: categoryName.trim(),
+        sort_order: sortOrder,
+        is_active: categoryActive,
+        updated_at: new Date().toISOString(),
+      }
+
+      if (editingCategoryId) {
+        const { data, error } = await supabase
+          .from('categories')
+          .update(categoryData)
+          .eq('id', editingCategoryId)
+          .select('*')
+          .single()
+
+        if (error) throw error
+
+        setCategories((prev) =>
+          prev.map((category) =>
+            category.id === editingCategoryId
+              ? data
+              : category
+          )
+        )
+
+        alert('카테고리가 수정되었습니다.')
+      } else {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+
+        const { data, error } = await supabase
+          .from('categories')
+          .insert({
+            ...categoryData,
+            created_by: user?.id ?? null,
+          })
+          .select('*')
+          .single()
+
+        if (error) throw error
+
+        setCategories((prev) => [
+          ...prev,
+          data,
+        ])
+
+        alert('카테고리가 생성되었습니다.')
+      }
+
+      resetCategoryForm()
+      await loadCategories()
+    } catch (error) {
+      console.error('카테고리 저장 실패:', error)
+
+      alert(
+        `카테고리 저장에 실패했습니다: ${
+          error.message ?? '알 수 없는 오류'
+        }`
+      )
+    } finally {
+      setSavingCategory(false)
+    }
+  }
+
+  const deleteCategory = async (id) => {
+    const confirmed = window.confirm(
+      '이 카테고리를 삭제하시겠습니까?\n연결된 영상의 카테고리 정보도 확인이 필요합니다.'
+    )
+
+    if (!confirmed) return
+
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('카테고리 삭제 실패:', error)
+      alert(
+        `카테고리 삭제에 실패했습니다: ${
+          error.message ?? '알 수 없는 오류'
+        }`
+      )
+      return
+    }
+
+    setCategories((prev) =>
+      prev.filter((category) => category.id !== id)
+    )
+
+    if (editingCategoryId === id) {
+      resetCategoryForm()
+    }
+
+    alert('카테고리가 삭제되었습니다.')
+  }
+  // =========================
   // 그룹 멤버 목록
   // =========================
 
@@ -1168,6 +1492,67 @@ const toggleMenuVisible = async (menu) => {
     )
   }
 
+  const getProfileStatusFilterValue = (status) => {
+    if (status === 'approved' || status === 'rejected') {
+      return status
+    }
+
+    return 'pending'
+  }
+
+  const getProfileStatusPresentation = (status) => {
+    if (getProfileStatusFilterValue(status) === 'approved') {
+      return { label: '정상', className: 'status-approved' }
+    }
+
+    if (getProfileStatusFilterValue(status) === 'rejected') {
+      return { label: '정지', className: 'status-rejected' }
+    }
+
+    return { label: '승인 대기', className: 'status-pending' }
+  }
+
+  const getProfileGroupNames = (userId) => {
+    const groupNames = groupMemberships
+      .filter((membership) => membership.user_id === userId)
+      .map((membership) =>
+        groups.find((group) => group.id === membership.group_id)
+      )
+      .filter(Boolean)
+      .map((group) => group.name)
+
+    return groupNames.length > 0
+      ? groupNames.join(' · ')
+      : '-'
+  }
+
+  const getGroupMemberCount = (groupId) =>
+    groupMemberships.filter(
+      (membership) => membership.group_id === groupId
+    ).length
+
+  const normalizedMemberSearch = memberSearchText.trim().toLowerCase()
+
+  const filteredProfiles = profiles.filter((profile) => {
+    const matchesSearch =
+      !normalizedMemberSearch ||
+      (profile.nickname ?? '')
+        .toLowerCase()
+        .includes(normalizedMemberSearch) ||
+      (profile.username ?? '')
+        .toLowerCase()
+        .includes(normalizedMemberSearch)
+    const matchesStatus =
+      memberStatusFilter === 'all' ||
+      getProfileStatusFilterValue(profile.status) ===
+        memberStatusFilter
+    const matchesRole =
+      memberRoleFilter === 'all' ||
+      profile.role === memberRoleFilter
+
+    return matchesSearch && matchesStatus && matchesRole
+  })
+
   // =========================
   // 회원 역할 변경
   // =========================
@@ -1288,13 +1673,23 @@ const toggleMenuVisible = async (menu) => {
   ) => {
     setEditingId(video.id)
 
+    const normalizedMediaType =
+      Object.hasOwn(mediaTypeOptions, video.media_type)
+        ? video.media_type
+        : 'video'
+    const subMenu = menus.find(
+      (menu) =>
+        menu.id === video.menu_id &&
+        menu.level === 2
+    )
+
     setEditTitle(
       video.title ?? ''
     )
 
-    setEditCategory(
-      video.category ?? '전체'
-    )
+    setEditMediaType(normalizedMediaType)
+    setEditPrimaryMenuId(subMenu?.parent_id ?? '')
+    setEditSubMenuId(subMenu?.id ?? '')
 
     setEditDescription(
       video.description ?? ''
@@ -1302,6 +1697,13 @@ const toggleMenuVisible = async (menu) => {
 
     setEditMediaFile(null)
     setEditThumbnailFile(null)
+    setEditThumbnailPreview(
+      video.thumbnail_url ??
+        (normalizedMediaType === 'image'
+          ? video.video_url
+          : null)
+    )
+    setCapturingEditThumbnail(false)
   }
 
   // =========================
@@ -1312,11 +1714,162 @@ const toggleMenuVisible = async (menu) => {
     setEditingId(null)
 
     setEditTitle('')
-    setEditCategory('전체')
+    setEditMediaType('video')
+    setEditPrimaryMenuId('')
+    setEditSubMenuId('')
     setEditDescription('')
 
     setEditMediaFile(null)
     setEditThumbnailFile(null)
+    setEditThumbnailPreview(null)
+    setCapturingEditThumbnail(false)
+  }
+
+  useEffect(() => {
+    if (!editingId) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !savingVideo) {
+        cancelEditing()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [editingId, savingVideo])
+
+  const isValidEditMediaFile = (file) => {
+    if (editMediaType === 'audio') {
+      return file.type.startsWith('audio/')
+    }
+
+    if (editMediaType === 'video') {
+      return file.type.startsWith('video/')
+    }
+
+    if (editMediaType === 'image') {
+      return file.type.startsWith('image/')
+    }
+
+    return [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ].includes(file.type)
+  }
+
+  const generateDefaultThumbnail = (icon, fileName) => {
+    const svg = `
+      <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="400" fill="#1a1a1a" />
+        <text x="200" y="230" font-size="140" text-anchor="middle" fill="#ffffff">${icon}</text>
+      </svg>
+    `
+
+    const blob = new Blob([svg], {
+      type: 'image/svg+xml',
+    })
+
+    return new File([blob], fileName, {
+      type: 'image/svg+xml',
+    })
+  }
+
+  const handleEditMediaSelect = (file) => {
+    if (!file) return false
+
+    if (!isValidEditMediaFile(file)) {
+      alert('선택한 콘텐츠 타입에 맞는 파일을 선택해주세요.')
+      return false
+    }
+
+    setEditMediaFile(file)
+    setEditThumbnailFile(null)
+    setEditThumbnailPreview(null)
+    setCapturingEditThumbnail(false)
+
+    if (editMediaType === 'audio') {
+      const defaultCover = generateDefaultThumbnail(
+        '♪',
+        'default-cover.svg'
+      )
+      setEditThumbnailFile(defaultCover)
+      setEditThumbnailPreview(URL.createObjectURL(defaultCover))
+      return true
+    }
+
+    if (editMediaType === 'image') {
+      setEditThumbnailFile(file)
+      setEditThumbnailPreview(URL.createObjectURL(file))
+      return true
+    }
+
+    if (editMediaType === 'document') {
+      const defaultThumbnail = generateDefaultThumbnail(
+        '📄',
+        'default-document.svg'
+      )
+      setEditThumbnailFile(defaultThumbnail)
+      setEditThumbnailPreview(URL.createObjectURL(defaultThumbnail))
+      return true
+    }
+
+    setCapturingEditThumbnail(true)
+    const videoUrl = URL.createObjectURL(file)
+    const video = editVideoRef.current
+
+    video.src = videoUrl
+    video.onloadeddata = () => {
+      video.currentTime = 1
+    }
+    video.onseeked = () => {
+      const canvas = editCanvasRef.current
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+
+      const context = canvas.getContext('2d')
+      context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          setCapturingEditThumbnail(false)
+          URL.revokeObjectURL(videoUrl)
+          return
+        }
+
+        const thumbnail = new File([blob], 'thumbnail.jpg', {
+          type: 'image/jpeg',
+        })
+        setEditThumbnailFile(thumbnail)
+        setEditThumbnailPreview(URL.createObjectURL(blob))
+        setCapturingEditThumbnail(false)
+        URL.revokeObjectURL(videoUrl)
+      }, 'image/jpeg')
+    }
+
+    return true
+  }
+
+  const handleEditMediaTypeChange = (nextMediaType) => {
+    setEditMediaType(nextMediaType)
+    setEditMediaFile(null)
+    setEditThumbnailFile(null)
+    setEditThumbnailPreview(null)
+    setCapturingEditThumbnail(false)
+  }
+
+  const handleEditThumbnailSelect = (file) => {
+    if (!file) return
+
+    setEditThumbnailFile(file)
+    setEditThumbnailPreview(URL.createObjectURL(file))
   }
 
   // =========================
@@ -1484,6 +2037,30 @@ const toggleMenuVisible = async (menu) => {
       return
     }
 
+    if (!editPrimaryMenuId) {
+      alert('1차 메뉴를 선택해주세요.')
+      return
+    }
+
+    if (!editSubMenuId) {
+      alert('2차 메뉴를 선택해주세요.')
+      return
+    }
+
+    const selectedSubMenu = menus.find(
+      (menu) =>
+        menu.id === editSubMenuId &&
+        menu.level === 2 &&
+        menu.parent_id === editPrimaryMenuId &&
+        menu.name !== 'All' &&
+        menu.name !== 'Playlist'
+    )
+
+    if (!selectedSubMenu) {
+      alert('선택 가능한 2차 메뉴를 선택해주세요.')
+      return
+    }
+
     const video =
       videos.find(
         (v) => v.id === id
@@ -1497,43 +2074,27 @@ const toggleMenuVisible = async (menu) => {
       return
     }
 
-    // 영상 / 음악 파일 타입 확인
-    if (editMediaFile) {
-      const isAudio =
-        video.media_type ===
-        'audio'
+    const currentMediaType =
+      Object.hasOwn(mediaTypeOptions, video.media_type)
+        ? video.media_type
+        : 'video'
 
-      const isSelectedAudio =
-        editMediaFile.type.startsWith(
-          'audio/'
-        )
+    if (
+      currentMediaType !== editMediaType &&
+      !editMediaFile
+    ) {
+      alert(
+        '콘텐츠 타입을 변경하려면 해당 타입의 새 파일을 선택해주세요.'
+      )
+      return
+    }
 
-      const isSelectedVideo =
-        editMediaFile.type.startsWith(
-          'video/'
-        )
-
-      if (
-        isAudio &&
-        !isSelectedAudio
-      ) {
-        alert(
-          '음악 파일에는 오디오 파일을 선택해주세요.'
-        )
-
-        return
-      }
-
-      if (
-        !isAudio &&
-        !isSelectedVideo
-      ) {
-        alert(
-          '영상 파일에는 동영상 파일을 선택해주세요.'
-        )
-
-        return
-      }
+    if (
+      editMediaFile &&
+      !isValidEditMediaFile(editMediaFile)
+    ) {
+      alert('선택한 콘텐츠 타입에 맞는 파일을 선택해주세요.')
+      return
     }
 
     setSavingVideo(true)
@@ -1590,8 +2151,11 @@ const toggleMenuVisible = async (menu) => {
           title:
             editTitle.trim(),
 
-          category:
-            editCategory,
+          menu_id:
+            editSubMenuId,
+
+          media_type:
+            editMediaType,
 
           description:
             editDescription.trim() ||
@@ -1690,8 +2254,11 @@ const toggleMenuVisible = async (menu) => {
                 title:
                   editTitle.trim(),
 
-                category:
-                  editCategory,
+                menu_id:
+                  editSubMenuId,
+
+                media_type:
+                  editMediaType,
 
                 description:
                   editDescription.trim() ||
@@ -1744,6 +2311,45 @@ const toggleMenuVisible = async (menu) => {
     } finally {
       setSavingVideo(false)
     }
+  }
+
+  // =========================
+  // 콘텐츠 표시 상태 변경
+  // =========================
+
+  const toggleVideoStatus = async (video) => {
+    if (video.status !== 'ACTIVE' && video.status !== 'HIDDEN') {
+      alert('현재 콘텐츠 상태를 확인할 수 없어 변경하지 않았습니다.')
+      return
+    }
+
+    const nextStatus = video.status === 'ACTIVE' ? 'HIDDEN' : 'ACTIVE'
+    const confirmed = window.confirm(
+      nextStatus === 'HIDDEN'
+        ? '이 콘텐츠를 숨길까요?\n숨기면 일반 사용자 화면에서 표시되지 않습니다.'
+        : '이 콘텐츠를 다시 표시할까요?'
+    )
+
+    if (!confirmed) return
+
+    const { error } = await supabase
+      .from('videos')
+      .update({ status: nextStatus })
+      .eq('id', video.id)
+
+    if (error) {
+      console.error('콘텐츠 상태 변경 실패:', error)
+      alert('콘텐츠 상태를 변경하지 못했습니다.')
+      return
+    }
+
+    setVideos((prev) =>
+      prev.map((item) =>
+        item.id === video.id
+          ? { ...item, status: nextStatus }
+          : item
+      )
+    )
   }
 
   // =========================
@@ -1836,8 +2442,32 @@ const toggleMenuVisible = async (menu) => {
   // 화면
   // =========================
 
+  const editingVideo = videos.find((video) => video.id === editingId)
+  const permissionEditingVideo = videos.find(
+    (video) => video.id === selectedPermissionVideoId
+  )
+  const editingMediaFileName = (() => {
+    if (!editingVideo?.video_url) return null
+
+    try {
+      const pathname = new URL(
+        editingVideo.video_url,
+        window.location.origin
+      ).pathname
+      const fileName = pathname.split('/').filter(Boolean).pop()
+
+      return fileName ? decodeURIComponent(fileName) : null
+    } catch {
+      return null
+    }
+  })()
+
   return (
-    <div className="admin-page">
+    <div
+      className={`admin-page ${
+        activeTab === 'videos' ? 'admin-page-content' : ''
+      }`}
+    >
 
       <div className="admin-header">
 
@@ -1906,7 +2536,7 @@ const toggleMenuVisible = async (menu) => {
             )
           }
         >
-          영상 관리
+          콘텐츠 관리
         </button>
 
 <button
@@ -1921,7 +2551,18 @@ const toggleMenuVisible = async (menu) => {
 >
   메뉴 관리
 </button>
-
+        <button
+          className={
+            activeTab === 'categories'
+              ? 'active'
+              : ''
+          }
+          onClick={() =>
+            setActiveTab('categories')
+          }
+        >
+          카테고리 관리
+        </button>
       </div>
 
 
@@ -1940,6 +2581,45 @@ const toggleMenuVisible = async (menu) => {
 
         ) : (
 
+          <>
+
+          <div className="member-filters">
+            <label className="member-filter member-filter-search">
+              <span>회원 검색</span>
+              <input
+                type="search"
+                value={memberSearchText}
+                onChange={(e) => setMemberSearchText(e.target.value)}
+                placeholder="닉네임 또는 ID 검색"
+              />
+            </label>
+
+            <label className="member-filter">
+              <span>상태</span>
+              <select
+                value={memberStatusFilter}
+                onChange={(e) => setMemberStatusFilter(e.target.value)}
+              >
+                <option value="all">전체</option>
+                <option value="approved">정상</option>
+                <option value="pending">승인 대기</option>
+                <option value="rejected">정지</option>
+              </select>
+            </label>
+
+            <label className="member-filter">
+              <span>역할</span>
+              <select
+                value={memberRoleFilter}
+                onChange={(e) => setMemberRoleFilter(e.target.value)}
+              >
+                <option value="all">전체</option>
+                <option value="admin">admin</option>
+                <option value="user">user</option>
+              </select>
+            </label>
+          </div>
+
           <table className="admin-table">
 
             <thead>
@@ -1953,6 +2633,10 @@ const toggleMenuVisible = async (menu) => {
                 <th>
   ID
 </th>
+
+                <th>
+                  그룹
+                </th>
 
                 <th>
                   가입일
@@ -1976,7 +2660,13 @@ const toggleMenuVisible = async (menu) => {
 
             <tbody>
 
-              {profiles.map(
+              {filteredProfiles.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center' }}>
+                    조건에 맞는 회원이 없습니다.
+                  </td>
+                </tr>
+              ) : filteredProfiles.map(
                 (profile) => (
 
                  <tr
@@ -2068,6 +2758,10 @@ const toggleMenuVisible = async (menu) => {
 </td>
 
                     <td>
+                      {getProfileGroupNames(profile.id)}
+                    </td>
+
+                    <td>
                       {new Date(
                         profile.created_at
                       ).toLocaleDateString(
@@ -2077,13 +2771,20 @@ const toggleMenuVisible = async (menu) => {
 
                     <td>
 
+                      {(() => {
+                        const status =
+                          getProfileStatusPresentation(
+                            profile.status
+                          )
+
+                        return (
                       <span
-                        className={`status-badge status-${profile.status}`}
+                        className={`status-badge ${status.className}`}
                       >
-                        {
-                          profile.status
-                        }
+                        {status.label}
                       </span>
+                        )
+                      })()}
 
                     </td>
 
@@ -2197,6 +2898,8 @@ const toggleMenuVisible = async (menu) => {
             </tbody>
 
           </table>
+
+          </>
 
         )
       )}
@@ -2317,6 +3020,7 @@ const toggleMenuVisible = async (menu) => {
                   <th>그룹명</th>
                   <th>유형</th>
                   <th>설명</th>
+                  <th>멤버</th>
                   <th>상태</th>
                   <th>생성일</th>
                   <th>작업</th>
@@ -2329,6 +3033,7 @@ const toggleMenuVisible = async (menu) => {
                     <td>{group.name}</td>
                     <td>{group.group_types?.name ?? '-'}</td>
                     <td>{group.description ?? '-'}</td>
+                    <td>{getGroupMemberCount(group.id)}명</td>
                     <td>
                       <span
                         className={`status-badge ${
@@ -2337,7 +3042,7 @@ const toggleMenuVisible = async (menu) => {
                             : 'status-rejected'
                         }`}
                       >
-                        {group.is_active ? 'ACTIVE' : 'INACTIVE'}
+                        {group.is_active ? '활성' : '비활성'}
                       </span>
                     </td>
                     <td>
@@ -2522,7 +3227,7 @@ const toggleMenuVisible = async (menu) => {
       )}
 
       {/* =========================
-          영상 관리
+          콘텐츠 관리
       ========================= */}
 
       {activeTab ===
@@ -2538,7 +3243,20 @@ const toggleMenuVisible = async (menu) => {
 
           <>
 
-            <table className="admin-table">
+            <div className="content-admin-table-wrap">
+            <table className="admin-table content-admin-table">
+
+              <colgroup>
+                <col className="content-col-title" />
+                <col className="content-col-status" />
+                <col className="content-col-permission" />
+                <col className="content-col-groups" />
+                <col className="content-col-type" />
+                <col className="content-col-menu" />
+                <col className="content-col-actions" />
+                <col className="content-col-views" />
+                <col className="content-col-date" />
+              </colgroup>
 
               <thead>
 
@@ -2549,7 +3267,11 @@ const toggleMenuVisible = async (menu) => {
                   </th>
 
                   <th>
-                    접근 권한
+                    상태
+                  </th>
+
+                  <th>
+                    공개
                   </th>
 
                   <th>
@@ -2561,7 +3283,11 @@ const toggleMenuVisible = async (menu) => {
                   </th>
 
                   <th>
-                    카테고리
+                    메뉴
+                  </th>
+
+                  <th>
+                    작업
                   </th>
 
                   <th>
@@ -2570,10 +3296,6 @@ const toggleMenuVisible = async (menu) => {
 
                   <th>
                     업로드일
-                  </th>
-
-                  <th>
-                    작업
                   </th>
 
                 </tr>
@@ -2598,6 +3320,36 @@ const toggleMenuVisible = async (menu) => {
                       </td>
 
                       <td>
+                        {(() => {
+                          const status = getVideoStatusPresentation(
+                            video.status
+                          )
+
+                          return status.toggleable ? (
+                            <button
+                              type="button"
+                              className={`content-status-button ${status.className}`}
+                              onClick={() => toggleVideoStatus(video)}
+                              title={
+                                video.status === 'ACTIVE'
+                                  ? '콘텐츠 숨기기'
+                                  : '콘텐츠 다시 표시하기'
+                              }
+                            >
+                              {status.label}
+                            </button>
+                          ) : (
+                            <span
+                              className={`content-status-button ${status.className}`}
+                              title="예상하지 못한 콘텐츠 상태"
+                            >
+                              {status.label}
+                            </span>
+                          )
+                        })()}
+                      </td>
+
+                      <td>
                         <span
                           className={
                             videoPermissionSummary[video.id]?.type === 'GROUP'
@@ -2606,8 +3358,8 @@ const toggleMenuVisible = async (menu) => {
                           }
                         >
                           {videoPermissionSummary[video.id]?.type === 'GROUP'
-                            ? '🔒 그룹 전용'
-                            : '🌐 전체 공개'}
+                            ? '👥 그룹'
+                            : '🌐 전체'}
                         </span>
                       </td>
 
@@ -2619,35 +3371,33 @@ const toggleMenuVisible = async (menu) => {
                       </td>
 
                       <td>
-                        {video.media_type ===
-                        'audio'
-                          ? '음악'
-                          : '영상'}
+                        {(() => {
+                          const mediaType = Object.hasOwn(
+                            mediaTypeOptions,
+                            video.media_type
+                          )
+                            ? video.media_type
+                            : 'video'
+                          const presentation =
+                            contentMediaTypePresentation[mediaType]
+
+                          return (
+                            <span
+                              className="content-type-icon"
+                              title={presentation.label}
+                              aria-label={presentation.label}
+                            >
+                              {presentation.icon}
+                            </span>
+                          )
+                        })()}
                       </td>
 
                       <td>
-                        {
-                          video.category ??
-                          '전체'
-                        }
+                        {getContentMenuLabel(video.menu_id)}
                       </td>
 
                       <td>
-                        {
-                          video.views
-                        }
-                      </td>
-
-                      <td>
-                        {new Date(
-                          video.created_at
-                        ).toLocaleDateString(
-                          'ko-KR'
-                        )}
-                      </td>
-
-                      <td>
-
                         {/* =========================
                             수정 버튼
                             선택된 영상만 색상 변경
@@ -2672,7 +3422,7 @@ const toggleMenuVisible = async (menu) => {
                             openVideoPermission(video)
                           }
                         >
-                          접근 권한
+                          공개 범위
                         </button>
 
                         <button
@@ -2688,6 +3438,25 @@ const toggleMenuVisible = async (menu) => {
 
                       </td>
 
+                      <td>
+                        {
+                          video.views
+                        }
+                      </td>
+
+                      <td>
+                        {new Date(
+                          video.created_at
+                        ).toLocaleDateString(
+                          'ko-KR',
+                          {
+                            year: '2-digit',
+                            month: 'numeric',
+                            day: 'numeric',
+                          }
+                        )}
+                      </td>
+
                     </tr>
 
                   )
@@ -2696,224 +3465,222 @@ const toggleMenuVisible = async (menu) => {
               </tbody>
 
             </table>
+            </div>
 
 
             {/* =========================
-                영상 수정 패널
+                콘텐츠 수정 모달
             ========================= */}
 
             {editingId && (
 
-              <div className="video-edit-panel">
+              <div className="video-edit-overlay" role="presentation">
+              <div
+                className="video-edit-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="video-edit-title"
+              >
+                <div className="video-edit-header">
+                  <div>
+                    <h2 id="video-edit-title">콘텐츠 수정</h2>
+                    <p>콘텐츠 정보, 파일, 커버 이미지를 수정할 수 있습니다.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="video-edit-close"
+                    onClick={cancelEditing}
+                    disabled={savingVideo}
+                    aria-label="수정 창 닫기"
+                  >
+                    ×
+                  </button>
+                </div>
 
-                <h2>
-                  영상 수정
-                </h2>
+                <div className="video-edit-grid">
+                  <div className="video-edit-column">
+                    <label>제목</label>
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                    />
 
-                <p>
-                  영상 정보, 파일, 썸네일을
-                  수정할 수 있습니다.
-                </p>
+                    <label>콘텐츠 타입</label>
+                    <select
+                      value={editMediaType}
+                      onChange={(e) =>
+                        handleEditMediaTypeChange(e.target.value)
+                      }
+                    >
+                      {Object.entries(mediaTypeOptions).map(
+                        ([value, option]) => (
+                          <option key={value} value={value}>
+                            {option.label}
+                          </option>
+                        )
+                      )}
+                    </select>
 
+                    <label>1차 메뉴</label>
+                    <select
+                      value={editPrimaryMenuId}
+                      onChange={(e) => {
+                        setEditPrimaryMenuId(e.target.value)
+                        setEditSubMenuId('')
+                      }}
+                    >
+                      <option value="">1차 메뉴를 선택하세요</option>
+                      {menus
+                        .filter((menu) => menu.level === 1)
+                        .sort(
+                          (a, b) =>
+                            (a.sort_order ?? 0) - (b.sort_order ?? 0)
+                        )
+                        .map((menu) => (
+                          <option key={menu.id} value={menu.id}>
+                            {menu.name}
+                          </option>
+                        ))}
+                    </select>
 
-                {/* 제목 */}
+                    <label>2차 메뉴</label>
+                    <select
+                      value={editSubMenuId}
+                      onChange={(e) => setEditSubMenuId(e.target.value)}
+                      disabled={!editPrimaryMenuId}
+                    >
+                      <option value="">2차 메뉴를 선택하세요</option>
+                      {menus
+                        .filter(
+                          (menu) =>
+                            menu.level === 2 &&
+                            menu.parent_id === editPrimaryMenuId &&
+                            menu.name !== 'All' &&
+                            menu.name !== 'Playlist'
+                        )
+                        .sort(
+                          (a, b) =>
+                            (a.sort_order ?? 0) - (b.sort_order ?? 0)
+                        )
+                        .map((menu) => (
+                          <option key={menu.id} value={menu.id}>
+                            {menu.name}
+                          </option>
+                        ))}
+                    </select>
 
-                <label>
-                  제목
-                </label>
+                    <label>설명 / 가사</label>
+                    <textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      placeholder="설명이나 가사를 입력하세요 (선택사항)"
+                      rows="10"
+                    />
+                  </div>
 
-                <input
-                  type="text"
-                  value={
-                    editTitle
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    setEditTitle(
-                      e.target
-                        .value
-                    )
-                  }
-                />
+                  <div className="video-edit-column video-edit-media-column">
+                    <div className="video-edit-current-file">
+                      <div className="video-edit-current-file-info">
+                        <strong>현재 미디어 파일</strong>
+                        {editingMediaFileName && (
+                          <span title={editingMediaFileName}>
+                            {editingMediaFileName}
+                          </span>
+                        )}
+                      </div>
+                      {editingVideo?.video_url ? (
+                        <a
+                          href={editingVideo.video_url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          현재 파일 열기
+                        </a>
+                      ) : (
+                        <span>-</span>
+                      )}
+                    </div>
 
+                    <label>
+                      {mediaTypeOptions[editMediaType].label} 파일 교체
+                    </label>
+                    <input
+                      key={editMediaType}
+                      type="file"
+                      accept={mediaTypeOptions[editMediaType].accept}
+                      onChange={(e) => {
+                        if (!handleEditMediaSelect(e.target.files?.[0])) {
+                          e.target.value = ''
+                        }
+                      }}
+                    />
+                    {editMediaFile && <p>선택한 파일: {editMediaFile.name}</p>}
 
-                {/* 카테고리 */}
+                    <label>현재 커버 이미지</label>
+                    {editThumbnailPreview ? (
+                      <img
+                        className="video-edit-thumbnail"
+                        src={editThumbnailPreview}
+                        alt="커버 이미지 미리보기"
+                      />
+                    ) : (
+                      <p>등록된 커버 이미지가 없습니다.</p>
+                    )}
 
-                <label>
-                  카테고리
-                </label>
+                    {capturingEditThumbnail && (
+                      <p>썸네일을 캡처하는 중...</p>
+                    )}
 
-                <select
-                  value={
-                    editCategory
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    setEditCategory(
-                      e.target
-                        .value
-                    )
-                  }
-                >
+                    {editMediaType !== 'image' && (
+                      <>
+                        <label>커버 이미지 교체</label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleEditThumbnailSelect(e.target.files?.[0])
+                          }
+                        />
+                      </>
+                    )}
 
-                  <option value="음악">
-                    음악
-                  </option>
+                    {editThumbnailFile && (
+                      <p>선택한 썸네일: {editThumbnailFile.name}</p>
+                    )}
 
-                  <option value="브이로그">
-                    브이로그
-                  </option>
+                    <p className="video-edit-help">
+                      {editMediaType === 'audio'
+                        ? '기본 커버가 자동 적용됩니다. 직접 이미지를 선택해 바꿀 수도 있어요.'
+                        : editMediaType === 'video'
+                          ? '영상에서 자동으로 캡처되며, 직접 이미지를 선택해 바꿀 수도 있어요.'
+                          : editMediaType === 'image'
+                            ? '선택한 이미지가 미리보기와 썸네일로 사용됩니다.'
+                            : '기본 문서 썸네일이 적용되며, 직접 이미지를 선택해 바꿀 수도 있어요.'}
+                    </p>
 
-                  <option value="여행">
-                    여행
-                  </option>
-
-                  <option value="코미디">
-                    코미디
-                  </option>
-
-                </select>
-
-
-                {/* 영상 / 음악 파일 */}
-
-                <label>
-                  {videos.find(
-                    (v) =>
-                      v.id ===
-                      editingId
-                  )?.media_type ===
-                  'audio'
-                    ? '음악 파일 교체'
-                    : '동영상 파일 교체'}
-                </label>
-
-                <input
-                  type="file"
-                  accept={
-                    videos.find(
-                      (v) =>
-                        v.id ===
-                        editingId
-                    )?.media_type ===
-                    'audio'
-                      ? 'audio/*'
-                      : 'video/*'
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    setEditMediaFile(
-                      e.target
-                        .files?.[0] ??
-                        null
-                    )
-                  }
-                />
-
-                {editMediaFile && (
-
-                  <p>
-                    선택한 파일:{' '}
-                    {
-                      editMediaFile.name
-                    }
-                  </p>
-
-                )}
-
-
-                {/* 썸네일 */}
-
-                <label>
-                  썸네일 교체
-                </label>
-
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(
-                    e
-                  ) =>
-                    setEditThumbnailFile(
-                      e.target
-                        .files?.[0] ??
-                        null
-                    )
-                  }
-                />
-
-                {editThumbnailFile && (
-
-                  <p>
-                    선택한 썸네일:{' '}
-                    {
-                      editThumbnailFile.name
-                    }
-                  </p>
-
-                )}
-
-
-                {/* 설명 / 가사 */}
-
-                <label>
-                  설명 / 가사
-                </label>
-
-                <textarea
-                  value={
-                    editDescription
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    setEditDescription(
-                      e.target
-                        .value
-                    )
-                  }
-                  placeholder="설명이나 가사를 입력하세요 (선택사항)"
-                  rows="8"
-                />
-
-
-                {/* 버튼 */}
+                    <video ref={editVideoRef} style={{ display: 'none' }} muted />
+                    <canvas ref={editCanvasRef} style={{ display: 'none' }} />
+                  </div>
+                </div>
 
                 <div className="video-edit-buttons">
-
                   <button
                     className="approve-button"
-                    onClick={() =>
-                      saveEditing(
-                        editingId
-                      )
-                    }
-                    disabled={
-                      savingVideo
-                    }
+                    onClick={() => saveEditing(editingId)}
+                    disabled={savingVideo || capturingEditThumbnail}
                   >
-                    {savingVideo
-                      ? '저장 중...'
-                      : '저장'}
+                    {savingVideo ? '저장 중...' : '저장'}
                   </button>
-
                   <button
                     className="reject-button"
-                    onClick={
-                      cancelEditing
-                    }
-                    disabled={
-                      savingVideo
-                    }
+                    onClick={cancelEditing}
+                    disabled={savingVideo}
                   >
                     취소
                   </button>
-
                 </div>
-
+              </div>
               </div>
 
             )}
@@ -2966,7 +3733,7 @@ const toggleMenuVisible = async (menu) => {
                   gap: '12px',
                 }}
               >
-                <div>
+                                <div>
                   <label>메뉴 이름</label>
                   <input
                     type="text"
@@ -2974,9 +3741,18 @@ const toggleMenuVisible = async (menu) => {
                     onChange={(e) =>
                       setMenuName(e.target.value)
                     }
-                    placeholder="예: AI Music"
+                    placeholder="예: 어학"
                     style={{ width: '100%' }}
                   />
+                  <small
+                    style={{
+                      display: 'block',
+                      marginTop: '6px',
+                      color: '#777',
+                    }}
+                  >
+                    사용자에게 표시되는 메뉴 이름입니다.
+                  </small>
                 </div>
 
                 <div>
@@ -3007,44 +3783,188 @@ const toggleMenuVisible = async (menu) => {
                         </option>
                       ))}
                   </select>
+
+                  <small
+                    style={{
+                      display: 'block',
+                      marginTop: '6px',
+                      color: '#777',
+                    }}
+                  >
+                    2차 메뉴인 경우 상위 1차 메뉴를 선택합니다.
+                  </small>
                 </div>
 
                 <div>
                   <label>Route</label>
-                  <input
-                    type="text"
-                    value={menuRoute}
-                    onChange={(e) =>
-                      setMenuRoute(e.target.value)
-                    }
-                    placeholder="/playground/ai-music"
-                    style={{ width: '100%' }}
-                  />
+
+                  {menuParentId ? (
+                    (() => {
+                      const parentMenu = menus.find(
+                        (menu) =>
+                          menu.id === menuParentId
+                      )
+
+                      const parentRoute =
+                        parentMenu?.route || ''
+
+                      const childRoute =
+                        menuRoute.startsWith(
+                          `${parentRoute}/`
+                        )
+                          ? menuRoute.slice(
+                              parentRoute.length + 1
+                            )
+                          : menuRoute
+
+                      return (
+                        <>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              width: '100%',
+                            }}
+                          >
+                            <span
+                              style={{
+                                padding: '10px 0',
+                                color: '#666',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {parentRoute}/
+                            </span>
+
+                            <input
+                              type="text"
+                              value={childRoute}
+                              onChange={(e) =>
+                                setMenuRoute(
+                                  `${parentRoute}/${e.target.value}`
+                                )
+                              }
+                              placeholder="language"
+                              style={{
+                                flex: 1,
+                                minWidth: 0,
+                              }}
+                            />
+                          </div>
+                        </>
+                      )
+                    })()
+                  ) : (
+                    <input
+                      type="text"
+                      value={menuRoute}
+                      onChange={(e) =>
+                        setMenuRoute(e.target.value)
+                      }
+                      placeholder="/music"
+                      style={{ width: '100%' }}
+                    />
+                  )}
+
+                  <small
+                    style={{
+                      display: 'block',
+                      marginTop: '6px',
+                      color: '#777',
+                    }}
+                  >
+                    화면을 구분하는 경로입니다.
+                    2차 메뉴는 상위 메뉴의 경로가 자동으로 표시됩니다.
+                    영문과 숫자 사용을 권장합니다.
+                  </small>
                 </div>
 
-                <div>
-                  <label>Icon</label>
-                  <input
-                    type="text"
-                    value={menuIcon}
-                    onChange={(e) =>
-                      setMenuIcon(e.target.value)
-                    }
-                    placeholder="ai-music"
-                    style={{ width: '100%' }}
-                  />
-                </div>
+                {!menuParentId && (
+                  <div>
+                    <label>Icon</label>
 
-                <div>
-                  <label>정렬 순서</label>
-                  <input
-                    type="number"
-                    value={menuSortOrder}
-                    onChange={(e) =>
-                      setMenuSortOrder(e.target.value)
-                    }
-                    style={{ width: '100%' }}
-                  />
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '8px',
+                        flexWrap: 'wrap',
+                        marginTop: '8px',
+                      }}
+                    >
+                      {[
+                        ['home', '⌂', '홈'],
+                        ['video', '▶', '영상'],
+                        ['music', '♫', '음악'],
+                        ['book-open', '▤', '책'],
+                        ['playground', '✦', '놀이터'],
+                        ['library', '▣', '보관함'],
+                      ].map(
+                        ([key, icon, label]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() =>
+                              setMenuIcon(icon)
+                            }
+                            style={{
+                              padding: '8px 12px',
+                              border:
+                                menuIcon === icon
+                                  ? '2px solid #222'
+                                  : '1px solid #ddd',
+                              borderRadius: '8px',
+                              background:
+                                menuIcon === icon
+                                  ? '#f0f0f0'
+                                  : '#fff',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: '20px',
+                                marginRight: '5px',
+                              }}
+                            >
+                              {icon}
+                            </span>
+                            {label}
+                          </button>
+                        )
+                      )}
+                    </div>
+
+                    <small
+                      style={{
+                        display: 'block',
+                        marginTop: '6px',
+                        color: '#777',
+                      }}
+                    >
+                      1차 메뉴에 표시할 아이콘을 선택합니다.
+                    </small>
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    background: '#f8f8f8',
+                    color: '#666',
+                    fontSize: '14px',
+                  }}
+                >
+                  <strong>정렬 순서</strong>
+
+                  <div style={{ marginTop: '4px' }}>
+                    자동 설정
+                  </div>
+
+                  <small>
+                    같은 상위 메뉴의 마지막 위치에 자동으로 추가됩니다.
+                  </small>
                 </div>
 <div>
   <label>연결 그룹</label>
@@ -3314,166 +4234,404 @@ const toggleMenuVisible = async (menu) => {
           )}
         </div>
       )}
-      {/* =========================
-          영상 접근 권한 관리
+           {/* =========================
+          카테고리 관리
       ========================= */}
 
-      {activeTab === 'videos' && selectedPermissionVideoId && (
-        <div
-          style={{
-            marginTop: '24px',
-            border: '1px solid #ddd',
-            borderRadius: '12px',
-            padding: '20px',
-          }}
-        >
+      {activeTab === 'categories' && (
+        <div>
+
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '16px',
+              marginBottom: '20px',
             }}
           >
-            <div>
-              <h2 style={{ margin: 0 }}>영상 접근 권한</h2>
-              <p style={{ margin: '6px 0 0', color: '#666' }}>
-                선택한 영상의 접근 범위를 설정합니다.
-              </p>
-            </div>
+            <h2 style={{ margin: 0 }}>
+              카테고리 관리
+            </h2>
 
             <button
-              className="reject-button"
-              onClick={closeVideoPermission}
+              className="approve-button"
+              onClick={startCreatingCategory}
             >
-              닫기
+              + 카테고리 추가
             </button>
           </div>
 
-          {loadingVideoPermission ? (
-            <p>권한 정보를 불러오는 중...</p>
-          ) : (
-            <div style={{ display: 'grid', gap: '14px' }}>
-              <div>
-                <label
+          {showCategoryForm && (
+            <div
+              style={{
+                border: '1px solid #ddd',
+                borderRadius: '12px',
+                padding: '20px',
+                marginBottom: '24px',
+              }}
+            >
+
+              <h3 style={{ marginTop: 0 }}>
+                {editingCategoryId
+                  ? '카테고리 수정'
+                  : '카테고리 추가'}
+              </h3>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '12px',
+                }}
+              >
+
+                <div>
+                  <label>2차 메뉴</label>
+
+                  <select
+                    value={categoryMenuId}
+                    onChange={(e) =>
+                      setCategoryMenuId(e.target.value)
+                    }
+                    style={{ width: '100%' }}
+                  >
+                    <option value="">
+                      2차 메뉴 선택
+                    </option>
+
+                    {menus
+                      .filter(
+                        (menu) => menu.level === 2
+                      )
+                      .sort(
+                        (a, b) =>
+                          (a.sort_order ?? 0) -
+                          (b.sort_order ?? 0)
+                      )
+                      .map((menu) => (
+                        <option
+                          key={menu.id}
+                          value={menu.id}
+                        >
+                          {menu.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label>카테고리 이름</label>
+
+                  <input
+                    type="text"
+                    value={categoryName}
+                    onChange={(e) =>
+                      setCategoryName(e.target.value)
+                    }
+                    placeholder="예: Pop"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div
                   style={{
-                    display: 'block',
-                    marginBottom: '6px',
-                    fontWeight: '600',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    background: '#f8f8f8',
+                    color: '#666',
+                    fontSize: '14px',
                   }}
                 >
-                  접근 권한
+                  <strong>정렬 순서</strong>
+
+                  <div style={{ marginTop: '4px' }}>
+                    자동 설정
+                  </div>
+
+                  <small>
+                    같은 2차 메뉴의 마지막 위치에
+                    자동으로 추가됩니다.
+                  </small>
+                </div>
+
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={categoryActive}
+                    onChange={(e) =>
+                      setCategoryActive(
+                        e.target.checked
+                      )
+                    }
+                  />
+                  {' '}카테고리 활성
                 </label>
 
-                <select
-                  value={permissionType}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setPermissionType(value)
-
-                    if (value === 'PUBLIC') {
-                      setPermissionGroupIds([])
-                    }
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '8px',
                   }}
-                  style={{ width: '100%' }}
                 >
-                  <option value="PUBLIC">전체 공개</option>
-                  <option value="GROUP">그룹 전용</option>
-                </select>
-              </div>
 
-              {permissionType === 'GROUP' && (
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      marginBottom: '6px',
-                      fontWeight: '600',
-                    }}
+                  <button
+                    className="approve-button"
+                    onClick={saveCategory}
+                    disabled={savingCategory}
                   >
-                    그룹
-                  </label>
+                    {savingCategory
+                      ? '저장 중...'
+                      : '저장'}
+                  </button>
 
-                  {permissionGroups.length === 0 ? (
-                    <p style={{ color: '#777', marginTop: '8px' }}>
-                      활성화된 그룹이 없습니다. 먼저 그룹을 생성해주세요.
-                    </p>
-                  ) : (
-                    <div
-                      style={{
-                        border: '1px solid #ddd',
-                        borderRadius: '8px',
-                        padding: '12px',
-                        display: 'grid',
-                        gap: '8px',
-                      }}
-                    >
-                      {permissionGroups.map((group) => (
-                        <label
-                          key={group.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={permissionGroupIds.includes(group.id)}
-                            onChange={(e) => {
-                              setPermissionGroupIds((prev) =>
-                                e.target.checked
-                                  ? [...prev, group.id]
-                                  : prev.filter(
-                                      (id) => id !== group.id
-                                    )
-                              )
-                            }}
-                          />
-                          <span>{group.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
+                  <button
+                    className="reject-button"
+                    onClick={resetCategoryForm}
+                    disabled={savingCategory}
+                  >
+                    취소
+                  </button>
 
-                  {permissionGroupIds.length > 0 && (
-                    <p
-                      style={{
-                        color: '#666',
-                        marginTop: '8px',
-                        marginBottom: 0,
-                      }}
-                    >
-                      {permissionGroupIds.length}개 그룹 선택됨
-                    </p>
-                  )}
                 </div>
-              )}
 
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  className="approve-button"
-                  onClick={saveVideoPermission}
-                  disabled={
-                    savingVideoPermission ||
-                    (permissionType === 'GROUP' &&
-                      permissionGroupIds.length === 0)
-                  }
-                >
-                  {savingVideoPermission ? '저장 중...' : '권한 저장'}
-                </button>
-
-                <button
-                  className="reject-button"
-                  onClick={closeVideoPermission}
-                  disabled={savingVideoPermission}
-                >
-                  취소
-                </button>
               </div>
             </div>
           )}
+
+          {loadingCategories ? (
+            <p>카테고리를 불러오는 중...</p>
+          ) : categories.length === 0 ? (
+            <p>등록된 카테고리가 없습니다.</p>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>2차 메뉴</th>
+                  <th>카테고리</th>
+                  <th>순서</th>
+                  <th>상태</th>
+                  <th>작업</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {categories
+                  .slice()
+                  .sort((a, b) => {
+                    const menuA = menus.find(
+                      (menu) => menu.id === a.menu_id
+                    )
+                    const menuB = menus.find(
+                      (menu) => menu.id === b.menu_id
+                    )
+
+                    return (
+                      (menuA?.sort_order ?? 0) -
+                        (menuB?.sort_order ?? 0) ||
+                      (a.sort_order ?? 0) -
+                        (b.sort_order ?? 0)
+                    )
+                  })
+                  .map((category) => {
+
+                    const menu = menus.find(
+                      (item) =>
+                        item.id === category.menu_id
+                    )
+
+                    return (
+                      <tr key={category.id}>
+
+                        <td>
+                          {menu?.name ?? '-'}
+                        </td>
+
+                        <td>
+                          <strong>
+                            {category.name}
+                          </strong>
+                        </td>
+
+                        <td>
+                          {category.sort_order}
+                        </td>
+
+                        <td>
+                          {category.is_active
+                            ? 'ACTIVE'
+                            : 'INACTIVE'}
+                        </td>
+
+                        <td>
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '6px',
+                            }}
+                          >
+
+                            <button
+                              className="approve-button"
+                              onClick={() =>
+                                startEditingCategory(
+                                  category
+                                )
+                              }
+                            >
+                              수정
+                            </button>
+
+                            <button
+                              className="reject-button"
+                              onClick={() =>
+                                deleteCategory(
+                                  category.id
+                                )
+                              }
+                            >
+                              삭제
+                            </button>
+
+                          </div>
+                        </td>
+
+                      </tr>
+                    )
+                  })}
+              </tbody>
+            </table>
+          )}
+
+        </div>
+      )}
+      {/* =========================
+          콘텐츠 접근 권한 관리
+      ========================= */}
+
+      {activeTab === 'videos' && selectedPermissionVideoId && (
+        <div
+          className="video-edit-overlay permission-edit-overlay"
+          onClick={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              !savingVideoPermission
+            ) {
+              closeVideoPermission()
+            }
+          }}
+        >
+          <div
+            className="permission-edit-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="permission-edit-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="permission-edit-header">
+              <div>
+                <h2 id="permission-edit-title">공개 범위</h2>
+                {permissionEditingVideo?.title && (
+                  <strong className="permission-edit-content-title">
+                    {permissionEditingVideo.title}
+                  </strong>
+                )}
+                <p>선택한 콘텐츠의 공개 범위를 설정합니다.</p>
+              </div>
+
+              <button
+                type="button"
+                className="video-edit-close"
+                onClick={closeVideoPermission}
+                disabled={savingVideoPermission}
+                aria-label="공개 범위 창 닫기"
+              >
+                ×
+              </button>
+            </div>
+
+            {loadingVideoPermission ? (
+              <p>권한 정보를 불러오는 중...</p>
+            ) : (
+              <div className="permission-edit-body">
+                <div>
+                  <label>공개 범위</label>
+
+                  <select
+                    value={permissionType}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setPermissionType(value)
+
+                      if (value === 'PUBLIC') {
+                        setPermissionGroupIds([])
+                      }
+                    }}
+                  >
+                    <option value="PUBLIC">전체 공개</option>
+                    <option value="GROUP">그룹 전용</option>
+                  </select>
+                </div>
+
+                {permissionType === 'GROUP' && (
+                  <div>
+                    <label>그룹</label>
+
+                    {permissionGroups.length === 0 ? (
+                      <p className="permission-edit-empty">
+                        활성화된 그룹이 없습니다. 먼저 그룹을 생성해주세요.
+                      </p>
+                    ) : (
+                      <div className="permission-edit-groups">
+                        {permissionGroups.map((group) => (
+                          <label key={group.id}>
+                            <input
+                              type="checkbox"
+                              checked={permissionGroupIds.includes(group.id)}
+                              onChange={(e) => {
+                                setPermissionGroupIds((prev) =>
+                                  e.target.checked
+                                    ? [...prev, group.id]
+                                    : prev.filter((id) => id !== group.id)
+                                )
+                              }}
+                            />
+                            <span>{group.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+
+                    {permissionGroupIds.length > 0 && (
+                      <p className="permission-edit-count">
+                        {permissionGroupIds.length}개 그룹 선택됨
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="permission-edit-actions">
+                  <button
+                    className="reject-button"
+                    onClick={closeVideoPermission}
+                    disabled={savingVideoPermission}
+                  >
+                    취소
+                  </button>
+
+                  <button
+                    className="approve-button"
+                    onClick={saveVideoPermission}
+                    disabled={
+                      savingVideoPermission ||
+                      (permissionType === 'GROUP' &&
+                        permissionGroupIds.length === 0)
+                    }
+                  >
+                    {savingVideoPermission ? '저장 중...' : '권한 저장'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

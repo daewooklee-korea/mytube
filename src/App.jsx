@@ -365,6 +365,7 @@ console.log('메뉴 조회 결과:', { data, error })
     const { data, error } = await supabase
       .from('videos')
       .select('*')
+      .eq('status', 'ACTIVE')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -558,6 +559,7 @@ const loadPlaylistItems = async (playlistId) => {
       .from('videos')
       .select('*')
       .in('id', videoIds)
+      .eq('status', 'ACTIVE')
 
   if (videosError) {
     console.error(
