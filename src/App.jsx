@@ -35,6 +35,7 @@ function App() {
   const [menus, setMenus] = useState([])
   const [loadingMenus, setLoadingMenus] = useState(false)
   const [selectedMenu, setSelectedMenu] = useState(null)
+  const [selectedSubMenu, setSelectedSubMenu] = useState(null)
   const [currentRoute, setCurrentRoute] = useState('/')
   const [recentlyPlayedIds, setRecentlyPlayedIds] = useState([])
   const [playlists, setPlaylists] = useState([])
@@ -96,6 +97,10 @@ const [playModeMenuOpen, setPlayModeMenuOpen] =
 
       setSelectedMenu(
         previousState.selectedMenu || null
+      )
+
+      setSelectedSubMenu(
+        previousState.selectedSubMenu || null
       )
 
       setCurrentRoute(
@@ -442,6 +447,7 @@ isFavorite:
           '알 수 없음',
 
         category: video.category,
+        menuId: video.menu_id ?? null,
 
         mediaType:
           video.media_type ?? 'video',
@@ -582,6 +588,7 @@ const loadPlaylistItems = async (playlistId) => {
         isFavorite: false,
         uploaderNickname: '알 수 없음',
         category: video.category,
+        menuId: video.menu_id ?? null,
         mediaType:
           video.media_type ?? 'video',
         description:
@@ -751,6 +758,33 @@ useEffect(() => {
     )}일 전`
   }
 
+  const mediaTypeIcon = (mediaType) => {
+    if (mediaType === 'audio') return '♪'
+    if (mediaType === 'image') return '🖼'
+    if (mediaType === 'document') return '📄'
+    return '▶'
+  }
+
+  const renderContentThumbnail = (video) => {
+    if (video.thumbnail) {
+      return <img src={video.thumbnail} alt={video.title} />
+    }
+
+    if (video.mediaType === 'image') {
+      return <img src={video.video} alt={video.title} />
+    }
+
+    if (video.mediaType === 'document') {
+      return <div className="document-thumbnail">📄</div>
+    }
+
+    if (video.mediaType === 'audio') {
+      return <div className="audio-thumbnail">♪</div>
+    }
+
+    return <video src={video.video} muted />
+  }
+
   // =========================
   // 영상 선택
   // =========================
@@ -762,9 +796,10 @@ useEffect(() => {
 
     setSelectedVideo(video)
 
-        navigationHistoryRef.current.push({
+    navigationHistoryRef.current.push({
       currentRoute,
       selectedMenu,
+      selectedSubMenu,
       selectedPlaylist,
     })
 
@@ -1096,11 +1131,15 @@ if (historyError) {
       selectedCategory === '전체' ||
       video.category === selectedCategory
 
+    const matchesSelectedSubMenu =
+      !selectedSubMenu ||
+      video.menuId === selectedSubMenu.id
+
     const matchesMediaType =
       currentRoute === '/music'
         ? video.mediaType === 'audio'
         : currentRoute === '/video'
-          ? video.mediaType !== 'audio'
+          ? video.mediaType === 'video'
           : true
 
     const matchesFavorites =
@@ -1121,6 +1160,7 @@ if (historyError) {
     return (
       matchesSearch &&
       matchesCategory &&
+      matchesSelectedSubMenu &&
       matchesMediaType &&
       matchesMyMedia &&
       matchesFavorites &&
@@ -1219,6 +1259,7 @@ if (playMode === 'single') {
 
         <Upload
           onUpload={handleUpload}
+          menus={menus}
         />
 
       ) : selectedVideo ? (
@@ -1352,6 +1393,7 @@ if (playMode === 'single') {
   navigationHistoryRef.current.push({
     currentRoute,
     selectedMenu,
+    selectedSubMenu,
     selectedPlaylist,
   })
 
@@ -1419,21 +1461,22 @@ if (playMode === 'single') {
 
                 </div>
 
+              ) : selectedVideo.mediaType === 'image' ? (
+                <img
+                  src={selectedVideo.video}
+                  alt={selectedVideo.title}
+                />
+              ) : selectedVideo.mediaType === 'document' ? (
+                <div className="document-thumbnail">📄</div>
               ) : (
-
-                /*
-                 * 영상
-                 */
-
                 <video
-  ref={videoRef}
-  src={selectedVideo.video}
-  controls
-  autoPlay
-  playsInline
-  onEnded={handleMediaEnded}
-/>
-
+                  ref={videoRef}
+                  src={selectedVideo.video}
+                  controls
+                  autoPlay
+                  playsInline
+                  onEnded={handleMediaEnded}
+                />
               )}
 
             </div>
@@ -1705,6 +1748,7 @@ if (playMode === 'single') {
   navigationHistoryRef.current.push({
     currentRoute,
     selectedMenu,
+    selectedSubMenu,
     selectedPlaylist,
   })
 
@@ -1770,6 +1814,7 @@ if (playMode === 'single') {
 navigationHistoryRef.current.push({
   currentRoute,
   selectedMenu,
+  selectedSubMenu,
   selectedPlaylist,
 })
 
@@ -1809,6 +1854,7 @@ window.history.pushState({}, '')
   navigationHistoryRef.current.push({
     currentRoute,
     selectedMenu,
+    selectedSubMenu,
     selectedPlaylist,
   })
 
@@ -1849,10 +1895,12 @@ window.history.pushState({}, '')
   navigationHistoryRef.current.push({
     currentRoute,
     selectedMenu,
+    selectedSubMenu,
     selectedPlaylist,
   })
 
   setSelectedMenu(menu)
+  setSelectedSubMenu(null)
   setCurrentRoute(menu.route || '/')
   window.history.pushState({}, '')
 }}
@@ -1888,14 +1936,24 @@ window.history.pushState({}, '')
       .map((menu) => (
         <button
           key={menu.id}
-          className="sub-menu-item"
+          className={`sub-menu-item ${
+            selectedSubMenu?.id === menu.id
+              ? 'selected'
+              : ''
+          }`}
           onClick={() => {
   navigationHistoryRef.current.push({
     currentRoute,
     selectedMenu,
+    selectedSubMenu,
     selectedPlaylist,
   })
 
+  setSelectedSubMenu(
+    menu.name === 'All' || menu.name === 'Playlist'
+      ? null
+      : menu
+  )
   setCurrentRoute(menu.route || '/')
   window.history.pushState({}, '')
   console.log('하위 메뉴 선택:', menu)
@@ -2097,26 +2155,10 @@ window.history.pushState({}, '')
 }}
           >
             <div className="thumbnail">
-  {video.thumbnail ? (
-    <img
-      src={video.thumbnail}
-      alt={video.title}
-    />
-  ) : video.mediaType === 'audio' ? (
-    <div className="audio-thumbnail">
-      ♪
-    </div>
-  ) : (
-    <video
-      src={video.video}
-      muted
-    />
-  )}
+  {renderContentThumbnail(video)}
 
   <span>
-    {video.mediaType === 'audio'
-      ? '♪'
-      : '▶'}
+    {mediaTypeIcon(video.mediaType)}
   </span>
 </div>
 
@@ -2292,34 +2334,10 @@ window.history.pushState({}, '')
                   >
 
                     <div className="thumbnail">
-
-                      {video.thumbnail ? (
-
-                        <img
-                          src={
-                            video.thumbnail
-                          }
-                          alt={
-                            video.title
-                          }
-                        />
-
-                      ) : (
-
-                        <video
-                          src={
-                            video.video
-                          }
-                          muted
-                        />
-
-                      )}
+                      {renderContentThumbnail(video)}
 
                       <span>
-                        {video.mediaType ===
-                        'audio'
-                          ? '♪'
-                          : '▶'}
+                        {mediaTypeIcon(video.mediaType)}
                       </span>
 
                     </div>
@@ -2334,11 +2352,11 @@ window.history.pushState({}, '')
                           }
                         </h3>
 
-                        <span className="category-badge">
-                          {
-                            video.category
-                          }
-                        </span>
+                        {video.category && (
+                          <span className="category-badge">
+                            {video.category}
+                          </span>
+                        )}
 
                       </div>
 

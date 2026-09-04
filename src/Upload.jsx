@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react'
 import { supabase } from './supabase'
 
-function Upload({ onUpload }) {
+function Upload({ onUpload, menus }) {
   const [title, setTitle] = useState('')
-  const [category, setCategory] = useState('음악')
+  const [selectedMenuId, setSelectedMenuId] = useState('')
+  const [selectedSubMenuId, setSelectedSubMenuId] = useState('')
   const [description, setDescription] = useState('')
   const [mediaFile, setMediaFile] = useState(null)
-  const [mediaType, setMediaType] = useState(null)
+  const [mediaType, setMediaType] = useState('audio')
   const [thumbnailFile, setThumbnailFile] = useState(null)
   const [thumbnailPreview, setThumbnailPreview] = useState(null)
   const [capturing, setCapturing] = useState(false)
@@ -15,23 +16,76 @@ function Upload({ onUpload }) {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
 
+  const mediaTypeOptions = {
+    audio: { label: '🎵 음악', accept: 'audio/*' },
+    video: { label: '🎬 동영상', accept: 'video/*' },
+    image: { label: '🖼 이미지', accept: 'image/*' },
+    document: {
+      label: '📄 문서',
+      accept:
+        'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,.doc,.docx',
+    },
+  }
+
+  const firstLevelMenus = menus
+    .filter((menu) => menu.level === 1)
+    .sort((a, b) => a.sort_order - b.sort_order)
+
+  const secondLevelMenus = menus
+    .filter(
+      (menu) =>
+        menu.level === 2 &&
+        menu.parent_id === selectedMenuId &&
+        menu.name !== 'All' &&
+        menu.name !== 'Playlist'
+    )
+    .sort((a, b) => a.sort_order - b.sort_order)
+
+  const isValidMediaFile = (file) => {
+    if (mediaType === 'audio') return file.type.startsWith('audio/')
+    if (mediaType === 'video') return file.type.startsWith('video/')
+    if (mediaType === 'image') return file.type.startsWith('image/')
+
+    return [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ].includes(file.type)
+  }
+
   const handleMediaSelect = (file) => {
+    if (!file) return false
+
+    if (!isValidMediaFile(file)) {
+      alert('선택한 콘텐츠 타입에 맞는 파일을 선택해주세요.')
+      return false
+    }
+
     setMediaFile(file)
     setThumbnailFile(null)
     setThumbnailPreview(null)
+    setCapturing(false)
 
-    if (!file) return
+    if (mediaType === 'audio') {
+      const defaultCover = generateDefaultCover()
+      setThumbnailFile(defaultCover)
+      setThumbnailPreview(URL.createObjectURL(defaultCover))
+      return true
+    }
 
-   if (file.type.startsWith('audio/')) {
-  setMediaType('audio')
+    if (mediaType === 'image') {
+      setThumbnailFile(file)
+      setThumbnailPreview(URL.createObjectURL(file))
+      return true
+    }
 
-  const defaultCover = generateDefaultCover()
-  setThumbnailFile(defaultCover)
-  setThumbnailPreview(URL.createObjectURL(defaultCover))
-  return
-}
+    if (mediaType === 'document') {
+      const defaultThumbnail = generateDocumentThumbnail()
+      setThumbnailFile(defaultThumbnail)
+      setThumbnailPreview(URL.createObjectURL(defaultThumbnail))
+      return true
+    }
 
-    setMediaType('video')
     setCapturing(true)
 
     const videoUrl = URL.createObjectURL(file)
@@ -62,18 +116,35 @@ function Upload({ onUpload }) {
         URL.revokeObjectURL(videoUrl)
       }, 'image/jpeg')
     }
+
+    return true
   }
-const generateDefaultCover = () => {
+
+const generateDefaultThumbnail = (icon, fileName) => {
   const svg = `
     <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
       <rect width="400" height="400" fill="#1a1a1a" />
-      <text x="200" y="230" font-size="140" text-anchor="middle" fill="#ffffff">♪</text>
+      <text x="200" y="230" font-size="140" text-anchor="middle" fill="#ffffff">${icon}</text>
     </svg>
   `
 
   const blob = new Blob([svg], { type: 'image/svg+xml' })
-  return new File([blob], 'default-cover.svg', { type: 'image/svg+xml' })
+  return new File([blob], fileName, { type: 'image/svg+xml' })
 }
+
+  const generateDefaultCover = () =>
+    generateDefaultThumbnail('♪', 'default-cover.svg')
+
+  const generateDocumentThumbnail = () =>
+    generateDefaultThumbnail('📄', 'default-document.svg')
+
+  const handleMediaTypeChange = (nextMediaType) => {
+    setMediaType(nextMediaType)
+    setMediaFile(null)
+    setThumbnailFile(null)
+    setThumbnailPreview(null)
+    setCapturing(false)
+  }
   const handleManualThumbnail = (file) => {
     if (!file) return
 
@@ -84,6 +155,16 @@ const generateDefaultCover = () => {
   const handleUpload = async () => {
     if (!title.trim()) {
       alert('제목을 입력해주세요.')
+      return
+    }
+
+    if (!selectedMenuId) {
+      alert('1차 메뉴를 선택해주세요.')
+      return
+    }
+
+    if (!selectedSubMenuId) {
+      alert('2차 메뉴를 선택해주세요.')
       return
     }
 
@@ -167,7 +248,7 @@ const generateDefaultCover = () => {
         thumbnail_url: thumbnailUrl,
         views: 0,
         user_id: user.id,
-        category: category,
+        menu_id: selectedSubMenuId,
         media_type: mediaType,
 
       })
@@ -182,7 +263,7 @@ const generateDefaultCover = () => {
     setTitle('')
     setDescription('')
     setMediaFile(null)
-    setMediaType(null)
+    setMediaType('audio')
     setThumbnailFile(null)
     setThumbnailPreview(null)
     setUploading(false)
@@ -199,6 +280,19 @@ const generateDefaultCover = () => {
 
       <div className="upload-box">
 
+        <label>콘텐츠 타입</label>
+
+        <select
+          value={mediaType}
+          onChange={(e) => handleMediaTypeChange(e.target.value)}
+        >
+          {Object.entries(mediaTypeOptions).map(([value, option]) => (
+            <option key={value} value={value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+
         <label>제목</label>
 
         <input
@@ -207,47 +301,75 @@ const generateDefaultCover = () => {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="제목을 입력하세요"
         />
-<label>
-  {category === '음악' ? '가사' : '설명'}
-</label>
+<label>1차 메뉴</label>
+
+<select
+  value={selectedMenuId}
+  onChange={(e) => {
+    setSelectedMenuId(e.target.value)
+    setSelectedSubMenuId('')
+  }}
+>
+  <option value="">1차 메뉴를 선택하세요</option>
+  {firstLevelMenus.map((menu) => (
+    <option key={menu.id} value={menu.id}>
+      {menu.name}
+    </option>
+  ))}
+</select>
+
+<label>2차 메뉴</label>
+
+<select
+  value={selectedSubMenuId}
+  onChange={(e) => setSelectedSubMenuId(e.target.value)}
+  disabled={!selectedMenuId}
+>
+  <option value="">2차 메뉴를 선택하세요</option>
+  {secondLevelMenus.map((menu) => (
+    <option key={menu.id} value={menu.id}>
+      {menu.name}
+    </option>
+  ))}
+</select>
+
+<label>설명</label>
 
 <textarea
   value={description}
   onChange={(e) => setDescription(e.target.value)}
-  placeholder={
-    category === '음악'
-      ? '가사를 입력하세요'
-      : '영상 설명을 입력하세요'
-  }
+  placeholder="설명을 입력하세요"
   rows="8"
 />
-        <label>카테고리</label>
 
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-        >
-          <option value="음악">음악</option>
-          <option value="브이로그">브이로그</option>
-          <option value="여행">여행</option>
-          <option value="코미디">코미디</option>
-        </select>
-
-        <label>동영상 또는 음악 파일</label>
+        <label>{mediaTypeOptions[mediaType].label} 파일</label>
 
         <input
+          key={mediaType}
           type="file"
-          accept="video/*,audio/*"
-          onChange={(e) => handleMediaSelect(e.target.files[0])}
+          accept={mediaTypeOptions[mediaType].accept}
+          onChange={(e) => {
+            if (!handleMediaSelect(e.target.files[0])) {
+              e.target.value = ''
+            }
+          }}
         />
 
         {mediaFile && (
           <p>
-            선택한 파일: {mediaFile.name} ({mediaType === 'audio' ? '음악' : '영상'})
+            선택한 파일: {mediaFile.name} ({mediaTypeOptions[mediaType].label})
           </p>
         )}
 
-        <label>{mediaType === 'audio' ? '커버 이미지' : '썸네일'}</label>
+        <label>
+          {mediaType === 'audio'
+            ? '커버 이미지'
+            : mediaType === 'image'
+              ? '이미지 미리보기'
+              : mediaType === 'document'
+                ? '문서 썸네일'
+                : '썸네일'}
+        </label>
 
         {capturing && <p>썸네일을 캡처하는 중...</p>}
 
@@ -265,16 +387,22 @@ const generateDefaultCover = () => {
           />
         )}
 
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => handleManualThumbnail(e.target.files[0])}
-        />
+        {mediaType !== 'image' && (
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleManualThumbnail(e.target.files[0])}
+          />
+        )}
 
        <p>
   {mediaType === 'audio'
     ? '기본 커버가 자동 적용됩니다. 직접 이미지를 선택해 바꿀 수도 있어요.'
-    : '영상에서 자동으로 캡처되며, 직접 이미지를 선택해 바꿀 수도 있어요.'}
+    : mediaType === 'video'
+      ? '영상에서 자동으로 캡처되며, 직접 이미지를 선택해 바꿀 수도 있어요.'
+      : mediaType === 'image'
+        ? '선택한 이미지가 미리보기와 썸네일로 사용됩니다.'
+        : '기본 문서 썸네일이 적용되며, 직접 이미지를 선택해 바꿀 수도 있어요.'}
 </p>
 
         <button
