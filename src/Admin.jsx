@@ -92,6 +92,16 @@ const [savingMenu, setSavingMenu] = useState(false)
   const lyricsEditorListRef = useRef(null)
   const lyricsEditorLineRefs = useRef([])
   const lyricsEditorLastActionRef = useRef('')
+  const lyricsEditorAutoScrollRef = useRef(false)
+  const lyricsEditorManualUntilRef = useRef(0)
+
+  const handleLyricsEditorListScroll = () => {
+    if (lyricsEditorAutoScrollRef.current) {
+      lyricsEditorAutoScrollRef.current = false
+      return
+    }
+    lyricsEditorManualUntilRef.current = Date.now() + 3500
+  }
 
   const mediaTypeOptions = {
     audio: { label: '🎵 음악', accept: 'audio/*' },
@@ -2109,6 +2119,7 @@ const toggleMenuVisible = async (menu) => {
 
   useEffect(() => {
     if (!lyricsEditorVideo || editorTargetIndex < 0) return
+    lyricsEditorAutoScrollRef.current = true
     lyricsEditorLineRefs.current[editorTargetIndex]?.scrollIntoView({
       behavior: 'smooth',
       block: 'center',
@@ -2117,6 +2128,7 @@ const toggleMenuVisible = async (menu) => {
 
   useEffect(() => {
     if (!lyricsEditorVideo || playingLyricIndex < 0) return
+    if (Date.now() < lyricsEditorManualUntilRef.current) return
     if (lyricsEditorLastActionRef.current === 'target') {
       lyricsEditorLastActionRef.current = ''
       return
@@ -4280,7 +4292,7 @@ const toggleMenuVisible = async (menu) => {
 
             {editorError && <p className="lyrics-sync-editor-error" role="alert">{editorError}</p>}
 
-            <div className="lyrics-sync-editor-list" ref={lyricsEditorListRef}>
+            <div className="lyrics-sync-editor-list" ref={lyricsEditorListRef} onScroll={handleLyricsEditorListScroll}>
               {editorLines.length === 0 && <p className="lyrics-sync-editor-empty">가사 줄이 없습니다. 기존 가사를 입력하거나 줄을 추가해주세요.</p>}
               {editorLines.map((line, index) => (
                 <div
