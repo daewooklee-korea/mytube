@@ -3642,11 +3642,19 @@ button.content-status-button {
     max-height: calc(100vh - var(--admin-table-viewport-offset));
     max-height: calc(100dvh - var(--admin-table-viewport-offset));
     box-sizing: border-box;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 0;
     overflow: auto;
     overscroll-behavior: contain;
     touch-action: pan-x pan-y;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-page .content-admin-table-wrap::after {
+    display: block;
+    width: 1px;
+    height: calc(28px + env(safe-area-inset-bottom, 0px));
+    content: '';
+    pointer-events: none;
   }
 
   .admin-page .content-admin-table {
