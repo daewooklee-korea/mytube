@@ -24,7 +24,7 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/playme-icon.svg',
+            src: '/playme-logo.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'any maskable',

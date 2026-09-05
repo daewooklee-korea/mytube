@@ -138,16 +138,30 @@ video {
 
 }
 
+.playme-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  line-height: 1;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
 .playme-brand-icon {
   display: block;
   width: 36px;
   height: 36px;
+  aspect-ratio: 1;
+  object-fit: contain;
   flex: 0 0 36px;
 }
 
 .playme-wordmark {
   display: inline-flex;
   align-items: baseline;
+  font-size: 1em;
+  font-weight: 800;
   letter-spacing: -1.1px;
   line-height: 1;
 }
@@ -998,6 +1012,10 @@ video {
   width: 44px;
   height: 44px;
   flex-basis: 44px;
+}
+
+.login-logo .playme-brand {
+  height: 44px;
 }
 
 .login-logo .playme-wordmark {
@@ -2679,6 +2697,11 @@ button.content-status-button {
 
   }
 
+  .logo .playme-brand {
+    height: 32px;
+    gap: 6px;
+  }
+
   .logo .playme-brand-icon {
     width: 32px;
     height: 32px;
@@ -2756,6 +2779,10 @@ button.content-status-button {
     flex: 0 0 auto;
     gap: 6px;
     font-size: 20px;
+  }
+
+  .home-header .logo .playme-brand {
+    height: 30px;
   }
 
   .home-header .logo .playme-brand-icon {

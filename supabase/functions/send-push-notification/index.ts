@@ -142,8 +142,8 @@ Deno.serve(async (request) => {
   const pushPayload = JSON.stringify({
     title: notification.title,
     body: notification.message,
-    icon: "/playme-icon.svg",
-    badge: "/playme-icon.svg",
+    icon: "/playme-logo.svg",
+    badge: "/playme-logo.svg",
     url: notification.target_user_id
       ? `/admin?tab=members&user=${encodeURIComponent(notification.target_user_id)}`
       : "/admin?tab=members",
