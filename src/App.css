@@ -3553,15 +3553,18 @@ button.content-status-button {
     -webkit-overflow-scrolling: touch;
   }
 
-  .admin-page .admin-table thead th {
+  .admin-page .admin-table:not(.content-admin-table) thead th {
     position: sticky;
     top: 0;
     z-index: 3;
     background: #fafafa;
   }
 
-  .admin-page .content-admin-table thead th:not(.content-admin-title-cell) {
-    left: auto;
+  .admin-page .content-admin-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #fafafa;
   }
 
   .admin-page .content-admin-table tbody td:not(.content-admin-title-cell) {
