@@ -3641,6 +3641,8 @@ button.content-status-button {
     max-width: 100%;
     max-height: calc(100vh - var(--admin-table-viewport-offset));
     max-height: calc(100dvh - var(--admin-table-viewport-offset));
+    box-sizing: border-box;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
     overflow: auto;
     overscroll-behavior: contain;
     touch-action: pan-x pan-y;
