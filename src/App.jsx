@@ -1183,6 +1183,29 @@ if (historyError) {
     loadComments(video.id)
   }
 
+  const handleAdminVideoUpdated = (updatedVideo) => {
+    const applyUpdate = (video) => {
+      if (!video || video.id !== updatedVideo.id) return video
+
+      return {
+        ...video,
+        title: updatedVideo.title,
+        menuId: updatedVideo.menu_id ?? null,
+        mediaType: updatedVideo.media_type ?? video.mediaType,
+        description: updatedVideo.description ?? null,
+        lyricsSync: Array.isArray(updatedVideo.lyrics_sync)
+          ? updatedVideo.lyrics_sync
+          : null,
+        video: updatedVideo.video_url ?? video.video,
+        thumbnail: updatedVideo.thumbnail_url ?? video.thumbnail,
+      }
+    }
+
+    setVideos((previous) => previous.map(applyUpdate))
+    setPlaylistItems((previous) => previous.map(applyUpdate))
+    setSelectedVideo((previous) => applyUpdate(previous))
+  }
+
   // =========================
   // 좋아요
   // =========================
@@ -1580,6 +1603,7 @@ if (playMode === 'single') {
       <Admin
   initialTab="members"
   initialUserId={notificationTargetUserId}
+  onVideoUpdated={handleAdminVideoUpdated}
   onClose={() => {
     setShowAdmin(false)
     setNotificationTargetUserId(null)

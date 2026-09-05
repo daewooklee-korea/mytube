@@ -11,6 +11,7 @@ const createLyricsEditorLine = (line = {}) => ({
 
 function Admin({
   onClose,
+  onVideoUpdated,
   initialTab = 'members',
   initialUserId = null,
 }) {
@@ -2683,6 +2684,17 @@ const toggleMenuVisible = async (menu) => {
             : v
         )
       )
+
+      onVideoUpdated?.({
+        id,
+        title: editTitle.trim(),
+        menu_id: editSubMenuId,
+        media_type: editMediaType,
+        description: editDescription.trim() || null,
+        lyrics_sync: lyricsSync,
+        video_url: newMediaUrl,
+        thumbnail_url: newThumbnailUrl,
+      })
 
       alert(
         '영상 정보가 수정되었습니다.'
