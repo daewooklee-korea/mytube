@@ -7,6 +7,7 @@ function Admin({
   initialUserId = null,
 }) {
   const [activeTab, setActiveTab] = useState(initialTab)
+  const adminTabsRef = useRef(null)
   const [menus, setMenus] = useState([])
 const [loadingMenus, setLoadingMenus] = useState(false)
 const [showMenuForm, setShowMenuForm] = useState(false)
@@ -217,6 +218,20 @@ const [savingMenu, setSavingMenu] = useState(false)
     loadPermissionGroups()
     loadVideoPermissionSummaries()
   }, [])
+
+  useEffect(() => {
+    if (!window.matchMedia('(max-width: 768px)').matches) return
+
+    const activeTabButton = adminTabsRef.current?.querySelector(
+      `[data-admin-tab="${activeTab}"]`,
+    )
+
+    activeTabButton?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    })
+  }, [activeTab])
 
   // =========================
   // 회원 목록
@@ -2534,9 +2549,10 @@ const toggleMenuVisible = async (menu) => {
           탭
       ========================= */}
 
-      <div className="admin-tabs">
+      <div className="admin-tabs" ref={adminTabsRef}>
 
         <button
+          data-admin-tab="members"
           className={
             activeTab ===
             'members'
@@ -2553,6 +2569,7 @@ const toggleMenuVisible = async (menu) => {
         </button>
 
         <button
+          data-admin-tab="groups"
           className={
             activeTab ===
             'groups'
@@ -2569,6 +2586,7 @@ const toggleMenuVisible = async (menu) => {
         </button>
 
         <button
+          data-admin-tab="videos"
           className={
             activeTab ===
             'videos'
@@ -2585,6 +2603,7 @@ const toggleMenuVisible = async (menu) => {
         </button>
 
 <button
+  data-admin-tab="menus"
   className={
     activeTab === 'menus'
       ? 'active'
@@ -2597,6 +2616,7 @@ const toggleMenuVisible = async (menu) => {
   메뉴 관리
 </button>
         <button
+          data-admin-tab="categories"
           className={
             activeTab === 'categories'
               ? 'active'
