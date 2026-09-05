@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import { lyricsSyncToLrc, parseLrc } from './lyrics'
 
+let lyricsEditorLineId = 0
+const createLyricsEditorLine = (line = {}) => ({
+  id: `lyrics-line-${lyricsEditorLineId += 1}`,
+  start: line.start == null ? null : Number(line.start),
+  text: String(line.text ?? ''),
+})
+
 function Admin({
   onClose,
   initialTab = 'members',
@@ -65,6 +72,9 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [editorDuration, setEditorDuration] = useState(0)
   const [editorCompensation, setEditorCompensation] = useState(-0.15)
   const [editorPlaying, setEditorPlaying] = useState(false)
+  const [playingLyricIndex, setPlayingLyricIndex] = useState(-1)
+  const [splitEditorIndex, setSplitEditorIndex] = useState(null)
+  const [splitEditorText, setSplitEditorText] = useState('')
   const [editorError, setEditorError] = useState('')
 
   const [editMediaFile, setEditMediaFile] = useState(null)
@@ -81,6 +91,7 @@ const [savingMenu, setSavingMenu] = useState(false)
   const lyricsEditorAudioRef = useRef(null)
   const lyricsEditorListRef = useRef(null)
   const lyricsEditorLineRefs = useRef([])
+  const lyricsEditorLastActionRef = useRef('')
 
   const mediaTypeOptions = {
     audio: { label: '🎵 음악', accept: 'audio/*' },
@@ -1803,7 +1814,7 @@ const toggleMenuVisible = async (menu) => {
 
   const buildLyricsEditorLines = (video) => {
     if (Array.isArray(video?.lyrics_sync) && video.lyrics_sync.length > 0) {
-      return video.lyrics_sync.map((line) => ({
+      return video.lyrics_sync.map((line) => createLyricsEditorLine({
         start: Number.isFinite(Number(line.start)) ? Number(line.start) : null,
         text: String(line.text ?? ''),
       }))
@@ -1812,7 +1823,7 @@ const toggleMenuVisible = async (menu) => {
     return String(video?.description ?? '')
       .split(/\r?\n/)
       .filter((line) => line.trim() && !/^\s*\[[^\]]+\]\s*$/.test(line))
-      .map((text) => ({ start: null, text: text.trim() }))
+      .map((text) => createLyricsEditorLine({ start: null, text: text.trim() }))
   }
 
   const openLyricsEditor = () => {
@@ -1831,12 +1842,17 @@ const toggleMenuVisible = async (menu) => {
     setEditorDuration(0)
     setEditorCompensation(-0.15)
     setEditorPlaying(false)
+    setPlayingLyricIndex(-1)
+    setSplitEditorIndex(null)
+    setSplitEditorText('')
     setEditorError(parsedDraft.error ?? '')
   }
 
   const closeLyricsEditor = () => {
     lyricsEditorAudioRef.current?.pause()
     setLyricsEditorVideo(null)
+    setPlayingLyricIndex(-1)
+    setSplitEditorIndex(null)
     setEditorError('')
   }
 
@@ -1858,11 +1874,34 @@ const toggleMenuVisible = async (menu) => {
     )
   }
 
+  const getPlayingLyricIndex = (time, lines = editorLines) => {
+    const currentTime = Number(time) || 0
+    return lines.findIndex((line, index) => {
+      if (line.start == null) return false
+      const nextTimedLine = lines
+        .slice(index + 1)
+        .find((candidate) => candidate.start != null)
+      return (
+        currentTime >= Number(line.start) &&
+        (nextTimedLine == null || currentTime < Number(nextTimedLine.start))
+      )
+    })
+  }
+
+  const updatePlayingLyricIndex = (time, lines = editorLines) => {
+    const nextIndex = getPlayingLyricIndex(time, lines)
+    setPlayingLyricIndex((previousIndex) =>
+      previousIndex === nextIndex ? previousIndex : nextIndex
+    )
+  }
+
   const stampEditorLine = (index = editorTargetIndex) => {
     if (!editorLines[index]) return
     const audioTime = lyricsEditorAudioRef.current?.currentTime ?? editorCurrentTime
     const compensation = Math.max(-1, Math.min(1, Number(editorCompensation) || 0))
     setEditorLineStart(index, Math.max(0, audioTime + compensation))
+    lyricsEditorLastActionRef.current = 'target'
+    updatePlayingLyricIndex(audioTime)
     setEditorError('')
     setEditorTargetIndex(Math.min(index + 1, editorLines.length - 1))
   }
@@ -1871,6 +1910,7 @@ const toggleMenuVisible = async (menu) => {
     const line = editorLines[index]
     if (!line || line.start == null) return
     setEditorLineStart(index, Math.max(0, Number((line.start + amount).toFixed(3))))
+    updatePlayingLyricIndex(editorCurrentTime)
   }
 
   const mergeSelectedEditorLines = () => {
@@ -1878,10 +1918,10 @@ const toggleMenuVisible = async (menu) => {
     if (indices.length < 2) return
     const firstIndex = indices[0]
     const selected = indices.map((index) => editorLines[index])
-    const merged = {
-      start: selected.find((line) => line.start != null)?.start ?? null,
+    const merged = createLyricsEditorLine({
+      start: selected[0].start,
       text: selected.map((line) => line.text.trim()).filter(Boolean).join(' '),
-    }
+    })
     setEditorLines((previous) => {
       const next = []
       previous.forEach((line, index) => {
@@ -1892,6 +1932,8 @@ const toggleMenuVisible = async (menu) => {
     })
     setEditorTargetIndex(firstIndex)
     setEditorSelectedIndices([])
+    lyricsEditorLastActionRef.current = 'target'
+    updatePlayingLyricIndex(editorCurrentTime)
   }
 
   const deleteSelectedEditorLines = () => {
@@ -1900,11 +1942,30 @@ const toggleMenuVisible = async (menu) => {
     setEditorLines(remaining)
     setEditorTargetIndex(Math.min(editorTargetIndex, Math.max(0, remaining.length - 1)))
     setEditorSelectedIndices([])
+    setPlayingLyricIndex(getPlayingLyricIndex(editorCurrentTime, remaining))
   }
 
   const addEditorLine = () => {
-    setEditorLines((previous) => [...previous, { start: null, text: '' }])
+    const newLine = createLyricsEditorLine()
+    setEditorLines((previous) => [...previous, newLine])
     setEditorTargetIndex(editorLines.length)
+  }
+
+  const insertEditorLine = (position) => {
+    const selectedIndex = editorSelectedIndices.length === 1
+      ? editorSelectedIndices[0]
+      : editorTargetIndex
+    const index = Math.max(0, Math.min(editorLines.length, selectedIndex + (position === 'after' ? 1 : 0)))
+    const newLine = createLyricsEditorLine()
+    setEditorLines((previous) => {
+      const next = [...previous]
+      next.splice(index, 0, newLine)
+      return next
+    })
+    setEditorTargetIndex(index)
+    setEditorSelectedIndices([])
+    lyricsEditorLastActionRef.current = 'target'
+    setEditorError('')
   }
 
   const resetEditorFromLine = (index) => {
@@ -1915,6 +1976,47 @@ const toggleMenuVisible = async (menu) => {
       )
     )
     setEditorTargetIndex(index)
+    lyricsEditorLastActionRef.current = 'target'
+    updatePlayingLyricIndex(editorCurrentTime)
+  }
+
+  const openSplitEditor = (index) => {
+    const line = editorLines[index]
+    if (!line) return
+    setSplitEditorIndex(index)
+    setSplitEditorText(line.text)
+    setEditorError('')
+  }
+
+  const applySplitEditor = () => {
+    if (splitEditorIndex == null) return
+    const parts = splitEditorText.split(/\r?\n/).map((text) => text.trim()).filter(Boolean)
+    if (parts.length < 2) {
+      setEditorError('두 줄 이상으로 입력해주세요.')
+      return
+    }
+    const sourceLine = editorLines[splitEditorIndex]
+    const splitLines = parts.map((text, index) =>
+      createLyricsEditorLine({
+        start: index === 0 ? sourceLine.start : null,
+        text,
+      })
+    )
+    setEditorLines((previous) => [
+      ...previous.slice(0, splitEditorIndex),
+      ...splitLines,
+      ...previous.slice(splitEditorIndex + 1),
+    ])
+    setEditorTargetIndex(splitEditorIndex)
+    setEditorSelectedIndices([])
+    lyricsEditorLastActionRef.current = 'target'
+    setPlayingLyricIndex(getPlayingLyricIndex(editorCurrentTime, [
+      ...editorLines.slice(0, splitEditorIndex),
+      ...splitLines,
+      ...editorLines.slice(splitEditorIndex + 1),
+    ]))
+    setSplitEditorIndex(null)
+    setSplitEditorText('')
   }
 
   const saveLyricsEditor = () => {
@@ -2012,6 +2114,24 @@ const toggleMenuVisible = async (menu) => {
       block: 'center',
     })
   }, [lyricsEditorVideo, editorTargetIndex])
+
+  useEffect(() => {
+    if (!lyricsEditorVideo || playingLyricIndex < 0) return
+    if (lyricsEditorLastActionRef.current === 'target') {
+      lyricsEditorLastActionRef.current = ''
+      return
+    }
+    if (playingLyricIndex === editorTargetIndex) return
+    lyricsEditorLineRefs.current[playingLyricIndex]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }, [lyricsEditorVideo, playingLyricIndex, editorTargetIndex])
+
+  useEffect(() => {
+    if (!lyricsEditorVideo) return
+    updatePlayingLyricIndex(editorCurrentTime, editorLines)
+  }, [lyricsEditorVideo, editorCurrentTime, editorLines])
 
   const isValidEditMediaFile = (file) => {
     if (editMediaType === 'audio') {
@@ -4103,7 +4223,11 @@ const toggleMenuVisible = async (menu) => {
                 src={lyricsEditorVideo.video_url}
                 controls
                 onLoadedMetadata={(event) => setEditorDuration(event.currentTarget.duration || 0)}
-                onTimeUpdate={(event) => setEditorCurrentTime(event.currentTarget.currentTime)}
+                onTimeUpdate={(event) => {
+                  const nextTime = event.currentTarget.currentTime
+                  setEditorCurrentTime(nextTime)
+                  updatePlayingLyricIndex(nextTime)
+                }}
                 onPlay={() => setEditorPlaying(true)}
                 onPause={() => setEditorPlaying(false)}
               />
@@ -4122,13 +4246,14 @@ const toggleMenuVisible = async (menu) => {
                   const nextTime = Number(event.target.value)
                   if (lyricsEditorAudioRef.current) lyricsEditorAudioRef.current.currentTime = nextTime
                   setEditorCurrentTime(nextTime)
+                  updatePlayingLyricIndex(nextTime)
                 }}
                 disabled={!editorDuration}
                 aria-label="재생 위치"
               />
               <div className="lyrics-sync-editor-player-actions">
-                <button type="button" onClick={() => { if (lyricsEditorAudioRef.current) lyricsEditorAudioRef.current.currentTime = Math.max(0, (lyricsEditorAudioRef.current.currentTime || 0) - 5) }}>−5초</button>
-                <button type="button" onClick={() => { if (lyricsEditorAudioRef.current) lyricsEditorAudioRef.current.currentTime = Math.min(editorDuration || Infinity, (lyricsEditorAudioRef.current.currentTime || 0) + 5) }}>+5초</button>
+                <button type="button" onClick={() => { const nextTime = Math.max(0, (lyricsEditorAudioRef.current?.currentTime || 0) - 5); if (lyricsEditorAudioRef.current) lyricsEditorAudioRef.current.currentTime = nextTime; setEditorCurrentTime(nextTime); updatePlayingLyricIndex(nextTime) }}>−5초</button>
+                <button type="button" onClick={() => { const nextTime = Math.min(editorDuration || Infinity, (lyricsEditorAudioRef.current?.currentTime || 0) + 5); if (lyricsEditorAudioRef.current) lyricsEditorAudioRef.current.currentTime = nextTime; setEditorCurrentTime(nextTime); updatePlayingLyricIndex(nextTime) }}>+5초</button>
                 <label>
                   입력 보정
                   <input
@@ -4145,8 +4270,10 @@ const toggleMenuVisible = async (menu) => {
             </div>
 
             <div className="lyrics-sync-editor-toolbar">
-              <button type="button" onClick={addEditorLine}>줄 추가</button>
+              <button type="button" onClick={() => insertEditorLine('before')} disabled={editorLines.length > 0 && editorTargetIndex < 0}>윗줄 추가</button>
+              <button type="button" onClick={() => insertEditorLine('after')} disabled={editorLines.length > 0 && editorTargetIndex < 0}>아랫줄 추가</button>
               <button type="button" onClick={mergeSelectedEditorLines} disabled={editorSelectedIndices.length < 2}>선택 줄 합치기</button>
+              <button type="button" onClick={() => openSplitEditor(editorSelectedIndices[0])} disabled={editorSelectedIndices.length !== 1}>선택 줄 나누기</button>
               <button type="button" onClick={deleteSelectedEditorLines} disabled={editorSelectedIndices.length === 0}>선택 줄 삭제</button>
               <span>{editorLines.length}줄 · Space로 현재 시간 찍기</span>
             </div>
@@ -4157,9 +4284,9 @@ const toggleMenuVisible = async (menu) => {
               {editorLines.length === 0 && <p className="lyrics-sync-editor-empty">가사 줄이 없습니다. 기존 가사를 입력하거나 줄을 추가해주세요.</p>}
               {editorLines.map((line, index) => (
                 <div
-                  key={`${index}-${line.start ?? 'unset'}`}
+                  key={line.id}
                   ref={(element) => { lyricsEditorLineRefs.current[index] = element }}
-                  className={`lyrics-sync-editor-line${editorTargetIndex === index ? ' current' : ''}${line.start != null ? ' completed' : ''}`}
+                  className={`lyrics-sync-editor-line${editorTargetIndex === index ? ' current' : ''}${playingLyricIndex === index ? ' playing' : ''}${line.start != null ? ' completed' : ''}`}
                   onClick={() => setEditorTargetIndex(index)}
                 >
                   <input
@@ -4182,12 +4309,31 @@ const toggleMenuVisible = async (menu) => {
                     <button type="button" onClick={(event) => { event.stopPropagation(); adjustEditorLine(index, -0.1) }}>−0.1</button>
                     <button type="button" onClick={(event) => { event.stopPropagation(); adjustEditorLine(index, 0.1) }}>+0.1</button>
                     <button type="button" onClick={(event) => { event.stopPropagation(); adjustEditorLine(index, 0.5) }}>+0.5</button>
-                    <button type="button" onClick={(event) => { event.stopPropagation(); lyricsEditorAudioRef.current && (lyricsEditorAudioRef.current.currentTime = Number(line.start) || 0); lyricsEditorAudioRef.current?.play() }}>이 줄부터 재생</button>
+                    <button type="button" disabled={line.start == null} onClick={(event) => { event.stopPropagation(); if (!lyricsEditorAudioRef.current || line.start == null) return; lyricsEditorAudioRef.current.currentTime = Number(line.start); setEditorCurrentTime(Number(line.start)); updatePlayingLyricIndex(Number(line.start)); lyricsEditorAudioRef.current.play() }}>이 줄부터 재생</button>
                     <button type="button" onClick={(event) => { event.stopPropagation(); resetEditorFromLine(index) }}>이 줄부터 다시 찍기</button>
                   </div>
                 </div>
               ))}
             </div>
+
+            {splitEditorIndex != null && (
+              <div className="lyrics-sync-split-overlay" role="presentation">
+                <div className="lyrics-sync-split-dialog" role="dialog" aria-modal="true" aria-labelledby="lyrics-split-title">
+                  <h3 id="lyrics-split-title">선택 줄 나누기</h3>
+                  <p>줄바꿈한 위치마다 새 가사 줄이 만들어집니다. 첫 줄의 시간만 유지됩니다.</p>
+                  <textarea
+                    value={splitEditorText}
+                    onChange={(event) => setSplitEditorText(event.target.value)}
+                    rows="6"
+                    autoFocus
+                  />
+                  <div className="lyrics-sync-split-actions">
+                    <button type="button" className="reject-button" onClick={() => { setSplitEditorIndex(null); setSplitEditorText('') }}>취소</button>
+                    <button type="button" className="approve-button" onClick={applySplitEditor}>나누기</button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="lyrics-sync-editor-footer">
               <button type="button" className="approve-button" onClick={() => stampEditorLine()}>지금 시간 찍기</button>
