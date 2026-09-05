@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
-  <title id="title">PlayMe 앱 아이콘</title>
+  <title id="title">PlayMe</title>
   <defs>
-    <linearGradient id="playme-gradient" x1="145" y1="105" x2="330" y2="420" gradientUnits="userSpaceOnUse">
+    <linearGradient id="playme-gradient" x1="120" y1="70" x2="330" y2="445" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#f43f8f"/>
       <stop offset="0.46" stop-color="#ff6b52"/>
       <stop offset="1" stop-color="#8b3fd6"/>

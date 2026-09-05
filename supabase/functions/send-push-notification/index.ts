@@ -143,7 +143,7 @@ Deno.serve(async (request) => {
     title: notification.title,
     body: notification.message,
     icon: "/playme-logo.svg",
-    badge: "/playme-logo.svg",
+    badge: "/playme-notification.svg",
     url: notification.target_user_id
       ? `/admin?tab=members&user=${encodeURIComponent(notification.target_user_id)}`
       : "/admin?tab=members",

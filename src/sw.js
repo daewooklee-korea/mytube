@@ -27,7 +27,7 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(title, {
       body: data.body || '',
       icon: data.icon || '/playme-logo.svg',
-      badge: data.badge || '/playme-logo.svg',
+      badge: data.badge || '/playme-notification.svg',
       tag: data.notificationId
         ? `playme-notification-${data.notificationId}`
         : undefined,
