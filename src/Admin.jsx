@@ -3406,7 +3406,7 @@ const toggleMenuVisible = async (menu) => {
 
                 <tr>
 
-                  <th>
+                  <th className="content-admin-title-cell">
                     제목
                   </th>
 
@@ -3464,7 +3464,7 @@ const toggleMenuVisible = async (menu) => {
                       }
                     >
 
-                      <td>
+                      <td className="content-admin-title-cell">
                         <span className="content-admin-title-text">
                           {video.title}
                         </span>

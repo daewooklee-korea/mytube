@@ -3560,8 +3560,19 @@ button.content-status-button {
     background: #fafafa;
   }
 
-  .admin-page .admin-table th:first-child,
-  .admin-page .admin-table td:first-child {
+  .admin-page .content-admin-table thead th:not(.content-admin-title-cell) {
+    left: auto;
+  }
+
+  .admin-page .content-admin-table tbody td:not(.content-admin-title-cell) {
+    position: static;
+    left: auto;
+    z-index: auto;
+  }
+
+  .admin-page .admin-table:not(.content-admin-table) th:first-child,
+  .admin-page .admin-table:not(.content-admin-table) td:first-child,
+  .admin-page .content-admin-table .content-admin-title-cell {
     position: sticky;
     left: 0;
     min-width: 130px;
@@ -3574,23 +3585,24 @@ button.content-status-button {
     box-shadow: 1px 0 0 #e8e8e8, 5px 0 8px rgba(0, 0, 0, 0.035);
   }
 
-  .admin-page .admin-table thead th:first-child {
+  .admin-page .admin-table:not(.content-admin-table) thead th:first-child,
+  .admin-page .content-admin-table thead .content-admin-title-cell {
     z-index: 4;
     background: #fafafa;
   }
 
-  .admin-page .admin-table tbody tr:hover td:first-child {
+  .admin-page .admin-table:not(.content-admin-table) tbody tr:hover td:first-child,
+  .admin-page .content-admin-table tbody tr:hover .content-admin-title-cell {
     background: #fafafa;
   }
 
-  .admin-page .admin-table td[colspan]:first-child {
+  .admin-page .admin-table:not(.content-admin-table) td[colspan]:first-child {
     position: static;
     max-width: none;
     box-shadow: none;
   }
 
-  .admin-page .content-admin-table th:first-child,
-  .admin-page .content-admin-table td:first-child {
+  .admin-page .content-admin-table .content-admin-title-cell {
     width: 150px;
     min-width: 150px;
     max-width: 150px;
