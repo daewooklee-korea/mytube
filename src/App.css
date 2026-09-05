@@ -138,6 +138,32 @@ video {
 
 }
 
+.playme-brand-icon {
+  display: block;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+}
+
+.playme-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  letter-spacing: -1.1px;
+  line-height: 1;
+}
+
+.playme-wordmark-play {
+  color: #111827;
+}
+
+.playme-wordmark-me {
+  color: #ec4899;
+  background: linear-gradient(120deg, #f43f8f 5%, #ff6b52 52%, #8b3fd6 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 .search {
 
   display: flex;
@@ -966,6 +992,23 @@ video {
 
   color: #1a1a1a;
 
+}
+
+.login-logo .playme-brand-icon {
+  width: 44px;
+  height: 44px;
+  flex-basis: 44px;
+}
+
+.login-logo .playme-wordmark {
+  font-size: 30px;
+  letter-spacing: -1.4px;
+}
+
+.login-tagline {
+  margin: 0 0 22px;
+  color: #7b7f8b;
+  font-size: 13px;
 }
 
 .login-box h2 {
@@ -2634,6 +2677,16 @@ button.content-status-button {
 
     font-size: 22px;
 
+  }
+
+  .logo .playme-brand-icon {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+
+  .logo .playme-wordmark {
+    letter-spacing: -0.9px;
   }
 
   .user-area {

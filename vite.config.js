@@ -16,10 +16,11 @@ export default defineConfig({
       manifest: {
         name: 'PlayMe',
         short_name: 'PlayMe',
-        description: 'PlayMe Music & Video',
-        theme_color: '#1a1a1a',
+        description: '좋은 콘텐츠가 있는 곳, PlayMe',
+        theme_color: '#f43f8f',
         background_color: '#ffffff',
         display: 'standalone',
+        lang: 'ko',
         start_url: '/',
         icons: [
           {

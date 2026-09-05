@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
+import PlayMeBrand from './PlayMeBrand'
 
 function Login({ onLogin }) {
   const [username, setUsername] = useState('')
@@ -229,28 +230,10 @@ setIsSignup(false)
       <div className="login-box">
 
         <h1 className="login-logo">
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 32 32"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <rect
-              x="1"
-              y="1"
-              width="30"
-              height="30"
-              rx="9"
-              fill="#1a1a1a"
-            />
-            <path
-              d="M13 10.5L22 16L13 21.5V10.5Z"
-              fill="#ffffff"
-            />
-          </svg>
-
-          PlayMe
+          <PlayMeBrand />
         </h1>
+
+        <p className="login-tagline">좋은 콘텐츠가 있는 곳, PlayMe</p>
 
         <h2>
           {isSignup

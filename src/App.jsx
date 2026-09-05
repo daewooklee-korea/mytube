@@ -5,6 +5,7 @@ import Login from './Login'
 import { supabase } from './supabase'
 import Admin from './Admin'
 import SunoReservation from './SunoReservation'
+import PlayMeBrand from './PlayMeBrand'
 import {
   disableAdminPush,
   enableAdminPush,
@@ -1496,28 +1497,7 @@ if (playMode === 'single') {
               }}
             >
 
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 32 32"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <rect
-                  x="1"
-                  y="1"
-                  width="30"
-                  height="30"
-                  rx="9"
-                  fill="#1a1a1a"
-                />
-
-                <path
-                  d="M13 10.5L22 16L13 21.5V10.5Z"
-                  fill="#ffffff"
-                />
-              </svg>
-
-              <span>PlayMe</span>
+              <PlayMeBrand />
 
             </div>
             <div className="play-mode">
@@ -1879,28 +1859,7 @@ if (playMode === 'single') {
 
             <div className="logo">
 
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 32 32"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <rect
-      x="1"
-      y="1"
-      width="30"
-      height="30"
-      rx="9"
-      fill="#1a1a1a"
-    />
-
-    <path
-      d="M13 10.5L22 16L13 21.5V10.5Z"
-      fill="#ffffff"
-    />
-  </svg>
-
-  <span>PlayMe</span>
+  <PlayMeBrand />
 
   <button
     type="button"

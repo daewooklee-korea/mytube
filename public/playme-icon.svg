@@ -1,4 +1,18 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect x="16" y="16" width="480" height="480" rx="144" fill="#1a1a1a"/>
-  <path d="M208 168L352 256L208 344V168Z" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">PlayMe 앱 아이콘</title>
+  <defs>
+    <linearGradient id="playme-gradient" x1="145" y1="105" x2="330" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f43f8f"/>
+      <stop offset="0.46" stop-color="#ff6b52"/>
+      <stop offset="1" stop-color="#8b3fd6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#63255e" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="132" fill="#fff"/>
+  <g filter="url(#shadow)" transform="translate(54 48) scale(.79)">
+    <path fill="url(#playme-gradient)" d="M171 52c-25 0-45 20-45 45v257c-11-4-24-6-37-3-43 8-72 43-66 79 7 39 51 62 96 53 49-10 83-47 83-90V151h99c34 0 61 25 61 56s-27 56-61 56h-17c-25 0-45 20-45 45s20 45 45 45h17c85 0 151-63 151-146S386 52 301 52H171Z"/>
+    <path fill="#fff" d="M246 151c0-13 14-21 25-14l72 45c10 6 10 20 0 27l-72 45c-11 7-25-1-25-14v-89Z"/>
+  </g>
 </svg>
