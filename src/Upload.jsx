@@ -1,11 +1,13 @@
 import { useState, useRef } from 'react'
 import { supabase } from './supabase'
+import { parseLrc } from './lyrics'
 
 function Upload({ onUpload, menus }) {
   const [title, setTitle] = useState('')
   const [selectedMenuId, setSelectedMenuId] = useState('')
   const [selectedSubMenuId, setSelectedSubMenuId] = useState('')
   const [description, setDescription] = useState('')
+  const [syncLyrics, setSyncLyrics] = useState('')
   const [mediaFile, setMediaFile] = useState(null)
   const [mediaType, setMediaType] = useState('audio')
   const [thumbnailFile, setThumbnailFile] = useState(null)
@@ -173,6 +175,12 @@ const generateDefaultThumbnail = (icon, fileName) => {
       return
     }
 
+    const { lines: lyricsSync, error: lyricsError } = parseLrc(syncLyrics)
+    if (lyricsError) {
+      alert(lyricsError)
+      return
+    }
+
     if (mediaType === 'video' && !thumbnailFile) {
       alert('썸네일을 준비 중입니다. 잠시 후 다시 시도해주세요.')
       return
@@ -250,6 +258,7 @@ const generateDefaultThumbnail = (icon, fileName) => {
         user_id: user.id,
         menu_id: selectedSubMenuId,
         media_type: mediaType,
+        lyrics_sync: lyricsSync,
 
       })
 
@@ -262,6 +271,7 @@ const generateDefaultThumbnail = (icon, fileName) => {
 
     setTitle('')
     setDescription('')
+    setSyncLyrics('')
     setMediaFile(null)
     setMediaType('audio')
     setThumbnailFile(null)
@@ -340,6 +350,15 @@ const generateDefaultThumbnail = (icon, fileName) => {
   onChange={(e) => setDescription(e.target.value)}
   placeholder="설명을 입력하세요"
   rows="8"
+/>
+
+<label>싱크 가사 (선택)</label>
+
+<textarea
+  value={syncLyrics}
+  onChange={(e) => setSyncLyrics(e.target.value)}
+  placeholder={'[00:12.40] 어릴 땐 빨리 크고 싶었지\n[00:16.80] 내맘대로 살고 싶어서'}
+  rows="6"
 />
 
         <label>{mediaTypeOptions[mediaType].label} 파일</label>

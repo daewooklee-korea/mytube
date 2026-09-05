@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
+import { lyricsSyncToLrc, parseLrc } from './lyrics'
 
 function Admin({
   onClose,
@@ -55,6 +56,7 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [editPrimaryMenuId, setEditPrimaryMenuId] = useState('')
   const [editSubMenuId, setEditSubMenuId] = useState('')
   const [editDescription, setEditDescription] = useState('')
+  const [editSyncLyrics, setEditSyncLyrics] = useState('')
 
   const [editMediaFile, setEditMediaFile] = useState(null)
   const [editThumbnailFile, setEditThumbnailFile] = useState(null)
@@ -1754,6 +1756,7 @@ const toggleMenuVisible = async (menu) => {
     setEditDescription(
       video.description ?? ''
     )
+    setEditSyncLyrics(lyricsSyncToLrc(video.lyrics_sync))
 
     setEditMediaFile(null)
     setEditThumbnailFile(null)
@@ -1778,6 +1781,7 @@ const toggleMenuVisible = async (menu) => {
     setEditPrimaryMenuId('')
     setEditSubMenuId('')
     setEditDescription('')
+    setEditSyncLyrics('')
 
     setEditMediaFile(null)
     setEditThumbnailFile(null)
@@ -2121,6 +2125,12 @@ const toggleMenuVisible = async (menu) => {
       return
     }
 
+    const { lines: lyricsSync, error: lyricsError } = parseLrc(editSyncLyrics)
+    if (lyricsError) {
+      alert(lyricsError)
+      return
+    }
+
     const video =
       videos.find(
         (v) => v.id === id
@@ -2220,6 +2230,8 @@ const toggleMenuVisible = async (menu) => {
           description:
             editDescription.trim() ||
             null,
+
+          lyrics_sync: lyricsSync,
 
           video_url:
             newMediaUrl,
@@ -2323,6 +2335,8 @@ const toggleMenuVisible = async (menu) => {
                 description:
                   editDescription.trim() ||
                   null,
+
+                lyrics_sync: lyricsSync,
 
                 video_url:
                   newMediaUrl,
@@ -3725,6 +3739,14 @@ const toggleMenuVisible = async (menu) => {
                       onChange={(e) => setEditDescription(e.target.value)}
                       placeholder="설명이나 가사를 입력하세요 (선택사항)"
                       rows="10"
+                    />
+
+                    <label>싱크 가사 (선택)</label>
+                    <textarea
+                      value={editSyncLyrics}
+                      onChange={(e) => setEditSyncLyrics(e.target.value)}
+                      placeholder={'[00:12.40] 어릴 땐 빨리 크고 싶었지\n[00:16.80] 내맘대로 살고 싶어서'}
+                      rows="6"
                     />
                   </div>
 

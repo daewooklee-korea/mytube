@@ -668,6 +668,11 @@ isFavorite:
         // ⭐ 설명 / 가사
         description:
           video.description ?? null,
+
+        lyricsSync:
+          Array.isArray(video.lyrics_sync)
+            ? video.lyrics_sync
+            : null,
       })
     )
 
@@ -807,6 +812,10 @@ const loadPlaylistItems = async (playlistId) => {
           video.media_type ?? 'video',
         description:
           video.description ?? null,
+        lyricsSync:
+          Array.isArray(video.lyrics_sync)
+            ? video.lyrics_sync
+            : null,
       }
     })
     .filter(Boolean)
