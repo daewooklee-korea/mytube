@@ -58,6 +58,8 @@ const [playlistDescription, setPlaylistDescription] = useState('')
 
 const [notifications, setNotifications] = useState([])
 const [showNotifications, setShowNotifications] = useState(false)
+const [showProfileMenu, setShowProfileMenu] = useState(false)
+const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
 const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
 const [notificationTargetUserId, setNotificationTargetUserId] = useState(null)
 const [notificationActionPending, setNotificationActionPending] = useState(false)
@@ -1310,6 +1312,23 @@ if (historyError) {
     setSelectedVideo(null)
     setShowUpload(false)
     setShowAdmin(false)
+    setShowProfileMenu(false)
+  }
+
+  const navigateToMainMenu = (menu) => {
+    if (!menu) return
+
+    navigationHistoryRef.current.push({
+      currentRoute,
+      selectedMenu,
+      selectedSubMenu,
+      selectedPlaylist,
+    })
+    setSelectedMenu(menu)
+    setSelectedSubMenu(null)
+    setCurrentRoute(menu.route || '/')
+    setShowProfileMenu(false)
+    window.history.pushState({}, '')
   }
 
   // =========================
@@ -1855,7 +1874,7 @@ if (playMode === 'single') {
 
         <>
 
-          <header className="header">
+          <header className="header home-header">
 
             <div className="logo">
 
@@ -1874,7 +1893,7 @@ if (playMode === 'single') {
 
 </div>
 
-            <div className="search">
+            <div className={`search ${mobileSearchOpen ? 'mobile-search-open' : ''}`}>
 
               <input
                 type="text"
@@ -1889,17 +1908,22 @@ if (playMode === 'single') {
                 }
               />
 
-              <button>
+              <button
+                type="button"
+                aria-label="검색 열기"
+                onClick={() => setMobileSearchOpen((prev) => !prev)}
+              >
                 🔍
               </button>
 
             </div>
 
-            <div className="user-area">
+<div className="user-area">
 <button
   type="button"
   className="notification-button"
   onClick={() => {
+    setShowProfileMenu(false)
     setShowNotifications((prev) => !prev)
     loadNotifications()
   }}
@@ -1913,6 +1937,18 @@ if (playMode === 'single') {
     </span>
   )}
 </button>
+              <button
+                type="button"
+                className="profile-button"
+                aria-label="프로필 메뉴"
+                aria-expanded={showProfileMenu}
+                onClick={() => {
+                  setShowNotifications(false)
+                  setShowProfileMenu((prev) => !prev)
+                }}
+              >
+                <span aria-hidden="true">👤</span>
+              </button>
               {profile?.role === 'admin' && (
                 <button
                   type="button"
@@ -1980,6 +2016,67 @@ if (playMode === 'single') {
               </button>
 
             </div>
+            {showProfileMenu && (
+              <div className="profile-menu" role="menu">
+                <div className="profile-menu-user">{profile?.username}</div>
+                {profile?.role === 'admin' && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowProfileMenu(false)
+                      openAdminMembers()
+                    }}
+                  >
+                    관리자 페이지
+                  </button>
+                )}
+                {(profile?.role === 'creator' || profile?.role === 'admin') && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowProfileMenu(false)
+                      navigationHistoryRef.current.push({
+                        currentRoute,
+                        selectedMenu,
+                        selectedSubMenu,
+                        selectedPlaylist,
+                      })
+                      setShowUpload(true)
+                      window.history.pushState({}, '')
+                    }}
+                  >
+                    ＋ 업로드
+                  </button>
+                )}
+                {profile?.role === 'admin' && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowProfileMenu(false)
+                      handlePushToggle()
+                    }}
+                    disabled={
+                      pushActionPending ||
+                      pushStatus === 'unsupported' ||
+                      pushStatus === 'blocked'
+                    }
+                  >
+                    {pushStatus === 'active' ? '푸시 알림 끄기' : '푸시 알림 켜기'}
+                  </button>
+                )}
+                {!isInstalled && (
+                  <button type="button" role="menuitem" onClick={handleInstallApp}>
+                    📱 앱 설치
+                  </button>
+                )}
+                <button type="button" role="menuitem" onClick={handleLogout}>
+                  로그아웃
+                </button>
+              </div>
+            )}
 {showNotifications && (
   <div className="notification-panel">
     <div className="notification-header">
@@ -2110,7 +2207,7 @@ if (playMode === 'single') {
     PlayMe Navigation
 ========================= */}
 
-<nav className="main-menu">
+<nav className="main-menu" aria-label="주요 메뉴">
   {menus
     .filter((menu) => menu.level === 1)
     .sort((a, b) => a.sort_order - b.sort_order)
@@ -2124,19 +2221,7 @@ if (playMode === 'single') {
           className={`main-menu-item ${
             isSelected ? 'selected' : ''
           }`}
-         onClick={() => {
-  navigationHistoryRef.current.push({
-    currentRoute,
-    selectedMenu,
-    selectedSubMenu,
-    selectedPlaylist,
-  })
-
-  setSelectedMenu(menu)
-  setSelectedSubMenu(null)
-  setCurrentRoute(menu.route || '/')
-  window.history.pushState({}, '')
-}}
+         onClick={() => navigateToMainMenu(menu)}
         >
           <span className="menu-icon">
             {menuIcons[menu.icon] || '•'}
@@ -2543,7 +2628,7 @@ if (playMode === 'single') {
     )}
   </div>
 ) : (
-            <div className="video-grid">
+            <div className={`video-grid ${currentRoute === '/music' ? 'music-video-grid' : ''}`}>
 
               {displayedVideos.map(
                 (video) => (
@@ -2616,6 +2701,40 @@ if (playMode === 'single') {
             </div>
           )}
           </main>
+
+          <nav className="mobile-bottom-nav" aria-label="모바일 주요 메뉴">
+            {['Home', 'Music', 'Video', 'Study', 'Library'].map((label) => {
+              const menu = menus.find(
+                (item) =>
+                  item.level === 1 &&
+                  item.name.toLowerCase() === label.toLowerCase(),
+              ) || menus.find((item) => {
+                const routeByLabel = {
+                  Home: '/',
+                  Music: '/music',
+                  Video: '/video',
+                  Study: '/study',
+                  Library: '/library',
+                }
+                return item.level === 1 && item.route === routeByLabel[label]
+              })
+              if (!menu) return null
+              const isSelected =
+                selectedMenu?.id === menu.id ||
+                (!selectedMenu && (menu.route || '/') === '/')
+              return (
+                <button
+                  type="button"
+                  key={menu.id}
+                  className={isSelected ? 'selected' : ''}
+                  onClick={() => navigateToMainMenu(menu)}
+                >
+                  <span aria-hidden="true">{menuIcons[menu.icon] || '•'}</span>
+                  <span>{menu.name}</span>
+                </button>
+              )
+            })}
+          </nav>
 
         </>
 
