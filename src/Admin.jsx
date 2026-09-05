@@ -41,6 +41,11 @@ const [savingMenu, setSavingMenu] = useState(false)
 
   const [videos, setVideos] = useState([])
   const [loadingVideos, setLoadingVideos] = useState(true)
+  const [contentSearchText, setContentSearchText] = useState('')
+  const [contentStatusFilter, setContentStatusFilter] = useState('all')
+  const [contentMediaTypeFilter, setContentMediaTypeFilter] = useState('all')
+  const [contentPrimaryMenuId, setContentPrimaryMenuId] = useState('')
+  const [contentSubMenuId, setContentSubMenuId] = useState('')
 
   const [editingId, setEditingId] = useState(null)
 
@@ -79,6 +84,46 @@ const [savingMenu, setSavingMenu] = useState(false)
     image: { icon: '🖼️', label: '이미지' },
     document: { icon: '📄', label: '문서' },
   }
+
+  const getNormalizedMediaType = (mediaType) =>
+    Object.hasOwn(mediaTypeOptions, mediaType) ? mediaType : 'video'
+
+  const contentPrimaryMenus = menus
+    .filter((menu) => menu.level === 1 && menu.is_active === true)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+
+  const contentSubMenus = contentPrimaryMenuId
+    ? menus
+        .filter(
+          (menu) =>
+            menu.level === 2 && menu.parent_id === contentPrimaryMenuId
+        )
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    : []
+
+  const filteredVideos = videos.filter((video) => {
+    const title = (video.title ?? '').toLowerCase()
+    const searchText = contentSearchText.trim().toLowerCase()
+    const matchesSearch = !searchText || title.includes(searchText)
+    const matchesStatus =
+      contentStatusFilter === 'all' ||
+      video.status === contentStatusFilter
+    const matchesMediaType =
+      contentMediaTypeFilter === 'all' ||
+      getNormalizedMediaType(video.media_type) === contentMediaTypeFilter
+    const matchesMenu = !contentPrimaryMenuId
+      ? true
+      : contentSubMenuId
+        ? video.menu_id === contentSubMenuId
+        : contentSubMenus.some((menu) => menu.id === video.menu_id)
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesMediaType &&
+      matchesMenu
+    )
+  })
 
   const getVideoStatusPresentation = (status) => {
     if (status === 'ACTIVE') {
@@ -3243,6 +3288,85 @@ const toggleMenuVisible = async (menu) => {
 
           <>
 
+            <div className="content-admin-filters">
+              <div className="content-admin-filter content-admin-filter-search">
+                <label htmlFor="content-search">콘텐츠 검색</label>
+                <input
+                  id="content-search"
+                  type="search"
+                  value={contentSearchText}
+                  onChange={(event) => setContentSearchText(event.target.value)}
+                  placeholder="제목 검색"
+                />
+              </div>
+
+              <div className="content-admin-filter">
+                <label htmlFor="content-status-filter">상태</label>
+                <select
+                  id="content-status-filter"
+                  value={contentStatusFilter}
+                  onChange={(event) => setContentStatusFilter(event.target.value)}
+                >
+                  <option value="all">전체</option>
+                  <option value="ACTIVE">표시</option>
+                  <option value="HIDDEN">숨김</option>
+                </select>
+              </div>
+
+              <div className="content-admin-filter">
+                <label htmlFor="content-type-filter">유형</label>
+                <select
+                  id="content-type-filter"
+                  value={contentMediaTypeFilter}
+                  onChange={(event) =>
+                    setContentMediaTypeFilter(event.target.value)
+                  }
+                >
+                  <option value="all">전체</option>
+                  <option value="audio">🎵 음악</option>
+                  <option value="video">🎬 영상</option>
+                  <option value="image">🖼 이미지</option>
+                  <option value="document">📄 문서</option>
+                </select>
+              </div>
+
+              <div className="content-admin-filter">
+                <label htmlFor="content-primary-menu-filter">1차 메뉴</label>
+                <select
+                  id="content-primary-menu-filter"
+                  value={contentPrimaryMenuId}
+                  onChange={(event) => {
+                    setContentPrimaryMenuId(event.target.value)
+                    setContentSubMenuId('')
+                  }}
+                >
+                  <option value="">전체</option>
+                  {contentPrimaryMenus.map((menu) => (
+                    <option key={menu.id} value={menu.id}>
+                      {menu.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="content-admin-filter">
+                <label htmlFor="content-sub-menu-filter">2차 메뉴</label>
+                <select
+                  id="content-sub-menu-filter"
+                  value={contentSubMenuId}
+                  disabled={!contentPrimaryMenuId}
+                  onChange={(event) => setContentSubMenuId(event.target.value)}
+                >
+                  <option value="">전체</option>
+                  {contentSubMenus.map((menu) => (
+                    <option key={menu.id} value={menu.id}>
+                      {menu.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div className="content-admin-table-wrap">
             <table className="admin-table content-admin-table">
 
@@ -3304,7 +3428,14 @@ const toggleMenuVisible = async (menu) => {
 
               <tbody>
 
-                {videos.map(
+                {filteredVideos.length === 0 ? (
+                  <tr>
+                    <td className="content-admin-empty" colSpan={9}>
+                      조건에 맞는 콘텐츠가 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredVideos.map(
                   (video) => (
 
                     <tr
@@ -3372,12 +3503,9 @@ const toggleMenuVisible = async (menu) => {
 
                       <td>
                         {(() => {
-                          const mediaType = Object.hasOwn(
-                            mediaTypeOptions,
+                          const mediaType = getNormalizedMediaType(
                             video.media_type
                           )
-                            ? video.media_type
-                            : 'video'
                           const presentation =
                             contentMediaTypePresentation[mediaType]
 
@@ -3459,6 +3587,7 @@ const toggleMenuVisible = async (menu) => {
 
                     </tr>
 
+                  )
                   )
                 )}
 

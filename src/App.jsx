@@ -53,6 +53,7 @@ const [notifications, setNotifications] = useState([])
 const [showNotifications, setShowNotifications] = useState(false)
 const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
 const [notificationTargetUserId, setNotificationTargetUserId] = useState(null)
+const [notificationActionPending, setNotificationActionPending] = useState(false)
   const navigationHistoryRef = useRef([])
     const [playMode, setPlayMode] = useState(() => {
     return (
@@ -275,6 +276,7 @@ const loadNotifications = async () => {
 )
     `)
     .eq('user_id', user.id)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -318,6 +320,115 @@ const markNotificationAsRead = async (notificationRecipientId) => {
   setUnreadNotificationCount((prev) =>
     Math.max(prev - 1, 0)
   )
+}
+const markAllNotificationsAsRead = async () => {
+  if (!user?.id || unreadNotificationCount === 0) return
+
+  const readAt = new Date().toISOString()
+  setNotificationActionPending(true)
+
+  const { error } = await supabase
+    .from('notification_recipients')
+    .update({ read_at: readAt })
+    .eq('user_id', user.id)
+    .is('read_at', null)
+    .is('deleted_at', null)
+
+  setNotificationActionPending(false)
+
+  if (error) {
+    console.error('알림 모두 읽음 처리 실패:', error)
+    alert('알림을 읽음 처리하지 못했습니다.')
+    return
+  }
+
+  setNotifications((prev) =>
+    prev.map((item) =>
+      item.read_at ? item : { ...item, read_at: readAt }
+    )
+  )
+  setUnreadNotificationCount(0)
+}
+
+const deleteNotification = async (notificationRecipientId) => {
+  if (!user?.id) return
+
+  const deletedAt = new Date().toISOString()
+  setNotificationActionPending(true)
+
+  const { error } = await supabase
+    .from('notification_recipients')
+    .update({ deleted_at: deletedAt })
+    .eq('id', notificationRecipientId)
+    .eq('user_id', user.id)
+    .is('deleted_at', null)
+
+  setNotificationActionPending(false)
+
+  if (error) {
+    console.error('알림 삭제 실패:', error)
+    alert('알림을 삭제하지 못했습니다.')
+    return
+  }
+
+  setNotifications((prev) =>
+    prev.filter((item) => item.id !== notificationRecipientId)
+  )
+  setUnreadNotificationCount((prev) => {
+    const deletedNotification = notifications.find(
+      (item) => item.id === notificationRecipientId
+    )
+    return deletedNotification?.read_at ? prev : Math.max(prev - 1, 0)
+  })
+}
+
+const deleteReadNotifications = async () => {
+  if (!user?.id || !notifications.some((item) => item.read_at)) return
+
+  const deletedAt = new Date().toISOString()
+  setNotificationActionPending(true)
+
+  const { error } = await supabase
+    .from('notification_recipients')
+    .update({ deleted_at: deletedAt })
+    .eq('user_id', user.id)
+    .not('read_at', 'is', null)
+    .is('deleted_at', null)
+
+  setNotificationActionPending(false)
+
+  if (error) {
+    console.error('읽은 알림 삭제 실패:', error)
+    alert('읽은 알림을 삭제하지 못했습니다.')
+    return
+  }
+
+  setNotifications((prev) => prev.filter((item) => !item.read_at))
+}
+
+const deleteAllNotifications = async () => {
+  if (!user?.id || notifications.length === 0) return
+  if (!window.confirm('모든 알림을 삭제할까요?')) return
+
+  const deletedAt = new Date().toISOString()
+  setNotificationActionPending(true)
+
+  const { error } = await supabase
+    .from('notification_recipients')
+    .update({ deleted_at: deletedAt })
+    .eq('user_id', user.id)
+    .is('deleted_at', null)
+
+  setNotificationActionPending(false)
+
+  if (error) {
+    console.error('전체 알림 삭제 실패:', error)
+    alert('알림을 모두 삭제하지 못했습니다.')
+    return
+  }
+
+  setNotifications([])
+  setUnreadNotificationCount(0)
 }
 const loadMenus = async () => {
 
@@ -1790,10 +1901,38 @@ if (playMode === 'single') {
       </button>
     </div>
 
+    <div className="notification-actions">
+      <button
+        type="button"
+        onClick={markAllNotificationsAsRead}
+        disabled={notificationActionPending || unreadNotificationCount === 0}
+      >
+        모두 읽음
+      </button>
+      <button
+        type="button"
+        onClick={deleteReadNotifications}
+        disabled={
+          notificationActionPending ||
+          !notifications.some((item) => item.read_at)
+        }
+      >
+        읽은 알림 삭제
+      </button>
+      <button
+        type="button"
+        className="notification-delete-all"
+        onClick={deleteAllNotifications}
+        disabled={notificationActionPending || notifications.length === 0}
+      >
+        전체 삭제
+      </button>
+    </div>
+
     <div className="notification-list">
       {notifications.length === 0 ? (
         <div className="notification-empty">
-          새로운 알림이 없습니다.
+          알림이 없습니다.
         </div>
       ) : (
         notifications.map((item) => (
@@ -1825,6 +1964,19 @@ window.history.pushState({}, '')
 }
 }}
 >
+            <button
+              type="button"
+              className="notification-item-delete"
+              aria-label="알림 삭제"
+              title="알림 삭제"
+              disabled={notificationActionPending}
+              onClick={async (event) => {
+                event.stopPropagation()
+                await deleteNotification(item.id)
+              }}
+            >
+              ×
+            </button>
             <div className="notification-title">
               {!item.read_at && <span>●</span>}
               {item.notification?.title}
