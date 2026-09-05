@@ -57,6 +57,15 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [editSubMenuId, setEditSubMenuId] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [editSyncLyrics, setEditSyncLyrics] = useState('')
+  const [lyricsEditorVideo, setLyricsEditorVideo] = useState(null)
+  const [editorLines, setEditorLines] = useState([])
+  const [editorTargetIndex, setEditorTargetIndex] = useState(0)
+  const [editorSelectedIndices, setEditorSelectedIndices] = useState([])
+  const [editorCurrentTime, setEditorCurrentTime] = useState(0)
+  const [editorDuration, setEditorDuration] = useState(0)
+  const [editorCompensation, setEditorCompensation] = useState(-0.15)
+  const [editorPlaying, setEditorPlaying] = useState(false)
+  const [editorError, setEditorError] = useState('')
 
   const [editMediaFile, setEditMediaFile] = useState(null)
   const [editThumbnailFile, setEditThumbnailFile] = useState(null)
@@ -69,6 +78,9 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [savingVideo, setSavingVideo] = useState(false)
   const editVideoRef = useRef(null)
   const editCanvasRef = useRef(null)
+  const lyricsEditorAudioRef = useRef(null)
+  const lyricsEditorListRef = useRef(null)
+  const lyricsEditorLineRefs = useRef([])
 
   const mediaTypeOptions = {
     audio: { label: '🎵 음악', accept: 'audio/*' },
@@ -1789,6 +1801,153 @@ const toggleMenuVisible = async (menu) => {
     setCapturingEditThumbnail(false)
   }
 
+  const buildLyricsEditorLines = (video) => {
+    if (Array.isArray(video?.lyrics_sync) && video.lyrics_sync.length > 0) {
+      return video.lyrics_sync.map((line) => ({
+        start: Number.isFinite(Number(line.start)) ? Number(line.start) : null,
+        text: String(line.text ?? ''),
+      }))
+    }
+
+    return String(video?.description ?? '')
+      .split(/\r?\n/)
+      .filter((line) => line.trim() && !/^\s*\[[^\]]+\]\s*$/.test(line))
+      .map((text) => ({ start: null, text: text.trim() }))
+  }
+
+  const openLyricsEditor = () => {
+    if (!editingVideo || editMediaType !== 'audio') return
+
+    const parsedDraft = editSyncLyrics.trim()
+      ? parseLrc(editSyncLyrics)
+      : { lines: null, error: null }
+    const lines = parsedDraft.lines ?? buildLyricsEditorLines(editingVideo)
+
+    setLyricsEditorVideo(editingVideo)
+    setEditorLines(lines)
+    setEditorTargetIndex(0)
+    setEditorSelectedIndices([])
+    setEditorCurrentTime(0)
+    setEditorDuration(0)
+    setEditorCompensation(-0.15)
+    setEditorPlaying(false)
+    setEditorError(parsedDraft.error ?? '')
+  }
+
+  const closeLyricsEditor = () => {
+    lyricsEditorAudioRef.current?.pause()
+    setLyricsEditorVideo(null)
+    setEditorError('')
+  }
+
+  const formatEditorTime = (seconds) => {
+    if (!Number.isFinite(seconds)) return '--:--.--'
+    const safe = Math.max(0, seconds)
+    const minutes = Math.floor(safe / 60)
+    const remainder = safe - minutes * 60
+    return `${String(minutes).padStart(2, '0')}:${remainder.toFixed(2).padStart(5, '0')}`
+  }
+
+  const setEditorLineStart = (index, start) => {
+    setEditorLines((previous) =>
+      previous.map((line, lineIndex) =>
+        lineIndex === index
+          ? { ...line, start: start == null ? null : Math.max(0, Number(start)) }
+          : line
+      )
+    )
+  }
+
+  const stampEditorLine = (index = editorTargetIndex) => {
+    if (!editorLines[index]) return
+    const audioTime = lyricsEditorAudioRef.current?.currentTime ?? editorCurrentTime
+    const compensation = Math.max(-1, Math.min(1, Number(editorCompensation) || 0))
+    setEditorLineStart(index, Math.max(0, audioTime + compensation))
+    setEditorError('')
+    setEditorTargetIndex(Math.min(index + 1, editorLines.length - 1))
+  }
+
+  const adjustEditorLine = (index, amount) => {
+    const line = editorLines[index]
+    if (!line || line.start == null) return
+    setEditorLineStart(index, Math.max(0, Number((line.start + amount).toFixed(3))))
+  }
+
+  const mergeSelectedEditorLines = () => {
+    const indices = [...editorSelectedIndices].sort((a, b) => a - b)
+    if (indices.length < 2) return
+    const firstIndex = indices[0]
+    const selected = indices.map((index) => editorLines[index])
+    const merged = {
+      start: selected.find((line) => line.start != null)?.start ?? null,
+      text: selected.map((line) => line.text.trim()).filter(Boolean).join(' '),
+    }
+    setEditorLines((previous) => {
+      const next = []
+      previous.forEach((line, index) => {
+        if (index === firstIndex) next.push(merged)
+        else if (!indices.includes(index)) next.push(line)
+      })
+      return next
+    })
+    setEditorTargetIndex(firstIndex)
+    setEditorSelectedIndices([])
+  }
+
+  const deleteSelectedEditorLines = () => {
+    if (editorSelectedIndices.length === 0) return
+    const remaining = editorLines.filter((_, index) => !editorSelectedIndices.includes(index))
+    setEditorLines(remaining)
+    setEditorTargetIndex(Math.min(editorTargetIndex, Math.max(0, remaining.length - 1)))
+    setEditorSelectedIndices([])
+  }
+
+  const addEditorLine = () => {
+    setEditorLines((previous) => [...previous, { start: null, text: '' }])
+    setEditorTargetIndex(editorLines.length)
+  }
+
+  const resetEditorFromLine = (index) => {
+    if (!window.confirm('이 줄부터 다시 시간을 찍을까요?')) return
+    setEditorLines((previous) =>
+      previous.map((line, lineIndex) =>
+        lineIndex >= index ? { ...line, start: null } : line
+      )
+    )
+    setEditorTargetIndex(index)
+  }
+
+  const saveLyricsEditor = () => {
+    if (editorLines.length === 0) {
+      setEditSyncLyrics('')
+      setEditorError('')
+      closeLyricsEditor()
+      return
+    }
+    const invalidIndex = editorLines.findIndex(
+      (line) => line.start == null || !String(line.text ?? '').trim()
+    )
+    if (invalidIndex >= 0) {
+      setEditorError(`${invalidIndex + 1}번째 줄의 시간과 가사를 모두 입력해주세요.`)
+      return
+    }
+    for (let index = 1; index < editorLines.length; index += 1) {
+      if (editorLines[index].start <= editorLines[index - 1].start) {
+        setEditorError('싱크 시간은 중복 없이 오름차순이어야 합니다.')
+        return
+      }
+    }
+
+    const normalized = editorLines.map((line, index) => ({
+      start: Number(line.start),
+      end: editorLines[index + 1]?.start ?? null,
+      text: String(line.text).trim(),
+    }))
+    setEditSyncLyrics(lyricsSyncToLrc(normalized))
+    setEditorError('')
+    closeLyricsEditor()
+  }
+
   useEffect(() => {
     if (!editingId) return undefined
 
@@ -1808,6 +1967,51 @@ const toggleMenuVisible = async (menu) => {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [editingId, savingVideo])
+
+  useEffect(() => {
+    if (!lyricsEditorVideo) return undefined
+
+    const handleEditorKeyDown = (event) => {
+      const tagName = event.target?.tagName?.toLowerCase()
+      const isTextInput =
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        event.target?.isContentEditable
+
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeLyricsEditor()
+        return
+      }
+
+      if (isTextInput) return
+
+      if (event.key === ' ') {
+        event.preventDefault()
+        stampEditorLine()
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setEditorTargetIndex((index) => Math.max(0, index - 1))
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setEditorTargetIndex((index) => Math.min(editorLines.length - 1, index + 1))
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault()
+        saveLyricsEditor()
+      }
+    }
+
+    window.addEventListener('keydown', handleEditorKeyDown)
+    return () => window.removeEventListener('keydown', handleEditorKeyDown)
+  }, [lyricsEditorVideo, editorLines.length, editorTargetIndex, editorCurrentTime, editorCompensation])
+
+  useEffect(() => {
+    if (!lyricsEditorVideo || editorTargetIndex < 0) return
+    lyricsEditorLineRefs.current[editorTargetIndex]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }, [lyricsEditorVideo, editorTargetIndex])
 
   const isValidEditMediaFile = (file) => {
     if (editMediaType === 'audio') {
@@ -3748,6 +3952,15 @@ const toggleMenuVisible = async (menu) => {
                       placeholder={'[00:12.40] 어릴 땐 빨리 크고 싶었지\n[00:16.80] 내맘대로 살고 싶어서'}
                       rows="6"
                     />
+                    {editMediaType === 'audio' && (
+                      <button
+                        type="button"
+                        className="lyrics-sync-open-button"
+                        onClick={openLyricsEditor}
+                      >
+                        싱크 편집
+                      </button>
+                    )}
                   </div>
 
                   <div className="video-edit-column video-edit-media-column">
@@ -3859,6 +4072,130 @@ const toggleMenuVisible = async (menu) => {
           </>
 
         )
+      )}
+
+      {lyricsEditorVideo && (
+        <div className="lyrics-sync-editor-overlay" role="presentation">
+          <div
+            className="lyrics-sync-editor"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lyrics-sync-editor-title"
+          >
+            <div className="lyrics-sync-editor-header">
+              <div>
+                <h2 id="lyrics-sync-editor-title">싱크 편집</h2>
+                <p>{lyricsEditorVideo.title}</p>
+              </div>
+              <button
+                type="button"
+                className="video-edit-close"
+                onClick={closeLyricsEditor}
+                aria-label="싱크 편집 닫기"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="lyrics-sync-editor-player">
+              <audio
+                ref={lyricsEditorAudioRef}
+                src={lyricsEditorVideo.video_url}
+                controls
+                onLoadedMetadata={(event) => setEditorDuration(event.currentTarget.duration || 0)}
+                onTimeUpdate={(event) => setEditorCurrentTime(event.currentTarget.currentTime)}
+                onPlay={() => setEditorPlaying(true)}
+                onPause={() => setEditorPlaying(false)}
+              />
+              <div className="lyrics-sync-editor-time-row">
+                <span>{formatEditorTime(editorCurrentTime)}</span>
+                <span>{formatEditorTime(editorDuration)}</span>
+              </div>
+              <input
+                className="lyrics-sync-editor-progress"
+                type="range"
+                min="0"
+                max={editorDuration || 0}
+                step="0.01"
+                value={Math.min(editorCurrentTime, editorDuration || editorCurrentTime)}
+                onChange={(event) => {
+                  const nextTime = Number(event.target.value)
+                  if (lyricsEditorAudioRef.current) lyricsEditorAudioRef.current.currentTime = nextTime
+                  setEditorCurrentTime(nextTime)
+                }}
+                disabled={!editorDuration}
+                aria-label="재생 위치"
+              />
+              <div className="lyrics-sync-editor-player-actions">
+                <button type="button" onClick={() => { if (lyricsEditorAudioRef.current) lyricsEditorAudioRef.current.currentTime = Math.max(0, (lyricsEditorAudioRef.current.currentTime || 0) - 5) }}>−5초</button>
+                <button type="button" onClick={() => { if (lyricsEditorAudioRef.current) lyricsEditorAudioRef.current.currentTime = Math.min(editorDuration || Infinity, (lyricsEditorAudioRef.current.currentTime || 0) + 5) }}>+5초</button>
+                <label>
+                  입력 보정
+                  <input
+                    type="number"
+                    min="-1"
+                    max="1"
+                    step="0.01"
+                    value={editorCompensation}
+                    onChange={(event) => setEditorCompensation(Math.max(-1, Math.min(1, Number(event.target.value) || 0)))}
+                  /> 초
+                </label>
+                <span>{editorPlaying ? '재생 중' : '일시정지'}</span>
+              </div>
+            </div>
+
+            <div className="lyrics-sync-editor-toolbar">
+              <button type="button" onClick={addEditorLine}>줄 추가</button>
+              <button type="button" onClick={mergeSelectedEditorLines} disabled={editorSelectedIndices.length < 2}>선택 줄 합치기</button>
+              <button type="button" onClick={deleteSelectedEditorLines} disabled={editorSelectedIndices.length === 0}>선택 줄 삭제</button>
+              <span>{editorLines.length}줄 · Space로 현재 시간 찍기</span>
+            </div>
+
+            {editorError && <p className="lyrics-sync-editor-error" role="alert">{editorError}</p>}
+
+            <div className="lyrics-sync-editor-list" ref={lyricsEditorListRef}>
+              {editorLines.length === 0 && <p className="lyrics-sync-editor-empty">가사 줄이 없습니다. 기존 가사를 입력하거나 줄을 추가해주세요.</p>}
+              {editorLines.map((line, index) => (
+                <div
+                  key={`${index}-${line.start ?? 'unset'}`}
+                  ref={(element) => { lyricsEditorLineRefs.current[index] = element }}
+                  className={`lyrics-sync-editor-line${editorTargetIndex === index ? ' current' : ''}${line.start != null ? ' completed' : ''}`}
+                  onClick={() => setEditorTargetIndex(index)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={editorSelectedIndices.includes(index)}
+                    onChange={() => setEditorSelectedIndices((previous) => previous.includes(index) ? previous.filter((item) => item !== index) : [...previous, index])}
+                    onClick={(event) => event.stopPropagation()}
+                    aria-label={`${index + 1}번째 줄 선택`}
+                  />
+                  <span className="lyrics-sync-editor-line-time">{line.start == null ? '--:--.--' : formatEditorTime(line.start)}</span>
+                  <input
+                    className="lyrics-sync-editor-line-text"
+                    value={line.text}
+                    onChange={(event) => setEditorLines((previous) => previous.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))}
+                    onClick={(event) => event.stopPropagation()}
+                    aria-label={`${index + 1}번째 가사`}
+                  />
+                  <div className="lyrics-sync-editor-line-actions">
+                    <button type="button" onClick={(event) => { event.stopPropagation(); adjustEditorLine(index, -0.5) }}>−0.5</button>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); adjustEditorLine(index, -0.1) }}>−0.1</button>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); adjustEditorLine(index, 0.1) }}>+0.1</button>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); adjustEditorLine(index, 0.5) }}>+0.5</button>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); lyricsEditorAudioRef.current && (lyricsEditorAudioRef.current.currentTime = Number(line.start) || 0); lyricsEditorAudioRef.current?.play() }}>이 줄부터 재생</button>
+                    <button type="button" onClick={(event) => { event.stopPropagation(); resetEditorFromLine(index) }}>이 줄부터 다시 찍기</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="lyrics-sync-editor-footer">
+              <button type="button" className="approve-button" onClick={() => stampEditorLine()}>지금 시간 찍기</button>
+              <button type="button" className="approve-button" onClick={saveLyricsEditor}>싱크 저장</button>
+              <button type="button" className="reject-button" onClick={closeLyricsEditor}>취소</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* =========================
