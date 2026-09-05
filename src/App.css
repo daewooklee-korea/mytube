@@ -3591,7 +3591,25 @@ button.content-status-button {
 
   .admin-page .content-admin-table th:first-child,
   .admin-page .content-admin-table td:first-child {
-    min-width: 220px;
+    width: 150px;
+    min-width: 150px;
+    max-width: 150px;
+  }
+
+  .admin-page .content-admin-table .content-col-title {
+    width: 150px;
+  }
+
+  .admin-page .content-admin-title-text {
+    display: -webkit-box;
+    min-width: 0;
+    overflow: hidden;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .admin-page .menu-admin-table th:first-child,
@@ -3603,7 +3621,23 @@ button.content-status-button {
     background: #fff3cd;
   }
 
-  .content-admin-table-wrap {
+  .admin-page .content-admin-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - var(--admin-table-viewport-offset));
+    max-height: calc(100dvh - var(--admin-table-viewport-offset));
+    overflow: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-page .content-admin-table {
+    display: table;
+    width: 995px;
+    min-width: 995px;
+    max-width: none;
+    max-height: none;
     overflow: visible;
   }
 }

@@ -3465,9 +3465,9 @@ const toggleMenuVisible = async (menu) => {
                     >
 
                       <td>
-                        {
-                          video.title
-                        }
+                        <span className="content-admin-title-text">
+                          {video.title}
+                        </span>
                       </td>
 
                       <td>
