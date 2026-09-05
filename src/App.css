@@ -804,6 +804,47 @@ video {
 
 }
 
+.synced-lyrics {
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px 12px;
+  border-radius: 12px;
+  background: #f7f7f7;
+  color: #6b7280;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.synced-lyrics-line {
+  display: block;
+  width: 100%;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.6;
+  text-align: left;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.synced-lyrics-line:hover,
+.synced-lyrics-line:focus-visible {
+  background: rgba(244, 63, 143, 0.08);
+  outline: none;
+}
+
+.synced-lyrics-line.active {
+  color: #111827;
+  background: rgba(244, 63, 143, 0.1);
+  font-size: 1.08em;
+  font-weight: 700;
+  transform: translateX(2px);
+}
+
 
 
 /* =========================

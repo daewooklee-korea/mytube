@@ -78,6 +78,97 @@ const [playModeMenuOpen, setPlayModeMenuOpen] =
 
   const audioRef = useRef(null)
   const videoRef = useRef(null)
+  const lyricsContainerRef = useRef(null)
+  const lyricLineRefs = useRef([])
+  const lyricAutoScrollRef = useRef(false)
+  const lyricManualUntilRef = useRef(0)
+  const lyricResumeTimerRef = useRef(null)
+  const [activeLyricIndex, setActiveLyricIndex] = useState(-1)
+
+  const markLyricsManualScroll = () => {
+    lyricManualUntilRef.current = Date.now() + 3500
+    if (lyricResumeTimerRef.current) {
+      window.clearTimeout(lyricResumeTimerRef.current)
+    }
+    lyricResumeTimerRef.current = window.setTimeout(() => {
+      lyricManualUntilRef.current = 0
+      lyricResumeTimerRef.current = null
+    }, 3500)
+  }
+
+  const handleLyricsScroll = () => {
+    if (lyricAutoScrollRef.current) {
+      lyricAutoScrollRef.current = false
+      return
+    }
+    markLyricsManualScroll()
+  }
+
+  const handleAudioTimeUpdate = (event) => {
+    const lines = selectedVideo?.lyricsSync
+    if (
+      selectedVideo?.mediaType !== 'audio' ||
+      !Array.isArray(lines) ||
+      lines.length === 0
+    ) {
+      return
+    }
+
+    const currentTime = event.currentTarget.currentTime
+    const nextIndex = lines.findIndex(
+      (line) =>
+        currentTime >= Number(line.start) &&
+        (line.end == null || currentTime < Number(line.end))
+    )
+
+    setActiveLyricIndex((previousIndex) =>
+      previousIndex === nextIndex ? previousIndex : nextIndex
+    )
+  }
+
+  const seekToLyric = (line, index) => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    lyricManualUntilRef.current = 0
+    if (lyricResumeTimerRef.current) {
+      window.clearTimeout(lyricResumeTimerRef.current)
+      lyricResumeTimerRef.current = null
+    }
+    setActiveLyricIndex(index)
+    audio.currentTime = Number(line.start)
+  }
+
+  useEffect(() => {
+    setActiveLyricIndex(-1)
+    lyricLineRefs.current = []
+    lyricManualUntilRef.current = 0
+    if (lyricResumeTimerRef.current) {
+      window.clearTimeout(lyricResumeTimerRef.current)
+      lyricResumeTimerRef.current = null
+    }
+  }, [selectedVideo?.id])
+
+  useEffect(() => {
+    if (activeLyricIndex < 0 || Date.now() < lyricManualUntilRef.current) {
+      return
+    }
+
+    const activeLine = lyricLineRefs.current[activeLyricIndex]
+    if (!activeLine) return
+
+    lyricAutoScrollRef.current = true
+    activeLine.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }, [activeLyricIndex])
+
+  useEffect(() => () => {
+    if (lyricResumeTimerRef.current) {
+      window.clearTimeout(lyricResumeTimerRef.current)
+    }
+  }, [])
    // =========================
   // 모바일 브라우저 뒤로가기
   // =========================
@@ -1679,6 +1770,7 @@ if (playMode === 'single') {
   controls
   autoPlay
   playsInline
+  onTimeUpdate={handleAudioTimeUpdate}
   onEnded={handleMediaEnded}
 />
 
@@ -1749,7 +1841,10 @@ if (playMode === 'single') {
                 설명 / 가사
             ========================= */}
 
-            {selectedVideo.description && (
+            {(selectedVideo.description ||
+              (selectedVideo.mediaType === 'audio' &&
+                Array.isArray(selectedVideo.lyricsSync) &&
+                selectedVideo.lyricsSync.length > 0)) && (
 
               <section className="description-section">
 
@@ -1760,27 +1855,41 @@ if (playMode === 'single') {
                     : '영상 설명'}
                 </h2>
 
-                <div className="description-box">
-
-                  {selectedVideo.description
-                    .split('\n')
-                    .map(
-                      (
-                        line,
-                        index
-                      ) => (
-                        <p
-                          key={
-                            index
-                          }
-                        >
-                          {line ||
-                            '\u00A0'}
-                        </p>
-                      )
-                    )}
-
-                </div>
+                {selectedVideo.mediaType === 'audio' &&
+                Array.isArray(selectedVideo.lyricsSync) &&
+                selectedVideo.lyricsSync.length > 0 ? (
+                  <div
+                    className="synced-lyrics"
+                    ref={lyricsContainerRef}
+                    onScroll={handleLyricsScroll}
+                    onWheel={markLyricsManualScroll}
+                    onTouchStart={markLyricsManualScroll}
+                  >
+                    {selectedVideo.lyricsSync.map((line, index) => (
+                      <button
+                        type="button"
+                        key={`${line.start}-${index}`}
+                        ref={(element) => {
+                          lyricLineRefs.current[index] = element
+                        }}
+                        className={`synced-lyrics-line${
+                          activeLyricIndex === index ? ' active' : ''
+                        }`}
+                        onClick={() => seekToLyric(line, index)}
+                      >
+                        {line.text}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="description-box">
+                    {selectedVideo.description
+                      .split('\n')
+                      .map((line, index) => (
+                        <p key={index}>{line || '\u00A0'}</p>
+                      ))}
+                  </div>
+                )}
 
               </section>
 
