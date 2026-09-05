@@ -2506,12 +2506,6 @@ window.history.pushState({}, '')
                           }
                         </h3>
 
-                        {video.category && (
-                          <span className="category-badge">
-                            {video.category}
-                          </span>
-                        )}
-
                       </div>
 
                       <p>
