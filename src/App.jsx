@@ -5,6 +5,12 @@ import Login from './Login'
 import { supabase } from './supabase'
 import Admin from './Admin'
 import SunoReservation from './SunoReservation'
+import {
+  disableAdminPush,
+  enableAdminPush,
+  getCurrentPushSubscription,
+  isPushSupported,
+} from './pushNotifications'
 
 const menuIcons = {
   home: '⌂',
@@ -54,6 +60,8 @@ const [showNotifications, setShowNotifications] = useState(false)
 const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
 const [notificationTargetUserId, setNotificationTargetUserId] = useState(null)
 const [notificationActionPending, setNotificationActionPending] = useState(false)
+const [pushStatus, setPushStatus] = useState('permission')
+const [pushActionPending, setPushActionPending] = useState(false)
   const navigationHistoryRef = useRef([])
     const [playMode, setPlayMode] = useState(() => {
     return (
@@ -256,6 +264,96 @@ const handleInstallApp = async () => {
     loadNotifications()
   }
 }, [user, profile?.role])
+
+useEffect(() => {
+  if (!user?.id || profile?.role !== 'admin') return
+
+  let cancelled = false
+
+  const loadPushStatus = async () => {
+    if (!isPushSupported()) {
+      setPushStatus('unsupported')
+      return
+    }
+
+    if (Notification.permission === 'denied') {
+      setPushStatus('blocked')
+      return
+    }
+
+    try {
+      const subscription = await getCurrentPushSubscription()
+      if (!cancelled) {
+        setPushStatus(subscription ? 'active' : 'permission')
+      }
+    } catch (error) {
+      console.error('Push 구독 상태 확인 실패:', error)
+      if (!cancelled) setPushStatus('permission')
+    }
+  }
+
+  loadPushStatus()
+
+  return () => {
+    cancelled = true
+  }
+}, [user?.id, profile?.role])
+
+useEffect(() => {
+  if (profile?.role !== 'admin' || window.location.pathname !== '/admin') {
+    return
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  const targetUserId = params.get('user')
+
+  setNotificationTargetUserId(targetUserId)
+  setShowAdmin(true)
+}, [profile?.role])
+
+const handlePushToggle = async () => {
+  if (!user?.id || profile?.role !== 'admin' || pushActionPending) return
+
+  setPushActionPending(true)
+
+  try {
+    if (pushStatus === 'active') {
+      await disableAdminPush(user.id)
+      setPushStatus('permission')
+    } else {
+      await enableAdminPush(user.id)
+      setPushStatus('active')
+    }
+  } catch (error) {
+    console.error('Push 알림 설정 실패:', error)
+    setPushStatus(
+      isPushSupported() && Notification.permission === 'denied'
+        ? 'blocked'
+        : pushStatus
+    )
+    alert(error.message || 'Push 알림 설정을 변경하지 못했습니다.')
+  } finally {
+    setPushActionPending(false)
+  }
+}
+
+const openAdminMembers = (targetUserId = null) => {
+  setNotificationTargetUserId(targetUserId)
+  setShowNotifications(false)
+
+  navigationHistoryRef.current.push({
+    currentRoute,
+    selectedMenu,
+    selectedSubMenu,
+    selectedPlaylist,
+  })
+
+  const params = new URLSearchParams({ tab: 'members' })
+  if (targetUserId) params.set('user', targetUserId)
+
+  setShowAdmin(true)
+  window.history.pushState({}, '', `/admin?${params.toString()}`)
+}
 
 const loadNotifications = async () => {
   if (!user?.id) return
@@ -1364,6 +1462,10 @@ if (playMode === 'single') {
   initialUserId={notificationTargetUserId}
   onClose={() => {
     setShowAdmin(false)
+    setNotificationTargetUserId(null)
+    if (window.location.pathname === '/admin') {
+      window.history.replaceState({}, '', '/')
+    }
     loadVideos()
   }}
 />
@@ -1852,6 +1954,37 @@ if (playMode === 'single') {
     </span>
   )}
 </button>
+              {profile?.role === 'admin' && (
+                <button
+                  type="button"
+                  className={`push-toggle-button ${
+                    pushStatus === 'active' ? 'active' : ''
+                  }`}
+                  onClick={handlePushToggle}
+                  disabled={
+                    pushActionPending ||
+                    pushStatus === 'unsupported' ||
+                    pushStatus === 'blocked'
+                  }
+                  title={
+                    pushStatus === 'unsupported'
+                      ? '이 브라우저는 Web Push를 지원하지 않습니다.'
+                      : pushStatus === 'blocked'
+                        ? '브라우저 설정에서 알림 권한을 허용해주세요.'
+                        : undefined
+                  }
+                >
+                  {pushActionPending
+                    ? '처리 중…'
+                    : pushStatus === 'active'
+                      ? '푸시 알림 끄기'
+                      : pushStatus === 'unsupported'
+                        ? '푸시 지원 안 됨'
+                        : pushStatus === 'blocked'
+                          ? '푸시 차단됨'
+                          : '푸시 알림 켜기'}
+                </button>
+              )}
               {profile?.role ===
                 'admin' && (
 
@@ -1947,20 +2080,7 @@ if (playMode === 'single') {
   }
 
   if (item.notification?.type === 'signup') {
-  setNotificationTargetUserId(
-    item.notification?.target_user_id ?? null
-  )
-  setShowNotifications(false)
-
-navigationHistoryRef.current.push({
-  currentRoute,
-  selectedMenu,
-  selectedSubMenu,
-  selectedPlaylist,
-})
-
-setShowAdmin(true)
-window.history.pushState({}, '')
+  openAdminMembers(item.notification?.target_user_id ?? null)
 }
 }}
 >

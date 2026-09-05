@@ -6,7 +6,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
+      },
       manifest: {
         name: 'PlayMe',
         short_name: 'PlayMe',
