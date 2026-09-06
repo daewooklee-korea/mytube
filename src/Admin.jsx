@@ -24,6 +24,13 @@ const formatFileSize = (bytes) => {
   return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unit]}`
 }
 
+const getStorageLocationLabel = (provider) => {
+  const normalizedProvider = String(provider ?? '').toLowerCase()
+  if (normalizedProvider === 'macmini') return 'Mac mini'
+  if (!normalizedProvider || normalizedProvider === 'supabase') return 'Supabase'
+  return '-'
+}
+
 function Admin({
   onClose,
   onVideoUpdated,
@@ -475,6 +482,7 @@ const loadMenus = async () => {
           menu_id: macMiniSubMenuId,
           description: macMiniDescription.trim() || null,
           lyrics_sync: null,
+          file_size_bytes: Number.isFinite(Number(selectedMacMiniVideo.size)) ? Number(selectedMacMiniVideo.size) : null,
           storage_provider: 'macmini',
           storage_path: selectedMacMiniVideo.hls_path,
           status: 'ACTIVE',
@@ -3012,7 +3020,7 @@ const toggleMenuVisible = async (menu) => {
   return (
     <div
       className={`admin-page ${
-        activeTab === 'videos' ? 'admin-page-content' : ''
+        activeTab === 'videos' || activeTab === 'macmini' ? 'admin-page-content' : ''
       }`}
     >
 
@@ -3087,6 +3095,14 @@ const toggleMenuVisible = async (menu) => {
           }
         >
           콘텐츠 관리
+        </button>
+
+        <button
+          data-admin-tab="macmini"
+          className={activeTab === 'macmini' ? 'active' : ''}
+          onClick={() => setActiveTab('macmini')}
+        >
+          Mac mini 관리
         </button>
 
 <button
@@ -3779,13 +3795,12 @@ const toggleMenuVisible = async (menu) => {
       )}
 
       {/* =========================
-          콘텐츠 관리
+          콘텐츠 / Mac mini 관리
       ========================= */}
 
-      {activeTab ===
-        'videos' && (
+      {(activeTab === 'videos' || activeTab === 'macmini') && (
 
-        loadingVideos ? (
+        activeTab === 'videos' && loadingVideos ? (
 
           <p>
             불러오는 중...
@@ -3795,11 +3810,12 @@ const toggleMenuVisible = async (menu) => {
 
           <>
 
+            {activeTab === 'macmini' && (
             <div className="mac-mini-media-section">
               <div className="mac-mini-media-heading">
                 <div>
                   <h2>Mac mini 영상</h2>
-                  <p>Mac mini 원본 목록을 확인합니다. 등록/복사는 다음 단계에서 지원됩니다.</p>
+                  <p>Mac mini 원본 목록을 확인하고 PlayMe 콘텐츠로 등록합니다.</p>
                 </div>
                 <button
                   type="button"
@@ -3816,6 +3832,14 @@ const toggleMenuVisible = async (menu) => {
 
               {showMacMiniMedia && (
                 <div className="mac-mini-media-panel">
+                  {!loadingMacMiniVideos && !macMiniError && (
+                    <div className="mac-mini-media-summary" aria-live="polite">
+                      <span><strong>상태</strong> 연결됨</span>
+                      <span><strong>원본 영상</strong> {macMiniVideos.length}개</span>
+                      <span><strong>스트리밍 준비</strong> {macMiniVideos.filter((media) => media.hls_ready).length}개</span>
+                      <span><strong>변환 필요</strong> {macMiniVideos.filter((media) => !media.hls_ready).length}개</span>
+                    </div>
+                  )}
                   {loadingMacMiniVideos ? (
                     <p>Mac mini 영상 목록을 불러오는 중...</p>
                   ) : macMiniError ? (
@@ -3920,7 +3944,10 @@ const toggleMenuVisible = async (menu) => {
                 </div>
               )}
             </div>
+            )}
 
+            {activeTab === 'videos' && (
+            <>
             <div className="content-admin-filters">
               <div className="content-admin-filter content-admin-filter-search">
                 <label htmlFor="content-search">콘텐츠 검색</label>
@@ -4010,6 +4037,8 @@ const toggleMenuVisible = async (menu) => {
                 <col className="content-col-groups" />
                 <col className="content-col-type" />
                 <col className="content-col-menu" />
+                <col className="content-col-storage" />
+                <col className="content-col-size" />
                 <col className="content-col-actions" />
                 <col className="content-col-views" />
                 <col className="content-col-date" />
@@ -4044,6 +4073,14 @@ const toggleMenuVisible = async (menu) => {
                   </th>
 
                   <th>
+                    저장 위치
+                  </th>
+
+                  <th>
+                    용량
+                  </th>
+
+                  <th>
                     작업
                   </th>
 
@@ -4063,7 +4100,7 @@ const toggleMenuVisible = async (menu) => {
 
                 {filteredVideos.length === 0 ? (
                   <tr>
-                    <td className="content-admin-empty" colSpan={9}>
+                    <td className="content-admin-empty" colSpan={11}>
                       조건에 맞는 콘텐츠가 없습니다.
                     </td>
                   </tr>
@@ -4156,6 +4193,14 @@ const toggleMenuVisible = async (menu) => {
 
                       <td>
                         {getContentMenuLabel(video.menu_id)}
+                      </td>
+
+                      <td>
+                        {getStorageLocationLabel(video.storage_provider)}
+                      </td>
+
+                      <td>
+                        {formatFileSize(video.file_size_bytes)}
                       </td>
 
                       <td>
@@ -4462,6 +4507,9 @@ const toggleMenuVisible = async (menu) => {
               </div>
               </div>
 
+            )}
+
+            </>
             )}
 
           </>

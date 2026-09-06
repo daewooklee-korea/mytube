@@ -2031,7 +2031,7 @@ video {
 
 .content-admin-table {
 
-  min-width: 1065px;
+  min-width: 1270px;
 
   table-layout: fixed;
 
@@ -2075,6 +2075,18 @@ video {
 
 }
 
+.content-admin-table .content-col-storage {
+
+  width: 105px;
+
+}
+
+.content-admin-table .content-col-size {
+
+  width: 90px;
+
+}
+
 .content-admin-table .content-col-views {
 
   width: 60px;
@@ -2098,7 +2110,9 @@ video {
 .content-admin-table th:nth-child(4),
 .content-admin-table td:nth-child(4),
 .content-admin-table th:nth-child(6),
-.content-admin-table td:nth-child(6) {
+.content-admin-table td:nth-child(6),
+.content-admin-table th:nth-child(7),
+.content-admin-table td:nth-child(7) {
 
   overflow: hidden;
 
@@ -2108,10 +2122,10 @@ video {
 
 .content-admin-table th:nth-child(2),
 .content-admin-table td:nth-child(2),
-.content-admin-table th:nth-child(7),
-.content-admin-table td:nth-child(7),
-.content-admin-table th:nth-child(8),
-.content-admin-table td:nth-child(8),
+.content-admin-table th:nth-child(9),
+.content-admin-table td:nth-child(9),
+.content-admin-table th:nth-child(10),
+.content-admin-table td:nth-child(10),
 .content-admin-table th:last-child,
 .content-admin-table td:last-child {
 
@@ -2133,7 +2147,9 @@ video {
 .content-admin-table th:nth-child(5),
 .content-admin-table td:nth-child(5),
 .content-admin-table th:nth-child(8),
-.content-admin-table td:nth-child(8) {
+.content-admin-table td:nth-child(8),
+.content-admin-table th:nth-child(10),
+.content-admin-table td:nth-child(10) {
 
   text-align: center;
 
@@ -2149,7 +2165,7 @@ video {
 
 }
 
-.content-admin-table td:nth-child(7) > button {
+.content-admin-table td:nth-child(9) > button {
 
   min-height: 34px;
 
@@ -2161,7 +2177,7 @@ video {
 
 }
 
-.content-admin-table td:nth-child(7) > button:last-child {
+.content-admin-table td:nth-child(9) > button:last-child {
 
   margin-right: 0;
 
@@ -3118,6 +3134,20 @@ button.content-status-button {
   border-top: 1px solid #e2e8f0;
 }
 
+.mac-mini-media-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-bottom: 12px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.mac-mini-media-summary strong {
+  margin-right: 4px;
+  color: #1e293b;
+}
+
 .mac-mini-media-list {
   display: grid;
   gap: 8px;
@@ -3276,6 +3306,12 @@ button.content-status-button {
 
   .mac-mini-media-meta {
     white-space: normal;
+  }
+
+  .mac-mini-media-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 12px;
   }
 
   .mac-mini-media-status {
@@ -4578,8 +4614,8 @@ button.content-status-button {
 
   .admin-page .content-admin-table {
     display: table;
-    width: 995px;
-    min-width: 995px;
+    width: 1190px;
+    min-width: 1190px;
     max-width: none;
     max-height: none;
     overflow: visible;

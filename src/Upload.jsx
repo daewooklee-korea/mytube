@@ -259,6 +259,7 @@ const generateDefaultThumbnail = (icon, fileName) => {
         menu_id: selectedSubMenuId,
         media_type: mediaType,
         lyrics_sync: lyricsSync,
+        file_size_bytes: Number.isFinite(Number(mediaFile?.size)) ? Number(mediaFile.size) : null,
 
       })
 
