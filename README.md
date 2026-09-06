@@ -1,5 +1,13 @@
 # React + Vite
 
+## Deployment environment
+
+Set `VITE_MACMINI_MEDIA_BASE_URL` in the deployment provider's build
+environment (Vercel, Netlify, Cloudflare Pages, or the provider used for
+this app). The value must be the current Mac mini Quick Tunnel origin,
+without a trailing slash. Do not commit the value to the repository; Quick
+Tunnel URLs are temporary and require a new deployment when they change.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
