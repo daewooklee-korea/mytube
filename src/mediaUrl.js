@@ -23,18 +23,6 @@ export const resolveMediaUrl = (video) => {
       ? `${macMiniBaseUrl}/${path}`
       : (videoUrl ?? video.video ?? '')
 
-    if (typeof window !== 'undefined') {
-      console.log('[PlayMe playback debug] resolveMediaUrl', {
-        storage_provider: storageProvider,
-        storage_path: storagePath,
-        configured: Boolean(macMiniBaseUrl),
-        base_origin: macMiniBaseUrl
-          ? new URL(macMiniBaseUrl).origin
-          : null,
-        resolved_url: resolvedUrl,
-      })
-    }
-
     return resolvedUrl
   }
 

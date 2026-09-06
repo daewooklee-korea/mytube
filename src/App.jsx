@@ -37,11 +37,6 @@ function App() {
 
   const [commentText, setCommentText] = useState('')
   const [comments, setComments] = useState([])
-  const [playbackDebug, setPlaybackDebug] = useState({
-    active: false,
-    video: null,
-    events: [],
-  })
 
   const [videos, setVideos] = useState([])
   const [searchText, setSearchText] = useState('')
@@ -1153,145 +1148,28 @@ useEffect(() => {
   // 영상 선택
   // =========================
 
-  const recordPlaybackDebug = (step, details = {}) => {
-    setPlaybackDebug((previous) => ({
-      ...previous,
-      events: [
-        ...previous.events,
-        {
-          step,
-          details,
-          time: new Date().toLocaleTimeString('ko-KR'),
-        },
-      ],
-    }))
-  }
-
-  const getPlaybackDiagnostic = (video) => {
-    const storageProvider =
-      video?.storage_provider ?? video?.storageProvider ?? null
-    const storagePath =
-      video?.storage_path ?? video?.storagePath ?? null
-    const videoUrl = video?.video_url ?? video?.videoUrl ?? null
-    const resolvedUrl =
-      video?.video ||
-      resolveMediaUrl({
-        ...video,
-        storage_provider: storageProvider,
-        storage_path: storagePath,
-        video_url: videoUrl,
-      })
-
-    return {
-      id: video?.id ?? null,
-      storageProvider: storageProvider || '—',
-      videoUrlPresent: Boolean(videoUrl),
-      storagePathPresent: Boolean(storagePath),
-      resolvedUrlPresent: Boolean(resolvedUrl),
-      clickable: Boolean(resolvedUrl),
-    }
-  }
-
   const normalizePlayableVideo = (video) => {
-    if (!video) {
-      recordPlaybackDebug('normalizePlayableVideo fail', {
-        reason: 'video object is empty',
-      })
-      return null
-    }
-    console.log('[PlayMe playback debug] normalizePlayableVideo input', {
-      id: video.id,
-      title: video.title,
-      video: video.video,
-      video_url: video.video_url,
-      storage_provider:
-        video.storage_provider ?? video.storageProvider,
-      storage_path: video.storage_path ?? video.storagePath,
-    })
+    if (!video) return null
     const resolvedVideo = video.video || resolveMediaUrl({
       ...video,
       storage_provider: video.storage_provider ?? video.storageProvider,
       storage_path: video.storage_path ?? video.storagePath,
       video_url: video.video_url ?? video.videoUrl,
     })
-    const normalizedVideo = {
+    return {
       ...video,
       video: resolvedVideo,
       mediaType: video.mediaType ?? video.media_type ?? 'video',
       thumbnail: video.thumbnail ?? video.thumbnail_url,
     }
-    console.log('[PlayMe playback debug] normalized video', {
-      id: normalizedVideo.id,
-      video: normalizedVideo.video,
-      video_url: normalizedVideo.video_url,
-      storage_provider:
-        normalizedVideo.storage_provider ?? normalizedVideo.storageProvider,
-      storage_path:
-        normalizedVideo.storage_path ?? normalizedVideo.storagePath,
-    })
-    recordPlaybackDebug(
-      resolvedVideo
-        ? 'normalizePlayableVideo success'
-        : 'normalizePlayableVideo fail',
-      {
-        id: normalizedVideo.id,
-        resolvedUrlPresent: Boolean(resolvedVideo),
-      },
-    )
-    return normalizedVideo
   }
 
   const handleVideoClick = async (
     video
   ) => {
-    recordPlaybackDebug('handleVideoClick entered', {
-      id: video?.id,
-    })
-    console.log('[PlayMe playback debug] handleVideoClick entered', {
-      id: video?.id,
-      title: video?.title,
-      video_url: video?.video_url,
-      storage_provider:
-        video?.storage_provider ?? video?.storageProvider,
-      storage_path:
-        video?.storage_path ?? video?.storagePath,
-      media_type: video?.media_type ?? video?.mediaType,
-    })
     const playableVideo = normalizePlayableVideo(video)
-    if (!playableVideo?.video) {
-      recordPlaybackDebug('resolveMediaUrl fail', {
-        id: playableVideo?.id,
-        reason: 'resolved URL is empty',
-      })
-      console.warn(
-        '[PlayMe playback debug] playback blocked: resolved URL is empty',
-        {
-          id: playableVideo?.id,
-          storage_provider:
-            playableVideo?.storage_provider ?? playableVideo?.storageProvider,
-          storage_path:
-            playableVideo?.storage_path ?? playableVideo?.storagePath,
-          video_url: playableVideo?.video_url,
-        },
-      )
-      return
-    }
-
-    console.log('[PlayMe playback debug] resolved URL', {
-      id: playableVideo.id,
-      url: playableVideo.video,
-    })
-    recordPlaybackDebug('resolveMediaUrl success', {
-      id: playableVideo.id,
-      resolvedUrlPresent: true,
-    })
+    if (!playableVideo?.video) return
     setSelectedVideo(playableVideo)
-    recordPlaybackDebug('selectedVideo set', {
-      id: playableVideo.id,
-    })
-    console.log('[PlayMe playback debug] selectedVideo set', {
-      id: playableVideo.id,
-    })
 
     navigationHistoryRef.current.push({
       currentRoute,
@@ -1365,19 +1243,6 @@ if (historyError) {
     loadLikes(playableVideo.id)
     loadComments(playableVideo.id)
   }
-
-  useEffect(() => {
-    if (!selectedVideo) return
-    recordPlaybackDebug('player render', {
-      id: selectedVideo.id,
-      mediaType: selectedVideo.mediaType,
-    })
-    console.log('[PlayMe playback debug] player render', {
-      id: selectedVideo.id,
-      mediaType: selectedVideo.mediaType,
-      url: selectedVideo.video,
-    })
-  }, [selectedVideo])
 
   const handleAdminVideoUpdated = (updatedVideo) => {
     const applyUpdate = (video) => {
@@ -1793,38 +1658,6 @@ if (playMode === 'single') {
 
   return (
     <div className="app">
-
-      {playbackDebug.active && (
-        <aside
-          className="playback-debug-panel"
-          aria-label="임시 재생 진단 패널"
-        >
-          <strong>임시 재생 진단</strong>
-          <span>app origin: {window.location.origin}</span>
-          <span>
-            mode: {import.meta.env.PROD ? 'production' : 'development'}
-          </span>
-          <span>
-            macmini base url:{' '}
-            {import.meta.env.VITE_MACMINI_MEDIA_BASE_URL
-              ? 'configured'
-              : 'missing'}
-          </span>
-          {playbackDebug.video && (
-            <span className="playback-debug-panel-video">
-              id: {playbackDebug.video.id} ·{' '}
-              {playbackDebug.video.storageProvider}
-            </span>
-          )}
-          <div className="playback-debug-events">
-            {playbackDebug.events.map((event, index) => (
-              <span key={`${event.time}-${event.step}-${index}`}>
-                {event.time} · {event.step}
-              </span>
-            ))}
-          </div>
-        </aside>
-      )}
 
       {/* =========================
           관리자
@@ -2993,35 +2826,7 @@ if (playMode === 'single') {
                     key={
                       video.id
                     }
-                    onClick={() => {
-                      const diagnostic =
-                        getPlaybackDiagnostic(video)
-                      setPlaybackDebug({
-                        active: true,
-                        video: diagnostic,
-                        events: [
-                          {
-                            step: 'tap detected',
-                            details: diagnostic,
-                            time: new Date().toLocaleTimeString('ko-KR'),
-                          },
-                        ],
-                      })
-                      console.log(
-                        '[PlayMe playback debug] home card clicked',
-                        {
-                          id: video.id,
-                          title: video.title,
-                          video_url: video.video_url,
-                          storage_provider:
-                            video.storage_provider ?? video.storageProvider,
-                          storage_path:
-                            video.storage_path ?? video.storagePath,
-                          media_type: video.media_type ?? video.mediaType,
-                        },
-                      )
-                      handleVideoClick(video)
-                    }}
+                    onClick={() => handleVideoClick(video)}
                     style={{
                       cursor:
                         video.video
@@ -3069,36 +2874,6 @@ if (playMode === 'single') {
                           video.likeCount
                         }
                       </p>
-
-                      <div className="playback-debug-card-meta">
-                        <span>id: {video.id}</span>
-                        <span>
-                          storage_provider:{' '}
-                          {video.storage_provider ??
-                            video.storageProvider ??
-                            '—'}
-                        </span>
-                        <span>
-                          video_url: {
-                            video.video_url ?? video.videoUrl
-                              ? '있음'
-                              : '없음'
-                          }
-                        </span>
-                        <span>
-                          storage_path: {
-                            video.storage_path ?? video.storagePath
-                              ? '있음'
-                              : '없음'
-                          }
-                        </span>
-                        <span>
-                          resolved URL: {video.video ? '있음' : '없음'}
-                        </span>
-                        <span>
-                          clickable: {video.video ? '가능' : '불가'}
-                        </span>
-                      </div>
 
                     </div>
 
