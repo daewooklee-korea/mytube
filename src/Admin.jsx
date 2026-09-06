@@ -3833,15 +3833,21 @@ const toggleMenuVisible = async (menu) => {
                         <div className="mac-mini-media-item" key={media.relative_path}>
                           <div className="mac-mini-media-main">
                             <strong>{media.name}</strong>
-                            <span>{media.relative_path}</span>
+                            {media.relative_path !== media.name && (
+                              <span className="mac-mini-media-path">{media.relative_path}</span>
+                            )}
                           </div>
-                          <span>{formatFileSize(media.size)}</span>
-                          <span>{media.modified_at ? new Date(media.modified_at).toLocaleString('ko-KR') : '-'}</span>
-                          <span className={media.hls_ready ? 'mac-mini-ready' : 'mac-mini-pending'}>
-                            {media.hls_ready ? '✓ 스트리밍 준비됨' : '변환 필요'}
-                          </span>
-                          {media.hls_ready && <small>{media.hls_path}</small>}
-                          {media.hls_ready && (
+                          <div className="mac-mini-media-meta">
+                            <span>{formatFileSize(media.size)}</span>
+                            <span>{media.modified_at ? new Date(media.modified_at).toLocaleString('ko-KR') : '-'}</span>
+                          </div>
+                          <div className="mac-mini-media-status">
+                            <span className={media.hls_ready ? 'mac-mini-ready' : 'mac-mini-pending'}>
+                              {media.hls_ready ? '✓ 스트리밍 준비됨' : '변환 필요'}
+                            </span>
+                            {media.hls_ready && <small className="mac-mini-media-hls-path">{media.hls_path}</small>}
+                          </div>
+                          {media.hls_ready ? (
                             <button
                               type="button"
                               className="approve-button"
@@ -3849,6 +3855,8 @@ const toggleMenuVisible = async (menu) => {
                             >
                               선택
                             </button>
+                          ) : (
+                            <span className="mac-mini-media-no-action">변환 후 등록 가능</span>
                           )}
                         </div>
                       ))}
@@ -3861,15 +3869,16 @@ const toggleMenuVisible = async (menu) => {
                         <button type="button" className="video-edit-close" onClick={closeMacMiniRegistration}>×</button>
                       </div>
                       <p className="mac-mini-registration-source">{selectedMacMiniVideo.relative_path} · {selectedMacMiniVideo.hls_path}</p>
-                      <label>
+                      <div className="mac-mini-registration-fields">
+                      <label className="mac-mini-field mac-mini-field-wide">
                         제목
                         <input value={macMiniTitle} onChange={(event) => setMacMiniTitle(event.target.value)} />
                       </label>
-                      <label>
+                      <label className="mac-mini-field">
                         콘텐츠 타입
                         <select value="video" disabled><option value="video">🎬 동영상</option></select>
                       </label>
-                      <label>
+                      <label className="mac-mini-field">
                         1차 메뉴
                         <select
                           value={macMiniPrimaryMenuId}
@@ -3884,21 +3893,22 @@ const toggleMenuVisible = async (menu) => {
                           ))}
                         </select>
                       </label>
-                      <label>
+                      <label className="mac-mini-field">
                         2차 메뉴
                         <select value={macMiniSubMenuId} disabled={!macMiniPrimaryMenuId} onChange={(event) => setMacMiniSubMenuId(event.target.value)}>
                           <option value="">2차 메뉴를 선택하세요</option>
                           {macMiniSubMenus.map((menu) => <option key={menu.id} value={menu.id}>{menu.name}</option>)}
                         </select>
                       </label>
-                      <label>
+                      <label className="mac-mini-field mac-mini-field-wide">
                         설명
                         <textarea rows="4" value={macMiniDescription} onChange={(event) => setMacMiniDescription(event.target.value)} placeholder="설명 (선택사항)" />
                       </label>
-                      <label>
+                      <label className="mac-mini-field mac-mini-field-wide">
                         썸네일 (선택)
                         <input type="file" accept="image/*" onChange={(event) => setMacMiniThumbnailFile(event.target.files?.[0] ?? null)} />
                       </label>
+                      </div>
                       <div className="mac-mini-registration-actions">
                         <button type="button" className="approve-button" onClick={saveMacMiniVideo} disabled={savingMacMiniVideo}>
                           {savingMacMiniVideo ? '등록 중...' : 'Mac mini 콘텐츠 등록'}

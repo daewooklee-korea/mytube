@@ -3119,13 +3119,14 @@ button.content-status-button {
 
 .mac-mini-media-item {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) auto auto auto auto;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, auto) minmax(190px, auto) auto;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
   border: 1px solid #edf2f7;
   border-radius: 10px;
   font-size: 13px;
+  min-width: 0;
 }
 
 .mac-mini-media-main {
@@ -3141,14 +3142,31 @@ button.content-status-button {
   white-space: nowrap;
 }
 
-.mac-mini-media-main span,
-.mac-mini-media-item > span:not(.mac-mini-ready):not(.mac-mini-pending),
-.mac-mini-media-item small {
+.mac-mini-media-path,
+.mac-mini-media-meta,
+.mac-mini-media-hls-path {
   color: #64748b;
 }
 
-.mac-mini-media-item small {
+.mac-mini-media-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  white-space: nowrap;
+}
+
+.mac-mini-media-status {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mac-mini-media-hls-path {
   font-size: 11px;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mac-mini-ready {
@@ -3162,6 +3180,12 @@ button.content-status-button {
   color: #b45309;
 }
 
+.mac-mini-media-no-action {
+  color: #94a3b8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .mac-mini-registration-form {
   display: grid;
   gap: 12px;
@@ -3170,6 +3194,8 @@ button.content-status-button {
   border: 1px solid #cbd5e1;
   border-radius: 12px;
   background: #f8fafc;
+  max-width: 900px;
+  box-sizing: border-box;
 }
 
 .mac-mini-registration-header {
@@ -3180,6 +3206,24 @@ button.content-status-button {
 
 .mac-mini-registration-header h3 {
   margin: 0;
+}
+
+.mac-mini-registration-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.mac-mini-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mac-mini-field-wide {
+  grid-column: 1 / -1;
 }
 
 .mac-mini-registration-form label {
@@ -3222,6 +3266,37 @@ button.content-status-button {
   .mac-mini-media-item {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+
+  .mac-mini-media-meta {
+    white-space: normal;
+  }
+
+  .mac-mini-media-status {
+    margin-top: 2px;
+  }
+
+  .mac-mini-media-hls-path {
+    max-width: 100%;
+  }
+
+  .mac-mini-media-item .approve-button {
+    justify-self: stretch;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .mac-mini-registration-fields {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .mac-mini-field-wide {
+    grid-column: auto;
+  }
+
+  .mac-mini-registration-form {
+    padding: 14px;
   }
 }
 
