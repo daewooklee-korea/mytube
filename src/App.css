@@ -1639,6 +1639,13 @@ video {
 
 }
 
+.upload-box .upload-status {
+  margin: 10px 0 0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 
 
 /* =========================

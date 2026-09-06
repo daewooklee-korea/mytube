@@ -62,6 +62,51 @@ export const convertMacMiniVideo = async (relativePath, signal) => {
   return payload
 }
 
+export const uploadMacMiniVideo = (file, { onProgress, signal } = {}) => new Promise(async (resolve, reject) => {
+  const { data: { session } = {} } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    const error = new Error('로그인이 필요합니다.')
+    error.status = 401
+    reject(error)
+    return
+  }
+
+  const request = new XMLHttpRequest()
+  request.open('POST', getApiUrl('/api/videos/upload'))
+  request.setRequestHeader('Authorization', `Bearer ${session.access_token}`)
+  request.setRequestHeader('X-PlayMe-Media-Type', 'video')
+  request.responseType = 'json'
+  request.upload.onprogress = (event) => {
+    if (event.lengthComputable && typeof onProgress === 'function') {
+      onProgress({ loaded: event.loaded, total: event.total })
+    }
+  }
+  request.onerror = () => reject(new Error('Mac mini 저장소에 연결할 수 없습니다.'))
+  request.onabort = () => reject(new Error('Mac mini 업로드가 취소되었습니다.'))
+  request.onload = () => {
+    const payload = request.response ?? (() => {
+      try { return JSON.parse(request.responseText || '{}') } catch { return {} }
+    })()
+    if (request.status < 200 || request.status >= 300) {
+      const error = new Error(payload.error || `Mac mini 업로드 API 오류 (${request.status})`)
+      error.status = request.status
+      reject(error)
+      return
+    }
+    resolve(payload)
+  }
+  if (signal) {
+    if (signal.aborted) {
+      request.abort()
+      return
+    }
+    signal.addEventListener('abort', () => request.abort(), { once: true })
+  }
+  const formData = new FormData()
+  formData.append('file', file, file.name)
+  request.send(formData)
+})
+
 export const getMacMiniConversionStatus = async (jobId, signal) => {
   const query = encodeURIComponent(String(jobId ?? ''))
   const response = await fetch(getApiUrl(`/api/videos/convert-status?job_id=${query}`), { signal })

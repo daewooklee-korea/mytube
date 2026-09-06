@@ -4744,7 +4744,9 @@ const toggleMenuVisible = async (menu) => {
                     disabled={loadingStoragePolicies || savingStoragePolicies}
                   >
                     <option value="supabase">Supabase</option>
-                    <option value="macmini">Mac mini</option>
+                    <option value="macmini" disabled={type !== 'video'}>
+                      Mac mini{type !== 'video' ? ' (준비 중)' : ''}
+                    </option>
                   </select>
                 </label>
               ))}

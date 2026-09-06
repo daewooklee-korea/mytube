@@ -1,6 +1,12 @@
 import { useState, useRef } from 'react'
 import { supabase } from './supabase'
 import { parseLrc } from './lyrics'
+import {
+  convertMacMiniVideo,
+  getMacMiniConversionStatus,
+  getMacMiniVideos,
+  uploadMacMiniVideo,
+} from './macMiniMedia'
 
 function Upload({ onUpload, menus }) {
   const [title, setTitle] = useState('')
@@ -14,6 +20,7 @@ function Upload({ onUpload, menus }) {
   const [thumbnailPreview, setThumbnailPreview] = useState(null)
   const [capturing, setCapturing] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState('')
 
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
@@ -67,6 +74,7 @@ function Upload({ onUpload, menus }) {
     setThumbnailFile(null)
     setThumbnailPreview(null)
     setCapturing(false)
+    setUploadStatus('')
 
     if (mediaType === 'audio') {
       const defaultCover = generateDefaultCover()
@@ -146,6 +154,7 @@ const generateDefaultThumbnail = (icon, fileName) => {
     setThumbnailFile(null)
     setThumbnailPreview(null)
     setCapturing(false)
+    setUploadStatus('')
   }
   const handleManualThumbnail = (file) => {
     if (!file) return
@@ -188,100 +197,133 @@ const generateDefaultThumbnail = (icon, fileName) => {
 
  
     setUploading(true)
+    setUploadStatus('저장 정책 확인 중...')
 
-    // 1. 미디어 파일 업로드
-    const extension = mediaFile.name.split('.').pop()
-    const mediaFileName = `media-${Date.now()}.${extension}`
+    try {
+      const { data: policy, error: policyError } = await supabase
+        .from('storage_policies')
+        .select('storage_provider')
+        .eq('content_type', mediaType)
+        .maybeSingle()
+      if (policyError) throw new Error(`저장 정책을 확인하지 못했습니다: ${policyError.message}`)
 
-    const { error: mediaError } = await supabase.storage
-      .from('Videos')
-      .upload(mediaFileName, mediaFile, {
-        contentType: mediaFile.type,
-        upsert: false,
-      })
+      const storageProvider = policy?.storage_provider
+      if (!['supabase', 'macmini'].includes(storageProvider)) {
+        throw new Error('지원되지 않거나 설정되지 않은 저장소 정책입니다.')
+      }
+      if (storageProvider === 'macmini' && mediaType !== 'video') {
+        throw new Error('현재 Mac mini 업로드는 동영상만 지원합니다. 저장 정책을 Supabase로 설정해주세요.')
+      }
 
-    if (mediaError) {
-      console.error(mediaError)
-      alert(`파일 업로드 실패: ${mediaError.message}`)
+      let mediaUrl = ''
+      let storagePath = null
+      let storedFileSize = Number.isFinite(Number(mediaFile?.size)) ? Number(mediaFile.size) : null
+
+      if (storageProvider === 'macmini') {
+        setUploadStatus('Mac mini로 업로드 중...')
+        const uploaded = await uploadMacMiniVideo(mediaFile, {
+          onProgress: ({ loaded, total }) => {
+            if (total > 0) {
+              setUploadStatus(`Mac mini로 업로드 중... ${Math.round((loaded / total) * 100)}%`)
+            }
+          },
+        })
+        if (uploaded.status !== 'uploaded' || !uploaded.relative_path || !Number.isFinite(Number(uploaded.size))) {
+          throw new Error('Mac mini 업로드 응답이 올바르지 않습니다.')
+        }
+        storedFileSize = Number(uploaded.size)
+
+        setUploadStatus('HLS 변환 준비 중...')
+        const conversion = await convertMacMiniVideo(uploaded.relative_path)
+        if (conversion.status === 'already_ready') {
+          storagePath = conversion.hls_path
+        } else if (conversion.job_id) {
+          setUploadStatus('HLS 변환 중...')
+          for (;;) {
+            await new Promise((resolve) => window.setTimeout(resolve, 2000))
+            const status = await getMacMiniConversionStatus(conversion.job_id)
+            if (status.status === 'processing') continue
+            if (status.status !== 'completed' || !status.hls_path) {
+              throw new Error(status.error || 'HLS 변환에 실패했습니다.')
+            }
+            storagePath = status.hls_path
+            break
+          }
+        } else {
+          throw new Error('HLS 변환 작업을 시작하지 못했습니다.')
+        }
+
+        const latestVideos = await getMacMiniVideos()
+        const readyVideo = latestVideos.find((video) => video.relative_path === uploaded.relative_path)
+        if (!readyVideo?.hls_ready || readyVideo.hls_path !== storagePath) {
+          throw new Error('HLS 변환 결과를 확인하지 못했습니다.')
+        }
+      } else {
+        setUploadStatus('Supabase에 파일 업로드 중...')
+        const extension = mediaFile.name.split('.').pop()
+        const mediaFileName = `media-${Date.now()}.${extension}`
+        const { error: mediaError } = await supabase.storage
+          .from('Videos')
+          .upload(mediaFileName, mediaFile, {
+            contentType: mediaFile.type,
+            upsert: false,
+          })
+        if (mediaError) throw mediaError
+        const { data: mediaData } = supabase.storage.from('Videos').getPublicUrl(mediaFileName)
+        mediaUrl = mediaData.publicUrl
+        storagePath = mediaFileName
+      }
+
+      setUploadStatus('썸네일 업로드 중...')
+      const thumbnailExtension = thumbnailFile.name.split('.').pop()
+      const thumbnailFileName = `thumbnail-${Date.now()}.${thumbnailExtension}`
+      const { error: thumbnailError } = await supabase.storage
+        .from('Thumbnails')
+        .upload(thumbnailFileName, thumbnailFile, {
+          contentType: thumbnailFile.type,
+          upsert: false,
+        })
+      if (thumbnailError) throw thumbnailError
+      const { data: thumbnailData } = supabase.storage.from('Thumbnails').getPublicUrl(thumbnailFileName)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('로그인이 필요합니다.')
+
+      setUploadStatus('콘텐츠 등록 중...')
+      const { error: databaseError } = await supabase
+        .from('videos')
+        .insert({
+          title,
+          description,
+          video_url: mediaUrl,
+          thumbnail_url: thumbnailData.publicUrl,
+          views: 0,
+          user_id: user.id,
+          menu_id: selectedSubMenuId,
+          media_type: mediaType,
+          lyrics_sync: lyricsSync,
+          storage_provider: storageProvider,
+          storage_path: storagePath,
+          file_size_bytes: storedFileSize,
+        })
+      if (databaseError) throw databaseError
+
+      setTitle('')
+      setDescription('')
+      setSyncLyrics('')
+      setMediaFile(null)
+      setMediaType('audio')
+      setThumbnailFile(null)
+      setThumbnailPreview(null)
+      setUploadStatus('완료')
+      onUpload()
+      alert('업로드 성공!')
+    } catch (error) {
+      console.error('콘텐츠 업로드 실패:', error)
+      alert(error.message || '업로드에 실패했습니다.')
+    } finally {
       setUploading(false)
-      return
     }
-
-    const { data: mediaData } = supabase.storage
-      .from('Videos')
-      .getPublicUrl(mediaFileName)
-
-    const mediaUrl = mediaData.publicUrl
-
-    // 2. 썸네일 업로드
-    const thumbnailExtension = thumbnailFile.name.split('.').pop()
-    const thumbnailFileName = `thumbnail-${Date.now()}.${thumbnailExtension}`
-
-    const { error: thumbnailError } = await supabase.storage
-      .from('Thumbnails')
-      .upload(thumbnailFileName, thumbnailFile, {
-        contentType: thumbnailFile.type,
-        upsert: false,
-      })
-
-    if (thumbnailError) {
-      console.error(thumbnailError)
-      alert(`썸네일 업로드 실패: ${thumbnailError.message}`)
-      setUploading(false)
-      return
-    }
-
-    const { data: thumbnailData } = supabase.storage
-      .from('Thumbnails')
-      .getPublicUrl(thumbnailFileName)
-
-    const thumbnailUrl = thumbnailData.publicUrl
-
-    // 3. 현재 로그인한 사용자 확인
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      alert('로그인이 필요합니다.')
-      setUploading(false)
-      return
-    }
-
-    // 4. Database에 저장
-    const { error: databaseError } = await supabase
-      .from('videos')
-      .insert({
-        title: title,
-        description: description,
-        video_url: mediaUrl,
-        thumbnail_url: thumbnailUrl,
-        views: 0,
-        user_id: user.id,
-        menu_id: selectedSubMenuId,
-        media_type: mediaType,
-        lyrics_sync: lyricsSync,
-        file_size_bytes: Number.isFinite(Number(mediaFile?.size)) ? Number(mediaFile.size) : null,
-
-      })
-
-    if (databaseError) {
-      console.error(databaseError)
-      alert(`정보 저장 실패: ${databaseError.message}`)
-      setUploading(false)
-      return
-    }
-
-    setTitle('')
-    setDescription('')
-    setSyncLyrics('')
-    setMediaFile(null)
-    setMediaType('audio')
-    setThumbnailFile(null)
-    setThumbnailPreview(null)
-    setUploading(false)
-
-    onUpload()
-
-    alert('업로드 성공!')
   }
 
   return (
@@ -431,6 +473,8 @@ const generateDefaultThumbnail = (icon, fileName) => {
         >
           {uploading ? '업로드 중...' : '업로드'}
         </button>
+
+        {uploadStatus && <p className="upload-status" role="status">{uploadStatus}</p>}
 
       </div>
 
