@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Hls from 'hls.js'
 import './App.css'
 import Upload from './Upload'
 import Login from './Login'
@@ -12,6 +13,7 @@ import {
   getCurrentPushSubscription,
   isPushSupported,
 } from './pushNotifications'
+import { isHlsUrl, resolveMediaUrl } from './mediaUrl'
 
 const menuIcons = {
   home: '⌂',
@@ -169,6 +171,30 @@ const [playModeMenuOpen, setPlayModeMenuOpen] =
       window.clearTimeout(lyricResumeTimerRef.current)
     }
   }, [])
+
+  // Native HLS is used where available (Safari); hls.js covers Chrome/Edge.
+  useEffect(() => {
+    const media = videoRef.current
+    const source = selectedVideo?.video
+    if (!media || selectedVideo?.mediaType === 'audio' || !isHlsUrl(source)) {
+      return undefined
+    }
+
+    if (media.canPlayType('application/vnd.apple.mpegurl')) {
+      media.src = source
+      return undefined
+    }
+
+    if (!Hls.isSupported()) return undefined
+
+    const hls = new Hls({ enableWorker: true })
+    hls.loadSource(source)
+    hls.attachMedia(media)
+
+    return () => {
+      hls.destroy()
+    }
+  }, [selectedVideo?.id, selectedVideo?.video, selectedVideo?.mediaType])
    // =========================
   // 모바일 브라우저 뒤로가기
   // =========================
@@ -735,7 +761,7 @@ console.log('메뉴 조회 결과:', { data, error })
           video.created_at
         ),
 
-        video: video.video_url,
+        video: resolveMediaUrl(video),
         thumbnail: video.thumbnail_url,
 
         likeCount:
@@ -764,6 +790,8 @@ isFavorite:
           Array.isArray(video.lyrics_sync)
             ? video.lyrics_sync
             : null,
+        storageProvider: video.storage_provider ?? 'SUPABASE',
+        storagePath: video.storage_path ?? null,
       })
     )
 
@@ -892,7 +920,7 @@ const loadPlaylistItems = async (playlistId) => {
         views: `조회수 ${video.views}회`,
         rawViews: video.views,
         time: formatTime(video.created_at),
-        video: video.video_url,
+        video: resolveMediaUrl(video),
         thumbnail: video.thumbnail_url,
         likeCount: 0,
         isFavorite: false,
@@ -907,6 +935,8 @@ const loadPlaylistItems = async (playlistId) => {
           Array.isArray(video.lyrics_sync)
             ? video.lyrics_sync
             : null,
+        storageProvider: video.storage_provider ?? 'SUPABASE',
+        storagePath: video.storage_path ?? null,
       }
     })
     .filter(Boolean)
@@ -1196,7 +1226,11 @@ if (historyError) {
         lyricsSync: Array.isArray(updatedVideo.lyrics_sync)
           ? updatedVideo.lyrics_sync
           : null,
-        video: updatedVideo.video_url ?? video.video,
+        storageProvider:
+          updatedVideo.storage_provider ?? video.storageProvider ?? 'SUPABASE',
+        storagePath:
+          updatedVideo.storage_path ?? video.storagePath ?? null,
+        video: resolveMediaUrl(updatedVideo) || video.video,
         thumbnail: updatedVideo.thumbnail_url ?? video.thumbnail,
       }
     }
