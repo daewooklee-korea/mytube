@@ -470,24 +470,23 @@ const loadMenus = async () => {
           user_id: userData.user.id,
           video_url: '',
           thumbnail_url: uploadedThumbnail?.publicUrl ?? null,
+          views: 0,
           media_type: 'video',
           menu_id: macMiniSubMenuId,
           description: macMiniDescription.trim() || null,
+          lyrics_sync: null,
           storage_provider: 'macmini',
           storage_path: selectedMacMiniVideo.hls_path,
           status: 'ACTIVE',
         })
-        .select('*')
-        .single()
 
       if (error) throw error
 
-      setVideos((previous) => [data, ...previous])
+      await loadVideos()
       setSelectedMacMiniVideo(null)
       setMacMiniThumbnailFile(null)
-      alert('Mac mini 스트리밍 콘텐츠가 등록되었습니다. 공개 범위를 설정할 수 있습니다.')
-      await openVideoPermission(data)
       await loadVideoPermissionSummaries()
+      alert('Mac mini 스트리밍 콘텐츠가 등록되었습니다. 콘텐츠 목록에서 공개 범위를 설정할 수 있습니다.')
     } catch (error) {
       console.error('Mac mini 콘텐츠 등록 실패:', error)
       if (uploadedThumbnail) {
