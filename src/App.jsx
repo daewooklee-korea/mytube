@@ -1126,6 +1126,21 @@ useEffect(() => {
       return <div className="audio-thumbnail">♪</div>
     }
 
+    // HLS master playlists are playback sources, not thumbnail assets.
+    // Avoid nesting an HLS <video> element inside the clickable card: on
+    // mobile this can capture the tap, and non-native-HLS browsers cannot
+    // render the playlist as a thumbnail in the first place.
+    if (isHlsUrl(video.video)) {
+      return (
+        <div
+          className="video-thumbnail-fallback"
+          aria-hidden="true"
+        >
+          ▶
+        </div>
+      )
+    }
+
     return <video src={video.video} muted />
   }
 
