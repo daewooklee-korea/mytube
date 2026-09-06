@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import { lyricsSyncToLrc, parseLrc } from './lyrics'
-import { getMacMiniVideos } from './macMiniMedia'
+import {
+  convertMacMiniVideo,
+  getMacMiniConversionStatus,
+  getMacMiniVideos,
+} from './macMiniMedia'
 
 let lyricsEditorLineId = 0
 const createLyricsEditorLine = (line = {}) => ({
@@ -84,6 +88,7 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [macMiniDescription, setMacMiniDescription] = useState('')
   const [macMiniThumbnailFile, setMacMiniThumbnailFile] = useState(null)
   const [savingMacMiniVideo, setSavingMacMiniVideo] = useState(false)
+  const [macMiniConversionJobs, setMacMiniConversionJobs] = useState({})
   const [contentSearchText, setContentSearchText] = useState('')
   const [contentStatusFilter, setContentStatusFilter] = useState('all')
   const [contentMediaTypeFilter, setContentMediaTypeFilter] = useState('all')
@@ -428,6 +433,64 @@ const loadMenus = async () => {
       setMacMiniError(error.message || 'Mac mini 미디어 서버에 연결할 수 없습니다.')
     } finally {
       setLoadingMacMiniVideos(false)
+    }
+  }
+
+  const pollMacMiniConversion = async (jobId, relativePath) => {
+    try {
+      const status = await getMacMiniConversionStatus(jobId)
+      if (status.status === 'processing') {
+        window.setTimeout(() => pollMacMiniConversion(jobId, relativePath), 2000)
+        return
+      }
+
+      setMacMiniConversionJobs((previous) => ({
+        ...previous,
+        [relativePath]: status,
+      }))
+      if (status.status === 'completed') {
+        await loadMacMiniVideos()
+      }
+    } catch (error) {
+      setMacMiniConversionJobs((previous) => ({
+        ...previous,
+        [relativePath]: { status: 'failed', error: error.message },
+      }))
+    }
+  }
+
+  const convertMacMiniSource = async (media) => {
+    const relativePath = media?.relative_path
+    if (!relativePath || media.hls_ready) return
+    const currentJob = macMiniConversionJobs[relativePath]
+    if (currentJob?.status === 'processing') return
+
+    setMacMiniConversionJobs((previous) => ({
+      ...previous,
+      [relativePath]: { status: 'processing' },
+    }))
+    try {
+      const result = await convertMacMiniVideo(relativePath)
+      if (result.status === 'already_ready') {
+        await loadMacMiniVideos()
+        setMacMiniConversionJobs((previous) => ({
+          ...previous,
+          [relativePath]: result,
+        }))
+        return
+      }
+      setMacMiniConversionJobs((previous) => ({
+        ...previous,
+        [relativePath]: result,
+      }))
+      if (result.job_id) {
+        pollMacMiniConversion(result.job_id, relativePath)
+      }
+    } catch (error) {
+      setMacMiniConversionJobs((previous) => ({
+        ...previous,
+        [relativePath]: { status: 'failed', error: error.message },
+      }))
     }
   }
 
@@ -3869,6 +3932,7 @@ const toggleMenuVisible = async (menu) => {
                             </span>
                             {media.hls_ready && <small className="mac-mini-media-hls-path">{media.hls_path}</small>}
                           </div>
+                          <div className="mac-mini-media-action">
                           {media.hls_ready ? (
                             <button
                               type="button"
@@ -3878,8 +3942,23 @@ const toggleMenuVisible = async (menu) => {
                               선택
                             </button>
                           ) : (
-                            <span className="mac-mini-media-no-action">변환 후 등록 가능</span>
+                            <>
+                              <button
+                                type="button"
+                                className="approve-button"
+                                onClick={() => convertMacMiniSource(media)}
+                                disabled={macMiniConversionJobs[media.relative_path]?.status === 'processing'}
+                              >
+                                {macMiniConversionJobs[media.relative_path]?.status === 'processing' ? '변환 중...' : '변환'}
+                              </button>
+                              {macMiniConversionJobs[media.relative_path]?.status === 'failed' && (
+                                <small className="mac-mini-media-conversion-error">
+                                  {macMiniConversionJobs[media.relative_path].error || '변환 실패'}
+                                </small>
+                              )}
+                            </>
                           )}
+                          </div>
                         </div>
                       ))}
                     </div>

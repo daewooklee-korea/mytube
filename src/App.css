@@ -3222,6 +3222,20 @@ button.content-status-button {
   white-space: nowrap;
 }
 
+.mac-mini-media-action {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  min-width: 92px;
+}
+
+.mac-mini-media-conversion-error {
+  max-width: 180px;
+  color: #b42318;
+  font-size: 11px;
+  text-align: right;
+}
+
 .mac-mini-registration-form {
   display: grid;
   gap: 12px;
@@ -3326,6 +3340,15 @@ button.content-status-button {
     justify-self: stretch;
     width: 100%;
     margin-top: 4px;
+  }
+
+  .mac-mini-media-action {
+    justify-items: stretch;
+  }
+
+  .mac-mini-media-conversion-error {
+    max-width: none;
+    text-align: left;
   }
 
   .mac-mini-registration-fields {
