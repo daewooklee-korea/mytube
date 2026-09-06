@@ -3236,6 +3236,30 @@ button.content-status-button {
   min-width: 92px;
 }
 
+.mac-mini-conversion-progress {
+  display: grid;
+  gap: 4px;
+  min-width: 120px;
+  color: #64748b;
+  font-size: 11px;
+  text-align: right;
+}
+
+.mac-mini-conversion-progress-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.mac-mini-conversion-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f43f8f, #ff6b52, #8b3fd6);
+  transition: width 0.2s ease;
+}
+
 .mac-mini-media-conversion-error {
   max-width: 180px;
   color: #b42318;

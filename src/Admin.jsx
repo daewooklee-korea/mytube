@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 import { lyricsSyncToLrc, parseLrc } from './lyrics'
 import {
   convertMacMiniVideo,
+  formatConversionDuration,
   getMacMiniConversionStatus,
   getMacMiniStorageStatus,
   getMacMiniVideos,
@@ -4069,8 +4070,28 @@ const toggleMenuVisible = async (menu) => {
                                 onClick={() => convertMacMiniSource(media)}
                                 disabled={macMiniConversionJobs[media.relative_path]?.status === 'processing'}
                               >
-                                {macMiniConversionJobs[media.relative_path]?.status === 'processing' ? '변환 중...' : '변환'}
+                                {macMiniConversionJobs[media.relative_path]?.status === 'processing'
+                                  ? macMiniConversionJobs[media.relative_path]?.progress_percent != null
+                                    ? `변환 중... ${macMiniConversionJobs[media.relative_path].progress_percent}%`
+                                    : '변환 중...'
+                                  : '변환'}
                               </button>
+                              {macMiniConversionJobs[media.relative_path]?.status === 'processing' && (
+                                <div className="mac-mini-conversion-progress" role="status">
+                                  {macMiniConversionJobs[media.relative_path].progress_percent != null ? (
+                                    <>
+                                      <div className="mac-mini-conversion-progress-track">
+                                        <span style={{ width: `${macMiniConversionJobs[media.relative_path].progress_percent}%` }} />
+                                      </div>
+                                      <small>
+                                        {formatConversionDuration(macMiniConversionJobs[media.relative_path].processed_seconds) || '0:00'}
+                                        {' / '}
+                                        {formatConversionDuration(macMiniConversionJobs[media.relative_path].duration_seconds) || '-'}
+                                      </small>
+                                    </>
+                                  ) : '변환 중...'}
+                                </div>
+                              )}
                               {macMiniConversionJobs[media.relative_path]?.status === 'failed' && (
                                 <small className="mac-mini-media-conversion-error">
                                   {macMiniConversionJobs[media.relative_path].error || '변환 실패'}

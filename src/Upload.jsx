@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 import { parseLrc } from './lyrics'
 import {
   convertMacMiniVideo,
+  formatConversionDuration,
   getMacMiniConversionStatus,
   getMacMiniVideos,
   uploadMacMiniVideo,
@@ -242,6 +243,15 @@ const generateDefaultThumbnail = (icon, fileName) => {
           for (;;) {
             await new Promise((resolve) => window.setTimeout(resolve, 2000))
             const status = await getMacMiniConversionStatus(conversion.job_id)
+            if (status.progress_percent != null) {
+              const processed = formatConversionDuration(status.processed_seconds)
+              const duration = formatConversionDuration(status.duration_seconds)
+              setUploadStatus(
+                duration
+                  ? `HLS 변환 중... ${status.progress_percent}% (${processed || '0:00'} / ${duration})`
+                  : 'HLS 변환 중...'
+              )
+            }
             if (status.status === 'processing') continue
             if (status.status !== 'completed' || !status.hls_path) {
               throw new Error(status.error || 'HLS 변환에 실패했습니다.')

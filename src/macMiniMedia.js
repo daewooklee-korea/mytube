@@ -11,6 +11,17 @@ const getApiUrl = (path) => {
   return `${baseUrl}${path}`
 }
 
+export const formatConversionDuration = (seconds) => {
+  const value = Number(seconds)
+  if (!Number.isFinite(value) || value < 0) return null
+  const total = Math.floor(value)
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const remaining = total % 60
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(remaining).padStart(2, '0')}`
+  return `${minutes}:${String(remaining).padStart(2, '0')}`
+}
+
 export const getMacMiniVideos = async (signal) => {
   const response = await fetch(getApiUrl('/api/videos'), { signal })
   if (!response.ok) {
