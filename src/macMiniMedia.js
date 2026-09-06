@@ -1,3 +1,5 @@
+import { supabase } from './supabase'
+
 const getBaseUrl = () =>
   String(import.meta.env.VITE_MACMINI_MEDIA_BASE_URL ?? '').replace(/\/+$/, '')
 
@@ -36,15 +38,26 @@ export const getMacMiniStorageStatus = async (signal) => {
 }
 
 export const convertMacMiniVideo = async (relativePath, signal) => {
+  const { data: { session } = {} } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    const error = new Error('로그인이 필요합니다.')
+    error.status = 401
+    throw error
+  }
   const response = await fetch(getApiUrl('/api/videos/convert'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
     body: JSON.stringify({ relative_path: relativePath }),
     signal,
   })
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) {
-    throw new Error(payload.error || `Mac mini 변환 API 오류 (${response.status})`)
+    const error = new Error(payload.error || `Mac mini 변환 API 오류 (${response.status})`)
+    error.status = response.status
+    throw error
   }
   return payload
 }

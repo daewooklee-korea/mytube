@@ -529,7 +529,14 @@ const loadMenus = async () => {
     } catch (error) {
       setMacMiniConversionJobs((previous) => ({
         ...previous,
-        [relativePath]: { status: 'failed', error: error.message },
+        [relativePath]: {
+          status: 'failed',
+          error: error.status === 401
+            ? '로그인이 필요합니다.'
+            : error.status === 403
+              ? '영상 변환 권한이 없습니다.'
+              : error.message || '변환 요청에 실패했습니다.',
+        },
       }))
     }
   }
@@ -564,7 +571,14 @@ const loadMenus = async () => {
     } catch (error) {
       setMacMiniConversionJobs((previous) => ({
         ...previous,
-        [relativePath]: { status: 'failed', error: error.message },
+        [relativePath]: {
+          status: 'failed',
+          error: error.status === 401
+            ? '로그인이 필요합니다.'
+            : error.status === 403
+              ? '영상 변환 권한이 없습니다.'
+              : error.message || '변환 요청에 실패했습니다.',
+        },
       }))
     }
   }
