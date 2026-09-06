@@ -4,6 +4,7 @@ import { lyricsSyncToLrc, parseLrc } from './lyrics'
 import {
   convertMacMiniVideo,
   getMacMiniConversionStatus,
+  getMacMiniStorageStatus,
   getMacMiniVideos,
 } from './macMiniMedia'
 
@@ -89,6 +90,19 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [macMiniThumbnailFile, setMacMiniThumbnailFile] = useState(null)
   const [savingMacMiniVideo, setSavingMacMiniVideo] = useState(false)
   const [macMiniConversionJobs, setMacMiniConversionJobs] = useState({})
+  const [storagePolicies, setStoragePolicies] = useState({
+    video: 'macmini',
+    audio: 'supabase',
+    image: 'supabase',
+    document: 'supabase',
+  })
+  const [loadingStoragePolicies, setLoadingStoragePolicies] = useState(false)
+  const [savingStoragePolicies, setSavingStoragePolicies] = useState(false)
+  const [storagePolicyMessage, setStoragePolicyMessage] = useState('')
+  const [storagePolicyError, setStoragePolicyError] = useState('')
+  const [macMiniStorage, setMacMiniStorage] = useState(null)
+  const [loadingMacMiniStorage, setLoadingMacMiniStorage] = useState(false)
+  const [macMiniStorageError, setMacMiniStorageError] = useState('')
   const [contentSearchText, setContentSearchText] = useState('')
   const [contentStatusFilter, setContentStatusFilter] = useState('all')
   const [contentMediaTypeFilter, setContentMediaTypeFilter] = useState('all')
@@ -317,6 +331,12 @@ const [savingMenu, setSavingMenu] = useState(false)
     })
   }, [activeTab])
 
+  useEffect(() => {
+    if (activeTab !== 'storage') return
+    loadStoragePolicies()
+    loadMacMiniStorage()
+  }, [activeTab])
+
   // =========================
   // 회원 목록
   // =========================
@@ -434,6 +454,61 @@ const loadMenus = async () => {
     } finally {
       setLoadingMacMiniVideos(false)
     }
+  }
+
+  const loadStoragePolicies = async () => {
+    setLoadingStoragePolicies(true)
+    setStoragePolicyError('')
+    const { data, error } = await supabase
+      .from('storage_policies')
+      .select('content_type, storage_provider')
+      .order('content_type', { ascending: true })
+    if (error) {
+      console.error('저장 정책 불러오기 실패:', error)
+      setStoragePolicyError('저장 정책을 불러오지 못했습니다.')
+      setLoadingStoragePolicies(false)
+      return
+    }
+    setStoragePolicies((previous) => (data ?? []).reduce((next, policy) => ({
+      ...next,
+      [policy.content_type]: policy.storage_provider,
+    }), previous))
+    setLoadingStoragePolicies(false)
+  }
+
+  const loadMacMiniStorage = async () => {
+    setLoadingMacMiniStorage(true)
+    setMacMiniStorageError('')
+    try {
+      setMacMiniStorage(await getMacMiniStorageStatus())
+    } catch (error) {
+      console.error('Mac mini 저장소 현황 불러오기 실패:', error)
+      setMacMiniStorage(null)
+      setMacMiniStorageError(error.message || 'Mac mini 저장소 현황을 불러오지 못했습니다.')
+    } finally {
+      setLoadingMacMiniStorage(false)
+    }
+  }
+
+  const saveStoragePolicies = async () => {
+    setSavingStoragePolicies(true)
+    setStoragePolicyMessage('')
+    setStoragePolicyError('')
+    const rows = Object.entries(storagePolicies).map(([content_type, storage_provider]) => ({
+      content_type,
+      storage_provider,
+      updated_at: new Date().toISOString(),
+    }))
+    const { error } = await supabase
+      .from('storage_policies')
+      .upsert(rows, { onConflict: 'content_type' })
+    if (error) {
+      console.error('저장 정책 저장 실패:', error)
+      setStoragePolicyError(`저장 정책 저장에 실패했습니다: ${error.message}`)
+    } else {
+      setStoragePolicyMessage('저장 정책이 저장되었습니다. 신규 업로드 분기는 다음 단계에서 적용됩니다.')
+    }
+    setSavingStoragePolicies(false)
   }
 
   const pollMacMiniConversion = async (jobId, relativePath) => {
@@ -3079,11 +3154,34 @@ const toggleMenuVisible = async (menu) => {
       return null
     }
   })()
+  const storagePolicyTypes = [
+    ['video', '동영상'],
+    ['audio', '음악'],
+    ['image', '이미지'],
+    ['document', '문서'],
+  ]
+  const isSupabaseStorage = (video) =>
+    String(video.storage_provider ?? 'supabase').toLowerCase() !== 'macmini'
+  const supabaseVideos = videos.filter(isSupabaseStorage)
+  const supabaseVideosWithSize = supabaseVideos.filter((video) => Number.isFinite(Number(video.file_size_bytes)))
+  const supabaseKnownBytes = supabaseVideosWithSize.reduce((total, video) => total + Number(video.file_size_bytes), 0)
+  const storageMigrationSummary = storagePolicyTypes.map(([type, label]) => {
+    const typeVideos = videos.filter((video) => getNormalizedMediaType(video.media_type) === type)
+    return {
+      type,
+      label,
+      supabase: typeVideos.filter(isSupabaseStorage).length,
+      macmini: typeVideos.filter((video) => !isSupabaseStorage(video)).length,
+    }
+  })
+  const macMiniUsagePercent = macMiniStorage?.disk?.total_bytes
+    ? Math.min(100, Math.max(0, (macMiniStorage.disk.used_bytes / macMiniStorage.disk.total_bytes) * 100))
+    : 0
 
   return (
     <div
       className={`admin-page ${
-        activeTab === 'videos' || activeTab === 'macmini' ? 'admin-page-content' : ''
+        activeTab === 'videos' || activeTab === 'macmini' || activeTab === 'storage' ? 'admin-page-content' : ''
       }`}
     >
 
@@ -3166,6 +3264,14 @@ const toggleMenuVisible = async (menu) => {
           onClick={() => setActiveTab('macmini')}
         >
           Mac mini 관리
+        </button>
+
+        <button
+          data-admin-tab="storage"
+          className={activeTab === 'storage' ? 'active' : ''}
+          onClick={() => setActiveTab('storage')}
+        >
+          저장소 관리
         </button>
 
 <button
@@ -4592,6 +4698,139 @@ const toggleMenuVisible = async (menu) => {
           </>
 
         )
+      )}
+
+      {activeTab === 'storage' && (
+        <div className="storage-admin-page">
+          <section className="storage-admin-section">
+            <div className="storage-admin-section-header">
+              <div>
+                <h2>저장 정책</h2>
+                <p>앞으로 업로드될 콘텐츠의 기본 저장 위치를 설정합니다.</p>
+              </div>
+              <button
+                type="button"
+                className="approve-button"
+                onClick={saveStoragePolicies}
+                disabled={loadingStoragePolicies || savingStoragePolicies}
+              >
+                {savingStoragePolicies ? '저장 중...' : '설정 저장'}
+              </button>
+            </div>
+            <div className="storage-policy-grid">
+              {storagePolicyTypes.map(([type, label]) => (
+                <label className="storage-policy-row" key={type}>
+                  <span>{label}</span>
+                  <select
+                    value={storagePolicies[type]}
+                    onChange={(event) => setStoragePolicies((previous) => ({
+                      ...previous,
+                      [type]: event.target.value,
+                    }))}
+                    disabled={loadingStoragePolicies || savingStoragePolicies}
+                  >
+                    <option value="supabase">Supabase</option>
+                    <option value="macmini">Mac mini</option>
+                  </select>
+                </label>
+              ))}
+            </div>
+            <p className="storage-admin-note">현재는 저장 정책 설정 단계이며 자동 업로드 분기는 다음 단계에서 적용됩니다.</p>
+            {storagePolicyMessage && <p className="storage-admin-success" role="status">{storagePolicyMessage}</p>}
+            {storagePolicyError && <p className="storage-admin-error" role="alert">{storagePolicyError}</p>}
+          </section>
+
+          <section className="storage-admin-section">
+            <div className="storage-admin-section-header">
+              <div>
+                <h2>Mac mini 저장소</h2>
+                <p>Mac mini 미디어 서버의 실제 파일 시스템 현황입니다.</p>
+              </div>
+              <button type="button" className="reject-button" onClick={loadMacMiniStorage} disabled={loadingMacMiniStorage}>새로고침</button>
+            </div>
+            {loadingMacMiniStorage ? (
+              <p>저장소 현황을 불러오는 중...</p>
+            ) : macMiniStorageError ? (
+              <div className="storage-admin-error" role="alert">
+                <p>● 연결 오류</p>
+                <p>{macMiniStorageError}</p>
+              </div>
+            ) : macMiniStorage ? (
+              <>
+                <div className="storage-admin-status">● 연결됨</div>
+                <div className="storage-admin-cards">
+                  <div className="storage-admin-card">
+                    <h3>디스크</h3>
+                    <dl>
+                      <div><dt>전체</dt><dd>{formatFileSize(macMiniStorage.disk.total_bytes)}</dd></div>
+                      <div><dt>사용 중</dt><dd>{formatFileSize(macMiniStorage.disk.used_bytes)}</dd></div>
+                      <div><dt>사용 가능</dt><dd>{formatFileSize(macMiniStorage.disk.free_bytes)}</dd></div>
+                    </dl>
+                    <div className="storage-usage-bar" aria-label={`디스크 사용률 ${macMiniUsagePercent.toFixed(1)}%`}>
+                      <span style={{ width: `${macMiniUsagePercent}%` }} />
+                    </div>
+                    <small>사용률 {macMiniUsagePercent.toFixed(1)}%</small>
+                  </div>
+                  <div className="storage-admin-card">
+                    <h3>PlayMe 미디어</h3>
+                    <dl>
+                      <div><dt>원본</dt><dd>{formatFileSize(macMiniStorage.playme.originals.bytes)} · {macMiniStorage.playme.originals.file_count}개</dd></div>
+                      <div><dt>HLS</dt><dd>{formatFileSize(macMiniStorage.playme.hls.bytes)} · {macMiniStorage.playme.hls.file_count}개</dd></div>
+                      <div><dt>전체</dt><dd>{formatFileSize(macMiniStorage.playme.total_bytes)}</dd></div>
+                    </dl>
+                  </div>
+                  <div className="storage-admin-card">
+                    <h3>영상</h3>
+                    <dl>
+                      <div><dt>전체</dt><dd>{macMiniStorage.videos.total}개</dd></div>
+                      <div><dt>스트리밍 준비</dt><dd>{macMiniStorage.videos.hls_ready}개</dd></div>
+                      <div><dt>변환 필요</dt><dd>{macMiniStorage.videos.conversion_needed}개</dd></div>
+                    </dl>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </section>
+
+          <section className="storage-admin-section">
+            <div className="storage-admin-section-header">
+              <div>
+                <h2>Supabase 저장 현황</h2>
+                <p>실제 Storage 물리 사용량이 아닌, 등록된 콘텐츠의 원본 파일 메타데이터 기준입니다.</p>
+              </div>
+            </div>
+            <div className="storage-admin-cards">
+              <div className="storage-admin-card">
+                <h3>등록 콘텐츠 원본 용량</h3>
+                <dl>
+                  <div><dt>등록 콘텐츠</dt><dd>{supabaseVideos.length}개</dd></div>
+                  <div><dt>용량 확인 가능</dt><dd>{supabaseVideosWithSize.length}개</dd></div>
+                  <div><dt>용량 미확인</dt><dd>{supabaseVideos.length - supabaseVideosWithSize.length}개</dd></div>
+                  <div><dt>등록 원본 용량</dt><dd>{formatFileSize(supabaseKnownBytes)}</dd></div>
+                </dl>
+              </div>
+            </div>
+          </section>
+
+          <section className="storage-admin-section">
+            <div className="storage-admin-section-header">
+              <div>
+                <h2>데이터 이전</h2>
+                <p>저장 정책을 변경한 뒤 기존 콘텐츠도 새 저장소로 이전할 수 있습니다.</p>
+              </div>
+              <button type="button" className="reject-button" disabled>다음 단계에서 지원 예정</button>
+            </div>
+            <div className="storage-migration-grid">
+              {storageMigrationSummary.map((item) => (
+                <div className="storage-migration-row" key={item.type}>
+                  <strong>{item.label}</strong>
+                  <span>Supabase {item.supabase}개</span>
+                  <span>Mac mini {item.macmini}개</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       )}
 
       {lyricsEditorVideo && (

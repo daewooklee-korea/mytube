@@ -3303,6 +3303,172 @@ button.content-status-button {
   gap: 8px;
 }
 
+.storage-admin-page {
+  display: grid;
+  gap: 16px;
+}
+
+.storage-admin-section {
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.storage-admin-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.storage-admin-section-header h2,
+.storage-admin-card h3 {
+  margin: 0;
+}
+
+.storage-admin-section-header p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.storage-policy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+
+.storage-policy-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.35fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.storage-policy-row select {
+  width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+}
+
+.storage-admin-note,
+.storage-admin-success,
+.storage-admin-error {
+  margin: 14px 0 0;
+  font-size: 13px;
+}
+
+.storage-admin-note {
+  color: #64748b;
+}
+
+.storage-admin-success {
+  color: #15803d;
+}
+
+.storage-admin-error {
+  color: #b42318;
+}
+
+.storage-admin-status {
+  margin-bottom: 12px;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.storage-admin-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.storage-admin-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.storage-admin-card h3 {
+  font-size: 15px;
+}
+
+.storage-admin-card dl {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.storage-admin-card dl > div,
+.storage-migration-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.storage-admin-card dt,
+.storage-admin-card dd {
+  margin: 0;
+}
+
+.storage-admin-card dt {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.storage-admin-card dd {
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.storage-admin-card small {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.storage-usage-bar {
+  height: 7px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.storage-usage-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f43f8f, #ff6b52, #8b3fd6);
+}
+
+.storage-migration-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.storage-migration-row {
+  padding: 10px 12px;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.storage-migration-row strong {
+  color: #1e293b;
+}
+
 @media (max-width: 600px) {
   .mac-mini-media-heading {
     align-items: flex-start;
@@ -3362,6 +3528,28 @@ button.content-status-button {
 
   .mac-mini-registration-form {
     padding: 14px;
+  }
+
+  .storage-admin-section {
+    padding: 14px;
+  }
+
+  .storage-admin-section-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .storage-admin-section-header > button {
+    width: 100%;
+  }
+
+  .storage-policy-grid,
+  .storage-admin-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .storage-policy-row {
+    grid-template-columns: minmax(64px, 0.4fr) minmax(0, 1fr);
   }
 }
 

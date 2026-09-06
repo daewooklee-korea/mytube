@@ -23,6 +23,18 @@ export const getMacMiniVideos = async (signal) => {
   return payload.videos
 }
 
+export const getMacMiniStorageStatus = async (signal) => {
+  const response = await fetch(getApiUrl('/api/storage'), { signal })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(payload.error || `Mac mini 저장소 API 오류 (${response.status})`)
+  }
+  if (!payload || !payload.disk || !payload.playme || !payload.videos) {
+    throw new Error('Mac mini 저장소 API 응답 형식이 올바르지 않습니다.')
+  }
+  return payload
+}
+
 export const convertMacMiniVideo = async (relativePath, signal) => {
   const response = await fetch(getApiUrl('/api/videos/convert'), {
     method: 'POST',
