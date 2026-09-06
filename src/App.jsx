@@ -1800,6 +1800,16 @@ if (playMode === 'single') {
           aria-label="임시 재생 진단 패널"
         >
           <strong>임시 재생 진단</strong>
+          <span>app origin: {window.location.origin}</span>
+          <span>
+            mode: {import.meta.env.PROD ? 'production' : 'development'}
+          </span>
+          <span>
+            macmini base url:{' '}
+            {import.meta.env.VITE_MACMINI_MEDIA_BASE_URL
+              ? 'configured'
+              : 'missing'}
+          </span>
           {playbackDebug.video && (
             <span className="playback-debug-panel-video">
               id: {playbackDebug.video.id} ·{' '}
