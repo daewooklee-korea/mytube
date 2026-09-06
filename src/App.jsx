@@ -2466,25 +2466,6 @@ if (playMode === 'single') {
 
           <main className="content">
 
-          <h2>
-  {currentRoute === '/music'
-    ? 'Music'
-    : currentRoute === '/video'
-      ? 'Video'
-      : currentRoute === '/library/my-media'
-        ? 'My Media'
-        : currentRoute === '/library/favorites'
-          ? 'Favorites'
-          : currentRoute === '/library/recently-played'
-            ? 'Recently Played'
-            : currentRoute === '/library/playlists'
-  ? 'Playlists'
-  : currentRoute === '/library/playlist-detail'
-  ? selectedPlaylist?.name || 'Playlist'
-  : currentRoute === '/suno-reservation'
-    ? 'SUNO 예약'
-    : '추천 콘텐츠'}
-</h2>
 {currentRoute === '/suno-reservation' ? (
   <SunoReservation />
 ) : currentRoute === '/library/playlist-detail' ? (

@@ -3484,11 +3484,9 @@ const toggleMenuVisible = async (menu) => {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '20px',
+              marginBottom: '16px',
             }}
           >
-            <h2 style={{ margin: 0 }}>그룹 관리</h2>
-
             <button
               className="approve-button"
               onClick={startCreatingGroup}
@@ -4676,13 +4674,11 @@ const toggleMenuVisible = async (menu) => {
           <div
             style={{
               display: 'flex',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-end',
               alignItems: 'center',
-              marginBottom: '20px',
+              marginBottom: '16px',
             }}
           >
-            <h2 style={{ margin: 0 }}>메뉴 관리</h2>
-
             <button
               className="approve-button"
               onClick={startCreatingMenu}
@@ -5221,15 +5217,11 @@ const toggleMenuVisible = async (menu) => {
           <div
             style={{
               display: 'flex',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-end',
               alignItems: 'center',
-              marginBottom: '20px',
+              marginBottom: '16px',
             }}
           >
-            <h2 style={{ margin: 0 }}>
-              카테고리 관리
-            </h2>
-
             <button
               className="approve-button"
               onClick={startCreatingCategory}
