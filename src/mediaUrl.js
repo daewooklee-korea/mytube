@@ -5,11 +5,15 @@ const macMiniBaseUrl = String(
 export const resolveMediaUrl = (video) => {
   if (!video) return ''
 
+  const storageProvider = video.storage_provider ?? video.storageProvider
+  const storagePath = video.storage_path ?? video.storagePath
+  const videoUrl = video.video_url ?? video.videoUrl
+
   if (
-    video.storage_provider?.toLowerCase() === 'macmini' &&
-    video.storage_path
+    String(storageProvider ?? '').toLowerCase() === 'macmini' &&
+    storagePath
   ) {
-    const path = String(video.storage_path)
+    const path = String(storagePath)
       .split('/')
       .filter(Boolean)
       .map((part) => encodeURIComponent(part))
@@ -17,10 +21,10 @@ export const resolveMediaUrl = (video) => {
 
     return macMiniBaseUrl
       ? `${macMiniBaseUrl}/${path}`
-      : (video.video_url ?? video.video ?? '')
+      : (videoUrl ?? video.video ?? '')
   }
 
-  return video.video_url ?? video.video ?? ''
+  return videoUrl ?? video.video ?? ''
 }
 
 export const isHlsUrl = (url) =>

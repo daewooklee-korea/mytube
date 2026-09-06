@@ -1133,12 +1133,29 @@ useEffect(() => {
   // 영상 선택
   // =========================
 
+  const normalizePlayableVideo = (video) => {
+    if (!video) return null
+    const resolvedVideo = video.video || resolveMediaUrl({
+      ...video,
+      storage_provider: video.storage_provider ?? video.storageProvider,
+      storage_path: video.storage_path ?? video.storagePath,
+      video_url: video.video_url ?? video.videoUrl,
+    })
+    return {
+      ...video,
+      video: resolvedVideo,
+      mediaType: video.mediaType ?? video.media_type ?? 'video',
+      thumbnail: video.thumbnail ?? video.thumbnail_url,
+    }
+  }
+
   const handleVideoClick = async (
     video
   ) => {
-    if (!video.video) return
+    const playableVideo = normalizePlayableVideo(video)
+    if (!playableVideo?.video) return
 
-    setSelectedVideo(video)
+    setSelectedVideo(playableVideo)
 
     navigationHistoryRef.current.push({
       currentRoute,
@@ -1158,7 +1175,7 @@ const { error: historyError } =
     .from('play_history')
     .insert({
       user_id: user.id,
-      video_id: video.id,
+      video_id: playableVideo.id,
       position: 0,
     })
 
@@ -1174,7 +1191,7 @@ if (historyError) {
       await supabase.rpc(
         'increment_view_count',
         {
-          video_id: video.id,
+        video_id: playableVideo.id,
         }
       )
 
@@ -1185,11 +1202,11 @@ if (historyError) {
       )
     } else {
       const newViews =
-        video.rawViews + 1
+        playableVideo.rawViews + 1
 
       setVideos((prev) =>
         prev.map((v) =>
-          v.id === video.id
+          v.id === playableVideo.id
             ? {
                 ...v,
                 views: `조회수 ${newViews}회`,
@@ -1209,8 +1226,8 @@ if (historyError) {
       )
     }
 
-    loadLikes(video.id)
-    loadComments(video.id)
+    loadLikes(playableVideo.id)
+    loadComments(playableVideo.id)
   }
 
   const handleAdminVideoUpdated = (updatedVideo) => {
