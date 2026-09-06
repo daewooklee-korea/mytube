@@ -3162,6 +3162,53 @@ button.content-status-button {
   color: #b45309;
 }
 
+.mac-mini-registration-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.mac-mini-registration-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mac-mini-registration-header h3 {
+  margin: 0;
+}
+
+.mac-mini-registration-form label {
+  display: grid;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mac-mini-registration-form input,
+.mac-mini-registration-form select,
+.mac-mini-registration-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mac-mini-registration-source {
+  margin: -4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.mac-mini-registration-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 @media (max-width: 600px) {
   .mac-mini-media-heading {
     align-items: flex-start;

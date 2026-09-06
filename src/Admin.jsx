@@ -70,6 +70,13 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [macMiniVideos, setMacMiniVideos] = useState([])
   const [loadingMacMiniVideos, setLoadingMacMiniVideos] = useState(false)
   const [macMiniError, setMacMiniError] = useState('')
+  const [selectedMacMiniVideo, setSelectedMacMiniVideo] = useState(null)
+  const [macMiniTitle, setMacMiniTitle] = useState('')
+  const [macMiniPrimaryMenuId, setMacMiniPrimaryMenuId] = useState('')
+  const [macMiniSubMenuId, setMacMiniSubMenuId] = useState('')
+  const [macMiniDescription, setMacMiniDescription] = useState('')
+  const [macMiniThumbnailFile, setMacMiniThumbnailFile] = useState(null)
+  const [savingMacMiniVideo, setSavingMacMiniVideo] = useState(false)
   const [contentSearchText, setContentSearchText] = useState('')
   const [contentStatusFilter, setContentStatusFilter] = useState('all')
   const [contentMediaTypeFilter, setContentMediaTypeFilter] = useState('all')
@@ -153,6 +160,16 @@ const [savingMenu, setSavingMenu] = useState(false)
         .filter(
           (menu) =>
             menu.level === 2 && menu.parent_id === contentPrimaryMenuId
+        )
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        : []
+
+  const macMiniSubMenus = macMiniPrimaryMenuId
+    ? menus
+        .filter(
+          (menu) =>
+            menu.level === 2 && menu.parent_id === macMiniPrimaryMenuId &&
+            menu.name !== 'All' && menu.name !== 'Playlist'
         )
         .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     : []
@@ -404,6 +421,81 @@ const loadMenus = async () => {
       setMacMiniError(error.message || 'Mac mini 미디어 서버에 연결할 수 없습니다.')
     } finally {
       setLoadingMacMiniVideos(false)
+    }
+  }
+
+  const openMacMiniRegistration = (media) => {
+    if (!media?.hls_ready || !media.hls_path) return
+    const sourceName = String(media.name ?? '')
+    setSelectedMacMiniVideo(media)
+    setMacMiniTitle(sourceName.replace(/\.[^.]+$/, ''))
+    setMacMiniPrimaryMenuId('')
+    setMacMiniSubMenuId('')
+    setMacMiniDescription('')
+    setMacMiniThumbnailFile(null)
+  }
+
+  const closeMacMiniRegistration = () => {
+    if (savingMacMiniVideo) return
+    setSelectedMacMiniVideo(null)
+    setMacMiniThumbnailFile(null)
+  }
+
+  const saveMacMiniVideo = async () => {
+    if (!selectedMacMiniVideo) return
+    if (!macMiniTitle.trim()) {
+      alert('제목을 입력해주세요.')
+      return
+    }
+    if (!macMiniSubMenuId) {
+      alert('2차 메뉴를 선택해주세요.')
+      return
+    }
+
+    setSavingMacMiniVideo(true)
+    let uploadedThumbnail = null
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser()
+      if (userError) throw userError
+      if (!userData.user?.id) throw new Error('로그인 사용자를 확인할 수 없습니다.')
+
+      if (macMiniThumbnailFile) {
+        uploadedThumbnail = await uploadThumbnailFile(macMiniThumbnailFile)
+      }
+
+      const { data, error } = await supabase
+        .from('videos')
+        .insert({
+          title: macMiniTitle.trim(),
+          user_id: userData.user.id,
+          video_url: '',
+          thumbnail_url: uploadedThumbnail?.publicUrl ?? null,
+          media_type: 'video',
+          menu_id: macMiniSubMenuId,
+          description: macMiniDescription.trim() || null,
+          storage_provider: 'macmini',
+          storage_path: selectedMacMiniVideo.hls_path,
+          status: 'ACTIVE',
+        })
+        .select('*')
+        .single()
+
+      if (error) throw error
+
+      setVideos((previous) => [data, ...previous])
+      setSelectedMacMiniVideo(null)
+      setMacMiniThumbnailFile(null)
+      alert('Mac mini 스트리밍 콘텐츠가 등록되었습니다. 공개 범위를 설정할 수 있습니다.')
+      await openVideoPermission(data)
+      await loadVideoPermissionSummaries()
+    } catch (error) {
+      console.error('Mac mini 콘텐츠 등록 실패:', error)
+      if (uploadedThumbnail) {
+        await supabase.storage.from('Thumbnails').remove([uploadedThumbnail.fileName])
+      }
+      alert(`Mac mini 콘텐츠 등록에 실패했습니다: ${error.message ?? '알 수 없는 오류'}`)
+    } finally {
+      setSavingMacMiniVideo(false)
     }
   }
 
@@ -3750,8 +3842,70 @@ const toggleMenuVisible = async (menu) => {
                             {media.hls_ready ? '✓ 스트리밍 준비됨' : '변환 필요'}
                           </span>
                           {media.hls_ready && <small>{media.hls_path}</small>}
+                          {media.hls_ready && (
+                            <button
+                              type="button"
+                              className="approve-button"
+                              onClick={() => openMacMiniRegistration(media)}
+                            >
+                              선택
+                            </button>
+                          )}
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {selectedMacMiniVideo && (
+                    <div className="mac-mini-registration-form">
+                      <div className="mac-mini-registration-header">
+                        <h3>Mac mini 콘텐츠 등록</h3>
+                        <button type="button" className="video-edit-close" onClick={closeMacMiniRegistration}>×</button>
+                      </div>
+                      <p className="mac-mini-registration-source">{selectedMacMiniVideo.relative_path} · {selectedMacMiniVideo.hls_path}</p>
+                      <label>
+                        제목
+                        <input value={macMiniTitle} onChange={(event) => setMacMiniTitle(event.target.value)} />
+                      </label>
+                      <label>
+                        콘텐츠 타입
+                        <select value="video" disabled><option value="video">🎬 동영상</option></select>
+                      </label>
+                      <label>
+                        1차 메뉴
+                        <select
+                          value={macMiniPrimaryMenuId}
+                          onChange={(event) => {
+                            setMacMiniPrimaryMenuId(event.target.value)
+                            setMacMiniSubMenuId('')
+                          }}
+                        >
+                          <option value="">1차 메뉴를 선택하세요</option>
+                          {menus.filter((menu) => menu.level === 1).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((menu) => (
+                            <option key={menu.id} value={menu.id}>{menu.name}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        2차 메뉴
+                        <select value={macMiniSubMenuId} disabled={!macMiniPrimaryMenuId} onChange={(event) => setMacMiniSubMenuId(event.target.value)}>
+                          <option value="">2차 메뉴를 선택하세요</option>
+                          {macMiniSubMenus.map((menu) => <option key={menu.id} value={menu.id}>{menu.name}</option>)}
+                        </select>
+                      </label>
+                      <label>
+                        설명
+                        <textarea rows="4" value={macMiniDescription} onChange={(event) => setMacMiniDescription(event.target.value)} placeholder="설명 (선택사항)" />
+                      </label>
+                      <label>
+                        썸네일 (선택)
+                        <input type="file" accept="image/*" onChange={(event) => setMacMiniThumbnailFile(event.target.files?.[0] ?? null)} />
+                      </label>
+                      <div className="mac-mini-registration-actions">
+                        <button type="button" className="approve-button" onClick={saveMacMiniVideo} disabled={savingMacMiniVideo}>
+                          {savingMacMiniVideo ? '등록 중...' : 'Mac mini 콘텐츠 등록'}
+                        </button>
+                        <button type="button" className="reject-button" onClick={closeMacMiniRegistration} disabled={savingMacMiniVideo}>취소</button>
+                      </div>
                     </div>
                   )}
                 </div>
