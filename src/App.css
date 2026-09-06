@@ -3080,6 +3080,104 @@ button.content-status-button {
   padding: 8px;
 }
 
+.mac-mini-media-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.mac-mini-media-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mac-mini-media-heading h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.mac-mini-media-heading p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.mac-mini-media-panel {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.mac-mini-media-list {
+  display: grid;
+  gap: 8px;
+}
+
+.mac-mini-media-item {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #edf2f7;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.mac-mini-media-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.mac-mini-media-main strong,
+.mac-mini-media-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mac-mini-media-main span,
+.mac-mini-media-item > span:not(.mac-mini-ready):not(.mac-mini-pending),
+.mac-mini-media-item small {
+  color: #64748b;
+}
+
+.mac-mini-media-item small {
+  font-size: 11px;
+}
+
+.mac-mini-ready {
+  color: #15803d;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mac-mini-pending,
+.mac-mini-media-error {
+  color: #b45309;
+}
+
+@media (max-width: 600px) {
+  .mac-mini-media-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mac-mini-media-heading .approve-button {
+    width: 100%;
+  }
+
+  .mac-mini-media-item {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
 /* =========================================
    Mobile PlayMe app shell
 ========================================= */

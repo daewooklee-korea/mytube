@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import { lyricsSyncToLrc, parseLrc } from './lyrics'
+import { getMacMiniVideos } from './macMiniMedia'
 
 let lyricsEditorLineId = 0
 const createLyricsEditorLine = (line = {}) => ({
@@ -8,6 +9,20 @@ const createLyricsEditorLine = (line = {}) => ({
   start: line.start == null ? null : Number(line.start),
   text: String(line.text ?? ''),
 })
+
+const formatFileSize = (bytes) => {
+  const size = Number(bytes)
+  if (!Number.isFinite(size) || size < 0) return '-'
+  if (size < 1024) return `${size} B`
+  const units = ['KB', 'MB', 'GB', 'TB']
+  let value = size
+  let unit = -1
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit += 1
+  }
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unit]}`
+}
 
 function Admin({
   onClose,
@@ -51,6 +66,10 @@ const [savingMenu, setSavingMenu] = useState(false)
 
   const [videos, setVideos] = useState([])
   const [loadingVideos, setLoadingVideos] = useState(true)
+  const [showMacMiniMedia, setShowMacMiniMedia] = useState(false)
+  const [macMiniVideos, setMacMiniVideos] = useState([])
+  const [loadingMacMiniVideos, setLoadingMacMiniVideos] = useState(false)
+  const [macMiniError, setMacMiniError] = useState('')
   const [contentSearchText, setContentSearchText] = useState('')
   const [contentStatusFilter, setContentStatusFilter] = useState('all')
   const [contentMediaTypeFilter, setContentMediaTypeFilter] = useState('all')
@@ -371,6 +390,21 @@ const loadMenus = async () => {
 
     setVideos(data)
     setLoadingVideos(false)
+  }
+
+  const loadMacMiniVideos = async () => {
+    setLoadingMacMiniVideos(true)
+    setMacMiniError('')
+    try {
+      const data = await getMacMiniVideos()
+      setMacMiniVideos(data)
+    } catch (error) {
+      console.error('Mac mini 영상 목록 불러오기 실패:', error)
+      setMacMiniVideos([])
+      setMacMiniError(error.message || 'Mac mini 미디어 서버에 연결할 수 없습니다.')
+    } finally {
+      setLoadingMacMiniVideos(false)
+    }
   }
 
   // =========================
@@ -3669,6 +3703,60 @@ const toggleMenuVisible = async (menu) => {
         ) : (
 
           <>
+
+            <div className="mac-mini-media-section">
+              <div className="mac-mini-media-heading">
+                <div>
+                  <h2>Mac mini 영상</h2>
+                  <p>Mac mini 원본 목록을 확인합니다. 등록/복사는 다음 단계에서 지원됩니다.</p>
+                </div>
+                <button
+                  type="button"
+                  className="approve-button"
+                  onClick={() => {
+                    const nextOpen = !showMacMiniMedia
+                    setShowMacMiniMedia(nextOpen)
+                    if (nextOpen) loadMacMiniVideos()
+                  }}
+                >
+                  {showMacMiniMedia ? '목록 닫기' : 'Mac mini에서 불러오기'}
+                </button>
+              </div>
+
+              {showMacMiniMedia && (
+                <div className="mac-mini-media-panel">
+                  {loadingMacMiniVideos ? (
+                    <p>Mac mini 영상 목록을 불러오는 중...</p>
+                  ) : macMiniError ? (
+                    <div className="mac-mini-media-error">
+                      <p>{macMiniError}</p>
+                      <button type="button" className="reject-button" onClick={loadMacMiniVideos}>
+                        다시 시도
+                      </button>
+                    </div>
+                  ) : macMiniVideos.length === 0 ? (
+                    <p>Mac mini에 등록된 원본 영상이 없습니다.</p>
+                  ) : (
+                    <div className="mac-mini-media-list">
+                      {macMiniVideos.map((media) => (
+                        <div className="mac-mini-media-item" key={media.relative_path}>
+                          <div className="mac-mini-media-main">
+                            <strong>{media.name}</strong>
+                            <span>{media.relative_path}</span>
+                          </div>
+                          <span>{formatFileSize(media.size)}</span>
+                          <span>{media.modified_at ? new Date(media.modified_at).toLocaleString('ko-KR') : '-'}</span>
+                          <span className={media.hls_ready ? 'mac-mini-ready' : 'mac-mini-pending'}>
+                            {media.hls_ready ? '✓ 스트리밍 준비됨' : '변환 필요'}
+                          </span>
+                          {media.hls_ready && <small>{media.hls_path}</small>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="content-admin-filters">
               <div className="content-admin-filter content-admin-filter-search">
