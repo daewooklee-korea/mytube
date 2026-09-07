@@ -48,6 +48,18 @@ export const getMacMiniStorageStatus = async (signal) => {
   return payload
 }
 
+export const getMacMiniSystemStatus = async (signal) => {
+  const response = await fetch(getApiUrl('/api/system/status'), { signal })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(payload.error || `Mac mini 상태 API 오류 (${response.status})`)
+  }
+  if (!payload || !payload.media_server || !payload.tunnel || !payload.vercel || !payload.storage) {
+    throw new Error('Mac mini 상태 API 응답 형식이 올바르지 않습니다.')
+  }
+  return payload
+}
+
 export const convertMacMiniVideo = async (relativePath, signal) => {
   const { data: { session } = {} } = await supabase.auth.getSession()
   if (!session?.access_token) {

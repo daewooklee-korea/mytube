@@ -3125,6 +3125,22 @@ button.content-status-button {
   padding: 8px;
 }
 
+.admin-monitor-page .monitor-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+}
+.admin-monitor-page .storage-admin-card h3 { margin-top: 0; }
+.admin-monitor-page .storage-admin-card p { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.admin-monitor-page .monitor-badge { border-radius: 999px; padding: 3px 9px; font-size: 12px; font-weight: 700; }
+.admin-monitor-page .monitor-badge.ok { background: #dcfce7; color: #166534; }
+.admin-monitor-page .monitor-badge.warn { background: #fef3c7; color: #92400e; }
+.admin-monitor-page .monitor-badge.error { background: #fee2e2; color: #991b1b; }
+.admin-monitor-page dd { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .admin-monitor-page .monitor-status-grid { grid-template-columns: 1fr; }
+}
+
 .mac-mini-media-section {
   margin-bottom: 20px;
   padding: 16px;
