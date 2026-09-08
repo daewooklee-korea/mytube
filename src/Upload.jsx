@@ -218,6 +218,7 @@ const generateDefaultThumbnail = (icon, fileName) => {
 
       let mediaUrl = ''
       let storagePath = null
+      let hlsSizeBytes = null
       let storedFileSize = Number.isFinite(Number(mediaFile?.size)) ? Number(mediaFile.size) : null
 
       if (storageProvider === 'macmini') {
@@ -268,6 +269,7 @@ const generateDefaultThumbnail = (icon, fileName) => {
         if (!readyVideo?.hls_ready || readyVideo.hls_path !== storagePath) {
           throw new Error('HLS 변환 결과를 확인하지 못했습니다.')
         }
+        hlsSizeBytes = Number.isFinite(Number(readyVideo.hls_size)) ? Number(readyVideo.hls_size) : null
       } else {
         setUploadStatus('Supabase에 파일 업로드 중...')
         const extension = mediaFile.name.split('.').pop()
@@ -315,6 +317,7 @@ const generateDefaultThumbnail = (icon, fileName) => {
           storage_provider: storageProvider,
           storage_path: storagePath,
           file_size_bytes: storedFileSize,
+          hls_size_bytes: hlsSizeBytes,
         })
       if (databaseError) throw databaseError
 

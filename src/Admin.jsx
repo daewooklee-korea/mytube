@@ -32,6 +32,19 @@ const formatFileSize = (bytes) => {
   return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unit]}`
 }
 
+const ContentSize = ({ video }) => {
+  const original = formatFileSize(video.file_size_bytes)
+  const hlsBytes = video.hls_size_bytes ?? video.hls_size
+  return (
+    <div className="content-size">
+      <div className="content-size-original">{original}</div>
+      {hlsBytes != null && Number(hlsBytes) > 0 && (
+        <div className="content-size-hls">(HLS {formatFileSize(hlsBytes)})</div>
+      )}
+    </div>
+  )
+}
+
 const getStorageLocationLabel = (provider) => {
   const normalizedProvider = String(provider ?? '').toLowerCase()
   if (normalizedProvider === 'macmini') return 'Mac mini'
@@ -678,6 +691,7 @@ const loadMenus = async () => {
           description: macMiniDescription.trim() || null,
           lyrics_sync: null,
           file_size_bytes: Number.isFinite(Number(selectedMacMiniVideo.size)) ? Number(selectedMacMiniVideo.size) : null,
+          hls_size_bytes: Number.isFinite(Number(selectedMacMiniVideo.hls_size)) ? Number(selectedMacMiniVideo.hls_size) : null,
           storage_provider: 'macmini',
           storage_path: selectedMacMiniVideo.hls_path,
           status: 'ACTIVE',
@@ -4468,7 +4482,7 @@ const toggleMenuVisible = async (menu) => {
                       </td>
 
                       <td>
-                        {formatFileSize(video.file_size_bytes)}
+                        <ContentSize video={video} />
                       </td>
 
                       <td>
