@@ -4763,6 +4763,68 @@ button.content-status-button {
   }
 }
 
+@media (min-width: 769px) {
+  .admin-monitor-page .storage-admin-section {
+    display: block;
+    box-sizing: border-box;
+    padding: 26px 30px;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+  }
+
+  .admin-monitor-page .monitor-status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .admin-monitor-page .monitor-overview-card {
+    display: contents;
+  }
+
+  .admin-monitor-page .monitor-overview-card > h3 {
+    display: none;
+  }
+
+  .admin-monitor-page .monitor-status-items {
+    display: contents;
+  }
+
+  .admin-monitor-page .monitor-status-item {
+    box-sizing: border-box;
+    min-height: 86px;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #f8fafc;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .admin-monitor-page .monitor-status-grid > .storage-admin-card:nth-child(2),
+  .admin-monitor-page .monitor-status-grid > .storage-admin-card:nth-child(3) {
+    grid-column: span 2;
+    min-height: 176px;
+  }
+
+  .admin-monitor-page .monitor-log-panel {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #f8fafc;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+  }
+}
+
 .menu-admin-table {
   white-space: nowrap;
 }
