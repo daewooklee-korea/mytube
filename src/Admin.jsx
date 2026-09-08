@@ -474,7 +474,7 @@ const loadMenus = async () => {
       error,
     } = await supabase
       .from('videos')
-      .select('*')
+      .select('*, hls_size_bytes')
       .order('created_at', {
         ascending: false,
       })
