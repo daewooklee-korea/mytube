@@ -4684,6 +4684,85 @@ button.content-status-button {
   }
 }
 
+/* Storage admin cards: final scoped layer keeps the dashboard presentation
+   intact after the legacy admin/mobile rules above. */
+.storage-admin.storage-admin-page .storage-admin-section {
+  display: block;
+  box-sizing: border-box;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+}
+
+.storage-admin.storage-admin-page .storage-policy-grid,
+.storage-admin.storage-admin-page .storage-admin-cards {
+  display: grid;
+  min-width: 0;
+}
+
+.storage-admin.storage-admin-page .storage-policy-row,
+.storage-admin.storage-admin-page .storage-admin-card {
+  box-sizing: border-box;
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+@media (min-width: 769px) {
+  .storage-admin.storage-admin-page {
+    width: min(1180px, 100%);
+    margin: 0 auto;
+    gap: 24px;
+  }
+
+  .storage-admin.storage-admin-page .storage-admin-section {
+    padding: 26px 30px;
+    border-radius: 18px;
+  }
+
+  .storage-admin.storage-admin-page .storage-policy-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .storage-admin.storage-admin-page .storage-policy-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .storage-admin.storage-admin-page .storage-admin-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .storage-admin.storage-admin-page .storage-admin-card {
+    min-height: 176px;
+    padding: 20px;
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .storage-admin.storage-admin-page {
+    width: 100%;
+    gap: 14px;
+  }
+
+  .storage-admin.storage-admin-page .storage-admin-section {
+    width: 100%;
+    padding: 14px;
+  }
+
+  .storage-admin.storage-admin-page .storage-policy-grid,
+  .storage-admin.storage-admin-page .storage-admin-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
 .menu-admin-table {
   white-space: nowrap;
 }
