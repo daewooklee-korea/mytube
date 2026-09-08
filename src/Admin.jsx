@@ -4793,7 +4793,7 @@ const toggleMenuVisible = async (menu) => {
             {macMiniSystemError && <div className="storage-admin-error" role="alert">Mac mini unavailable · {macMiniSystemError}</div>}
             {macMiniSystemStatus && (() => {
               const { media_server: media, tunnel, vercel, last_error: lastError } = macMiniSystemStatus
-              const badge = (label, tone) => <span className={`monitor-badge ${tone}`}>{label}</span>
+              const badge = (label, tone) => <span className={`monitor-badge ${tone}`}><i className="monitor-light" aria-hidden="true" />{label}</span>
               const tunnelHealthy = tunnel.external_health === 'healthy'
               const synced = vercel.url_matches && vercel.last_sync_status === 'success'
               return <>
