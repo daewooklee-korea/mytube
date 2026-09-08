@@ -3384,6 +3384,7 @@ button.content-status-button {
   border: 1px solid #e2e8f0;
   border-radius: 14px;
   background: #fff;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
 }
 
 .storage-admin-section-header {
@@ -3418,6 +3419,10 @@ button.content-status-button {
   gap: 10px;
   min-width: 0;
   font-weight: 600;
+  padding: 12px 14px;
+  border: 1px solid #edf2f7;
+  border-radius: 10px;
+  background: #f8fafc;
 }
 
 .storage-policy-row select {
@@ -3538,6 +3543,14 @@ button.content-status-button {
 
 .storage-migration-row strong {
   color: #1e293b;
+}
+
+.storage-admin-page > .storage-admin-section + .storage-admin-section {
+  border-top: 3px solid #f1f5f9;
+}
+.storage-admin-page .storage-admin-section-header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 @media (max-width: 600px) {
