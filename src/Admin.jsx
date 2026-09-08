@@ -4792,7 +4792,7 @@ const toggleMenuVisible = async (menu) => {
             <div className="monitor-check-meta">마지막 확인: {macMiniSystemCheckedAt || '-'} · 30초 자동 확인 · 실패 시 3회 재시도</div>
             {macMiniSystemError && <div className="storage-admin-error" role="alert">Mac mini unavailable · {macMiniSystemError}</div>}
             {macMiniSystemStatus && (() => {
-              const { media_server: media, tunnel, vercel, storage, last_error: lastError } = macMiniSystemStatus
+              const { media_server: media, tunnel, vercel, last_error: lastError } = macMiniSystemStatus
               const badge = (label, tone) => <span className={`monitor-badge ${tone}`}>{label}</span>
               const tunnelHealthy = tunnel.external_health === 'healthy'
               const synced = vercel.url_matches && vercel.last_sync_status === 'success'
@@ -4801,8 +4801,6 @@ const toggleMenuVisible = async (menu) => {
                   <div className="storage-admin-card"><h3>전체 상태</h3><p>Media Server {badge(media.status === 'online' ? 'Online' : 'Offline', media.status === 'online' ? 'ok' : 'error')}</p><p>Tunnel {badge(tunnelHealthy ? 'Healthy' : 'Error', tunnelHealthy ? 'ok' : 'warn')}</p><p>Vercel Sync {badge(synced ? 'Synced' : (vercel.last_sync_status || 'Unknown'), synced ? 'ok' : 'warn')}</p><p>Production {badge(vercel.last_deploy_status === 'success' ? 'Ready' : (vercel.last_deploy_status || 'Unknown'), vercel.last_deploy_status === 'success' ? 'ok' : 'warn')}</p></div>
                   <div className="storage-admin-card"><h3>Tunnel</h3><dl><div><dt>현재 URL</dt><dd>{tunnel.current_url || '-'}</dd></div><div><dt>Health check</dt><dd>{tunnel.last_health_check_at || '-'}</dd></div><div><dt>시작</dt><dd>{tunnel.started_at || '-'}</dd></div></dl></div>
                   <div className="storage-admin-card"><h3>Vercel</h3><dl><div><dt>동기화 URL</dt><dd>{vercel.last_synced_url || '-'}</dd></div><div><dt>URL 일치</dt><dd>{vercel.url_matches ? '일치' : '불일치'}</dd></div><div><dt>동기화</dt><dd>{vercel.last_sync_at || '-'}</dd></div><div><dt>배포</dt><dd>{vercel.last_deploy_status || 'Unknown'} · {vercel.last_deploy_at || '-'}</dd></div></dl></div>
-                  <div className="storage-admin-card"><h3>Storage</h3><dl><div><dt>디스크</dt><dd>{formatFileSize(storage.disk.used_bytes)} / {formatFileSize(storage.disk.total_bytes)}</dd></div><div><dt>사용 가능</dt><dd>{formatFileSize(storage.disk.free_bytes)}</dd></div><div><dt>원본</dt><dd>{formatFileSize(storage.playme.originals.bytes)} · {storage.playme.originals.file_count}개</dd></div><div><dt>HLS</dt><dd>{formatFileSize(storage.playme.hls.bytes)} · {storage.playme.hls.file_count}개</dd></div></dl></div>
-                  <div className="storage-admin-card"><h3>Videos</h3><dl><div><dt>전체</dt><dd>{storage.videos.total}개</dd></div><div><dt>HLS 준비</dt><dd>{storage.videos.hls_ready}개</dd></div><div><dt>변환 필요</dt><dd>{storage.videos.conversion_needed}개</dd></div></dl></div>
                 </div>
                 <div className="monitor-checklist" aria-label="Mac mini 연결 점검 결과">
                   <span className={media.status === 'online' ? 'ok' : 'error'}>● Media server {media.status === 'online' ? '응답' : '오프라인'}</span>
