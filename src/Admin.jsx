@@ -108,6 +108,8 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [macMiniSystemStatus, setMacMiniSystemStatus] = useState(null)
   const [macMiniSystemError, setMacMiniSystemError] = useState('')
   const [loadingMacMiniSystem, setLoadingMacMiniSystem] = useState(false)
+  const [macMiniSystemCheckedAt, setMacMiniSystemCheckedAt] = useState(null)
+  const [macMiniSystemLog, setMacMiniSystemLog] = useState([])
   const [contentSearchText, setContentSearchText] = useState('')
   const [contentStatusFilter, setContentStatusFilter] = useState('all')
   const [contentMediaTypeFilter, setContentMediaTypeFilter] = useState('all')
@@ -347,12 +349,30 @@ const [savingMenu, setSavingMenu] = useState(false)
     let disposed = false
     const load = async () => {
       setLoadingMacMiniSystem(true)
-      try {
-        const data = await getMacMiniSystemStatus()
-        if (!disposed) { setMacMiniSystemStatus(data); setMacMiniSystemError('') }
-      } catch (error) {
-        if (!disposed) { setMacMiniSystemStatus(null); setMacMiniSystemError(error.message || 'Mac mini unavailable') }
-      } finally { if (!disposed) setLoadingMacMiniSystem(false) }
+      const checkedAt = new Date().toISOString()
+      let lastError = null
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        try {
+          const data = await getMacMiniSystemStatus()
+          if (!disposed) {
+            setMacMiniSystemStatus(data)
+            setMacMiniSystemError('')
+            setMacMiniSystemCheckedAt(checkedAt)
+            setMacMiniSystemLog((previous) => [`${checkedAt} 상태 확인 성공 (시도 ${attempt}/3)`, ...previous].slice(0, 8))
+            setLoadingMacMiniSystem(false)
+          }
+          return
+        } catch (error) {
+          lastError = error
+          if (attempt < 3) await new Promise((resolve) => window.setTimeout(resolve, attempt * 1000))
+        }
+      }
+      if (!disposed) {
+        setMacMiniSystemError(lastError?.message || 'Mac mini unavailable')
+        setMacMiniSystemCheckedAt(checkedAt)
+        setMacMiniSystemLog((previous) => [`${checkedAt} 상태 확인 실패 (3회 재시도)`, ...previous].slice(0, 8))
+      }
+      if (!disposed) setLoadingMacMiniSystem(false)
     }
     load()
     const timer = window.setInterval(load, 30000)
@@ -4769,6 +4789,7 @@ const toggleMenuVisible = async (menu) => {
           <section className="storage-admin-section">
             <div className="storage-admin-section-header"><div><h2>Mac mini Server Monitor</h2><p>미디어 서버와 외부 스트리밍 연동 상태를 확인합니다.</p></div></div>
             {loadingMacMiniSystem && <p>상태를 불러오는 중...</p>}
+            <div className="monitor-check-meta">마지막 확인: {macMiniSystemCheckedAt || '-'} · 30초 자동 확인 · 실패 시 3회 재시도</div>
             {macMiniSystemError && <div className="storage-admin-error" role="alert">Mac mini unavailable · {macMiniSystemError}</div>}
             {macMiniSystemStatus && (() => {
               const { media_server: media, tunnel, vercel, storage, last_error: lastError } = macMiniSystemStatus
@@ -4783,6 +4804,13 @@ const toggleMenuVisible = async (menu) => {
                   <div className="storage-admin-card"><h3>Storage</h3><dl><div><dt>디스크</dt><dd>{formatFileSize(storage.disk.used_bytes)} / {formatFileSize(storage.disk.total_bytes)}</dd></div><div><dt>사용 가능</dt><dd>{formatFileSize(storage.disk.free_bytes)}</dd></div><div><dt>원본</dt><dd>{formatFileSize(storage.playme.originals.bytes)} · {storage.playme.originals.file_count}개</dd></div><div><dt>HLS</dt><dd>{formatFileSize(storage.playme.hls.bytes)} · {storage.playme.hls.file_count}개</dd></div></dl></div>
                   <div className="storage-admin-card"><h3>Videos</h3><dl><div><dt>전체</dt><dd>{storage.videos.total}개</dd></div><div><dt>HLS 준비</dt><dd>{storage.videos.hls_ready}개</dd></div><div><dt>변환 필요</dt><dd>{storage.videos.conversion_needed}개</dd></div></dl></div>
                 </div>
+                <div className="monitor-checklist" aria-label="Mac mini 연결 점검 결과">
+                  <span className={media.status === 'online' ? 'ok' : 'error'}>● Media server {media.status === 'online' ? '응답' : '오프라인'}</span>
+                  <span className={tunnelHealthy ? 'ok' : 'warn'}>● Tunnel {tunnelHealthy ? '외부 health 정상' : '외부 health 확인 필요'}</span>
+                  <span className={synced ? 'ok' : 'warn'}>● Vercel {synced ? 'URL 동기화' : '동기화 확인 필요'}</span>
+                  <span className={vercel.last_deploy_status === 'success' ? 'ok' : 'warn'}>● Production {vercel.last_deploy_status === 'success' ? '배포 완료' : '배포 상태 확인 필요'}</span>
+                </div>
+                <div className="monitor-log-panel"><strong>최근 점검 로그</strong>{macMiniSystemLog.length ? macMiniSystemLog.map((entry) => <div key={entry}>{entry}</div>) : <div>아직 점검 기록이 없습니다.</div>}</div>
                 <p className={lastError ? 'storage-admin-error' : 'storage-admin-note'}>{lastError ? `최근 오류: ${lastError}` : 'No recent errors'}</p>
               </>
             })()}

@@ -3137,6 +3137,13 @@ button.content-status-button {
 .admin-monitor-page .monitor-badge.warn { background: #fef3c7; color: #92400e; }
 .admin-monitor-page .monitor-badge.error { background: #fee2e2; color: #991b1b; }
 .admin-monitor-page dd { overflow-wrap: anywhere; }
+.admin-monitor-page .monitor-check-meta { color: #64748b; font-size: 12px; margin: 10px 0 16px; }
+.admin-monitor-page .monitor-checklist { display: grid; gap: 8px; margin-top: 16px; font-size: 13px; }
+.admin-monitor-page .monitor-checklist .ok { color: #166534; }
+.admin-monitor-page .monitor-checklist .warn { color: #92400e; }
+.admin-monitor-page .monitor-checklist .error { color: #991b1b; }
+.admin-monitor-page .monitor-log-panel { margin-top: 16px; padding: 12px; border-radius: 12px; background: #f8fafc; color: #64748b; font-size: 12px; line-height: 1.6; }
+.admin-monitor-page .monitor-log-panel strong { display: block; color: #334155; margin-bottom: 4px; }
 @media (max-width: 600px) {
   .admin-monitor-page .monitor-status-grid { grid-template-columns: 1fr; }
 }
