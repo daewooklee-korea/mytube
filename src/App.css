@@ -4782,15 +4782,41 @@ button.content-status-button {
 
   .admin-monitor-page .storage-admin-card dl > div {
     display: grid;
-    grid-template-columns: minmax(90px, auto) minmax(0, 1fr);
+    grid-template-columns: minmax(78px, max-content) minmax(0, 1fr);
     align-items: start;
-    gap: 16px;
+    gap: 12px;
   }
 
   .admin-monitor-page .storage-admin-card dd {
     min-width: 0;
     text-align: right;
     overflow-wrap: anywhere;
+  }
+
+  .admin-monitor-page .storage-admin-card h3 {
+    margin: 0;
+    color: #1e293b;
+    font-size: 15px;
+    line-height: 1.35;
+  }
+
+  .admin-monitor-page .storage-admin-card dt {
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .admin-monitor-page .storage-admin-card dd {
+    color: #1e293b;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+  .admin-monitor-page .monitor-media-card dd {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .admin-monitor-page .monitor-badge {
@@ -4865,6 +4891,10 @@ button.content-status-button {
     align-items: flex-start;
     justify-content: space-between;
     gap: 10px;
+  }
+
+  .admin-monitor-page .monitor-status-item .monitor-badge {
+    margin-top: 2px;
   }
 
   .admin-monitor-page .monitor-status-grid > .storage-admin-card:nth-child(2),
