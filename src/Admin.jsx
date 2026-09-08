@@ -18,6 +18,7 @@ const createLyricsEditorLine = (line = {}) => ({
 })
 
 const formatFileSize = (bytes) => {
+  if (bytes == null || bytes === '') return '-'
   const size = Number(bytes)
   if (!Number.isFinite(size) || size < 0) return '-'
   if (size < 1024) return `${size} B`
