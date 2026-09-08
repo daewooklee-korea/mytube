@@ -4792,7 +4792,7 @@ const toggleMenuVisible = async (menu) => {
             <div className="monitor-check-meta">마지막 확인: {macMiniSystemCheckedAt || '-'} · 30초 자동 확인 · 실패 시 3회 재시도</div>
             {macMiniSystemError && <div className="storage-admin-error" role="alert">Mac mini unavailable · {macMiniSystemError}</div>}
             {macMiniSystemStatus && (() => {
-              const { media_server: media, tunnel, vercel, last_error: lastError } = macMiniSystemStatus
+              const { media_server: media, tunnel, vercel, storage, last_error: lastError } = macMiniSystemStatus
               const badge = (label, tone) => <span className={`monitor-badge ${tone}`}><i className="monitor-light" aria-hidden="true" />{label}</span>
               const tunnelHealthy = tunnel.external_health === 'healthy'
               const synced = vercel.url_matches && vercel.last_sync_status === 'success'
@@ -4802,6 +4802,11 @@ const toggleMenuVisible = async (menu) => {
                   <div className="storage-admin-card"><h3>Tunnel</h3><dl><div><dt>현재 URL</dt><dd>{tunnel.current_url || '-'}</dd></div><div><dt>Health check</dt><dd>{tunnel.last_health_check_at || '-'}</dd></div><div><dt>시작</dt><dd>{tunnel.started_at || '-'}</dd></div></dl></div>
                   <div className="storage-admin-card"><h3>Vercel</h3><dl><div><dt>동기화 URL</dt><dd>{vercel.last_synced_url || '-'}</dd></div><div><dt>URL 일치</dt><dd>{vercel.url_matches ? '일치' : '불일치'}</dd></div><div><dt>동기화</dt><dd>{vercel.last_sync_at || '-'}</dd></div><div><dt>배포</dt><dd>{vercel.last_deploy_status || 'Unknown'} · {vercel.last_deploy_at || '-'}</dd></div></dl></div>
                 </div>
+                {storage && <div className="monitor-media-grid">
+                  <div className="storage-admin-card monitor-media-card"><h3>Storage</h3><dl><div><dt>전체</dt><dd>{formatFileSize(storage.disk?.total_bytes)}</dd></div><div><dt>사용 중</dt><dd>{formatFileSize(storage.disk?.used_bytes)}</dd></div><div><dt>사용 가능</dt><dd>{formatFileSize(storage.disk?.free_bytes)}</dd></div></dl><div className="storage-usage-bar"><span style={{ width: `${storage.disk?.total_bytes ? Math.min(100, Math.max(0, (storage.disk.used_bytes / storage.disk.total_bytes) * 100)) : 0}%` }} /></div></div>
+                  <div className="storage-admin-card monitor-media-card"><h3>PlayMe Media</h3><dl><div><dt>원본</dt><dd>{formatFileSize(storage.playme?.originals?.bytes)} · {storage.playme?.originals?.file_count ?? 0}개</dd></div><div><dt>HLS</dt><dd>{formatFileSize(storage.playme?.hls?.bytes)} · {storage.playme?.hls?.file_count ?? 0}개</dd></div><div><dt>전체</dt><dd>{formatFileSize(storage.playme?.total_bytes)}</dd></div></dl></div>
+                  <div className="storage-admin-card monitor-media-card"><h3>Videos</h3><dl><div><dt>전체</dt><dd>{storage.videos?.total ?? 0}개</dd></div><div><dt>HLS 준비</dt><dd>{storage.videos?.hls_ready ?? 0}개</dd></div><div><dt>변환 필요</dt><dd>{storage.videos?.conversion_needed ?? 0}개</dd></div></dl></div>
+                </div>}
                 <div className="monitor-checklist" aria-label="Mac mini 연결 점검 결과">
                   <span className={media.status === 'online' ? 'ok' : 'error'}>● Media server {media.status === 'online' ? '응답' : '오프라인'}</span>
                   <span className={tunnelHealthy ? 'ok' : 'warn'}>● Tunnel {tunnelHealthy ? '외부 health 정상' : '외부 health 확인 필요'}</span>

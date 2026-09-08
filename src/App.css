@@ -4823,6 +4823,45 @@ button.content-status-button {
     background: #f8fafc;
     box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
   }
+
+  .admin-monitor-page .monitor-media-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .admin-monitor-page .monitor-media-card {
+    min-height: 176px;
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .admin-monitor-page .monitor-checklist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-top: 18px;
+  }
+
+  .admin-monitor-page .monitor-checklist > span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    background: #f8fafc;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-monitor-page .monitor-media-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
 }
 
 .menu-admin-table {
