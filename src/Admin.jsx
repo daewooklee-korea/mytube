@@ -4817,7 +4817,7 @@ const toggleMenuVisible = async (menu) => {
       )}
 
       {activeTab === 'storage' && (
-        <div className="storage-admin-page">
+        <div className="storage-admin storage-admin-page">
           <section className="storage-admin-section">
             <div className="storage-admin-section-header">
               <div>
