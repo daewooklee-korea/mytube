@@ -119,6 +119,7 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [macMiniStorage, setMacMiniStorage] = useState(null)
   const [loadingMacMiniStorage, setLoadingMacMiniStorage] = useState(false)
   const [macMiniStorageError, setMacMiniStorageError] = useState('')
+  const macMiniStorageRequestRef = useRef({ inFlight: false, generation: 0 })
   const [macMiniSystemStatus, setMacMiniSystemStatus] = useState(null)
   const [macMiniSystemError, setMacMiniSystemError] = useState('')
   const [loadingMacMiniSystem, setLoadingMacMiniSystem] = useState(false)
@@ -354,8 +355,15 @@ const [savingMenu, setSavingMenu] = useState(false)
 
   useEffect(() => {
     if (activeTab !== 'storage') return
+    const generation = macMiniStorageRequestRef.current.generation + 1
+    macMiniStorageRequestRef.current.generation = generation
     loadStoragePolicies()
-    loadMacMiniStorage()
+    loadMacMiniStorage(generation)
+    const timer = window.setInterval(() => loadMacMiniStorage(generation), 30000)
+    return () => {
+      window.clearInterval(timer)
+      macMiniStorageRequestRef.current.generation += 1
+    }
   }, [activeTab])
 
   useEffect(() => {
@@ -532,17 +540,37 @@ const loadMenus = async () => {
     setLoadingStoragePolicies(false)
   }
 
-  const loadMacMiniStorage = async () => {
+  const loadMacMiniStorage = async (generation = macMiniStorageRequestRef.current.generation) => {
+    if (macMiniStorageRequestRef.current.inFlight) return
+    macMiniStorageRequestRef.current.inFlight = true
     setLoadingMacMiniStorage(true)
     setMacMiniStorageError('')
+    let lastError = null
     try {
-      setMacMiniStorage(await getMacMiniStorageStatus())
-    } catch (error) {
-      console.error('Mac mini 저장소 현황 불러오기 실패:', error)
-      setMacMiniStorage(null)
-      setMacMiniStorageError(error.message || 'Mac mini 저장소 현황을 불러오지 못했습니다.')
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        if (generation !== macMiniStorageRequestRef.current.generation) return
+        try {
+          const data = await getMacMiniStorageStatus()
+          if (generation !== macMiniStorageRequestRef.current.generation) return
+          setMacMiniStorage(data)
+          setMacMiniStorageError('')
+          return
+        } catch (error) {
+          lastError = error
+          if (attempt < 3) {
+            await new Promise((resolve) => window.setTimeout(resolve, attempt * 1000))
+          }
+        }
+      }
+      if (generation === macMiniStorageRequestRef.current.generation) {
+        console.error('Mac mini 저장소 현황 불러오기 실패:', lastError)
+        setMacMiniStorageError(lastError?.message || 'Mac mini 저장소 현황을 불러오지 못했습니다.')
+      }
     } finally {
-      setLoadingMacMiniStorage(false)
+      macMiniStorageRequestRef.current.inFlight = false
+      if (generation === macMiniStorageRequestRef.current.generation) {
+        setLoadingMacMiniStorage(false)
+      }
     }
   }
 
