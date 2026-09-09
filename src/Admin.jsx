@@ -132,6 +132,9 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [macMiniSystemCheckedAt, setMacMiniSystemCheckedAt] = useState(null)
   const [macMiniSystemLog, setMacMiniSystemLog] = useState([])
   const [macMiniDiagnosis, setMacMiniDiagnosis] = useState(null)
+  const [macMiniDiagnosisLoading, setMacMiniDiagnosisLoading] = useState(false)
+  const [macMiniDiagnosisCheckedAt, setMacMiniDiagnosisCheckedAt] = useState(null)
+  const [macMiniDiagnosisError, setMacMiniDiagnosisError] = useState('')
   const [macMiniRecoveryJob, setMacMiniRecoveryJob] = useState(null)
   const [macMiniRecoveryError, setMacMiniRecoveryError] = useState('')
   const [contentSearchText, setContentSearchText] = useState('')
@@ -603,11 +606,19 @@ const loadMenus = async () => {
   }
 
   const loadMacMiniDiagnosis = async () => {
+    if (macMiniDiagnosisLoading) return
+    setMacMiniDiagnosisLoading(true)
+    setMacMiniDiagnosisError('')
     try {
-      setMacMiniDiagnosis(await getMacMiniDiagnosis())
+      const data = await getMacMiniDiagnosis()
+      setMacMiniDiagnosis(data)
+      setMacMiniDiagnosisCheckedAt(new Date().toISOString())
       setMacMiniRecoveryError('')
+      getMacMiniSystemStatus().then(setMacMiniSystemStatus).catch(() => {})
     } catch (error) {
-      setMacMiniRecoveryError(error.message || '진단을 불러오지 못했습니다.')
+      setMacMiniDiagnosisError(error.message || '진단을 불러오지 못했습니다.')
+    } finally {
+      setMacMiniDiagnosisLoading(false)
     }
   }
 
@@ -4919,9 +4930,23 @@ const toggleMenuVisible = async (menu) => {
                 <p className={lastError ? 'storage-admin-error' : 'storage-admin-note'}>{lastError ? `최근 오류: ${lastError}` : 'No recent errors'}</p>
                 <section className="monitor-recovery-panel">
                   <div className="storage-admin-section-header"><div><h3>연결 복구</h3><p>현재 상태를 진단하고 필요한 항목만 안전하게 복구합니다.</p></div></div>
-                  {macMiniDiagnosis?.checks && <div className="monitor-diagnosis-grid">{Object.entries(macMiniDiagnosis.checks).map(([name, check]) => <span key={name} className={`monitor-diagnosis-item ${check.status === 'healthy' || check.status === 'synced' || check.status === 'ready' ? 'ok' : 'warn'}`}>{name}: {check.status}</span>)}</div>}
+                  <div className="monitor-diagnosis-grid" aria-live="polite">
+                    {macMiniDiagnosisLoading ? (
+                      ['media_server', 'system_dns', 'tunnel', 'browser_ready', 'vercel_sync', 'production'].map((name) => <span key={name} className="monitor-diagnosis-item pending">{({ media_server: 'Media Server', system_dns: 'System DNS', tunnel: 'Quick Tunnel', browser_ready: 'Browser Ready', vercel_sync: 'Vercel Sync', production: 'Production' })[name]}: 확인 중...</span>)
+                    ) : macMiniDiagnosis?.checks ? (
+                      Object.entries(macMiniDiagnosis.checks).filter(([name]) => name !== 'edge_reachable').map(([name, check]) => {
+                        const labels = { media_server: 'Media Server', system_dns: 'System DNS', tunnel: 'Quick Tunnel', browser_ready: 'Browser Ready', vercel_sync: 'Vercel Sync', production: 'Production' }
+                        const good = ['healthy', 'synced', 'ready'].includes(check.status)
+                        const value = check.status === 'healthy' ? '정상' : check.status === 'synced' ? '동기화됨' : check.status === 'ready' ? '정상' : check.status === 'blocked' ? '차단됨' : '실패'
+                        return <span key={name} className={`monitor-diagnosis-item ${good ? 'ok' : 'warn'}`}>{good ? '✓' : '✕'} {labels[name] || name}: {value}</span>
+                      })
+                    ) : <span className="monitor-diagnosis-item pending">진단을 실행하면 상태가 표시됩니다.</span>}
+                  </div>
+                  {macMiniDiagnosisCheckedAt && !macMiniDiagnosisLoading && <p className="monitor-diagnosis-time">마지막 진단: {new Date(macMiniDiagnosisCheckedAt).toLocaleString('ko-KR')}</p>}
+                  {macMiniDiagnosis?.recommended_action && !macMiniDiagnosisLoading && <p className="storage-admin-note">권장 조치: {macMiniDiagnosis.recommended_action}</p>}
+                  {macMiniDiagnosisError && <p className="storage-admin-error" role="alert">진단 실패 · {macMiniDiagnosisError}</p>}
                   <div className="monitor-recovery-actions">
-                    <button type="button" className="approve-button" onClick={loadMacMiniDiagnosis}>연결 진단</button>
+                    <button type="button" className="approve-button" onClick={loadMacMiniDiagnosis} disabled={macMiniDiagnosisLoading}>{macMiniDiagnosisLoading ? '진단 중...' : '연결 진단'}</button>
                     <button type="button" className="approve-button" onClick={startMacMiniRecovery} disabled={macMiniRecoveryJob?.status === 'running'}>{macMiniRecoveryJob?.status === 'running' ? '자동 복구 중...' : '자동 복구'}</button>
                   </div>
                   <div className="monitor-recovery-advanced">

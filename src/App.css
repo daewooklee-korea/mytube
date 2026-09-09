@@ -5602,6 +5602,8 @@ button.content-status-button {
 
 .monitor-diagnosis-item.ok { background: #ecfdf3; color: #047857; }
 .monitor-diagnosis-item.warn { background: #fff7ed; color: #c2410c; }
+.monitor-diagnosis-item.pending { background: #f3f4f6; color: #6b7280; }
+.monitor-diagnosis-time { margin: 12px 0 0; color: #6b7280; font-size: 0.86rem; }
 
 .monitor-recovery-advanced { margin-top: 20px; }
 .monitor-recovery-progress { margin-top: 16px; display: grid; gap: 6px; color: #4b5563; }
