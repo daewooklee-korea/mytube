@@ -5,9 +5,15 @@ import {
   convertMacMiniVideo,
   formatConversionDuration,
   getMacMiniConversionStatus,
+  getMacMiniDiagnosis,
+  getMacMiniRecoveryStatus,
   getMacMiniStorageStatus,
   getMacMiniSystemStatus,
   getMacMiniVideos,
+  restartMacMiniMediaServer,
+  restartMacMiniTunnel,
+  resyncMacMiniVercel,
+  startMacMiniAutoRecovery,
 } from './macMiniMedia'
 
 let lyricsEditorLineId = 0
@@ -125,6 +131,9 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [loadingMacMiniSystem, setLoadingMacMiniSystem] = useState(false)
   const [macMiniSystemCheckedAt, setMacMiniSystemCheckedAt] = useState(null)
   const [macMiniSystemLog, setMacMiniSystemLog] = useState([])
+  const [macMiniDiagnosis, setMacMiniDiagnosis] = useState(null)
+  const [macMiniRecoveryJob, setMacMiniRecoveryJob] = useState(null)
+  const [macMiniRecoveryError, setMacMiniRecoveryError] = useState('')
   const [contentSearchText, setContentSearchText] = useState('')
   const [contentStatusFilter, setContentStatusFilter] = useState('all')
   const [contentMediaTypeFilter, setContentMediaTypeFilter] = useState('all')
@@ -378,6 +387,7 @@ const [savingMenu, setSavingMenu] = useState(false)
           const data = await getMacMiniSystemStatus()
           if (!disposed) {
             setMacMiniSystemStatus(data)
+            getMacMiniDiagnosis().then(setMacMiniDiagnosis).catch(() => {})
             setMacMiniSystemError('')
             setMacMiniSystemCheckedAt(checkedAt)
             setMacMiniSystemLog((previous) => [`${checkedAt} 상태 확인 성공 (시도 ${attempt}/3)`, ...previous].slice(0, 8))
@@ -400,6 +410,24 @@ const [savingMenu, setSavingMenu] = useState(false)
     const timer = window.setInterval(load, 30000)
     return () => { disposed = true; window.clearInterval(timer) }
   }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab !== 'monitor' || !macMiniRecoveryJob?.job_id || macMiniRecoveryJob.status !== 'running') return undefined
+    let disposed = false
+    const poll = async () => {
+      try {
+        const status = await getMacMiniRecoveryStatus(macMiniRecoveryJob.job_id)
+        if (disposed) return
+        setMacMiniRecoveryJob(status)
+        if (status.status === 'running') window.setTimeout(poll, 2000)
+        else getMacMiniSystemStatus().then(setMacMiniSystemStatus).catch(() => {})
+      } catch (error) {
+        if (!disposed) setMacMiniRecoveryError(error.message || '복구 상태를 확인하지 못했습니다.')
+      }
+    }
+    poll()
+    return () => { disposed = true }
+  }, [activeTab, macMiniRecoveryJob?.job_id, macMiniRecoveryJob?.status])
 
   // =========================
   // 회원 목록
@@ -571,6 +599,37 @@ const loadMenus = async () => {
       if (generation === macMiniStorageRequestRef.current.generation) {
         setLoadingMacMiniStorage(false)
       }
+    }
+  }
+
+  const loadMacMiniDiagnosis = async () => {
+    try {
+      setMacMiniDiagnosis(await getMacMiniDiagnosis())
+      setMacMiniRecoveryError('')
+    } catch (error) {
+      setMacMiniRecoveryError(error.message || '진단을 불러오지 못했습니다.')
+    }
+  }
+
+  const startMacMiniRecovery = async () => {
+    if (!window.confirm('현재 상태를 분석해 필요한 항목만 복구합니다. 계속할까요?')) return
+    setMacMiniRecoveryError('')
+    try {
+      setMacMiniRecoveryJob(await startMacMiniAutoRecovery())
+    } catch (error) {
+      setMacMiniRecoveryError(error.message || '자동 복구를 시작하지 못했습니다.')
+    }
+  }
+
+  const runMacMiniAction = async (action, message) => {
+    if (!window.confirm(message)) return
+    setMacMiniRecoveryError('')
+    try {
+      const result = await action()
+      setMacMiniRecoveryError(result.status === 'blocked' ? '현재 상태에서는 실행할 수 없습니다.' : '')
+      window.setTimeout(loadMacMiniDiagnosis, 1500)
+    } catch (error) {
+      setMacMiniRecoveryError(error.message || '복구 작업을 실행하지 못했습니다.')
     }
   }
 
@@ -4858,6 +4917,26 @@ const toggleMenuVisible = async (menu) => {
                 </div>
                 <div className="monitor-log-panel"><strong>최근 점검 로그</strong>{macMiniSystemLog.length ? macMiniSystemLog.map((entry) => <div key={entry}>{entry}</div>) : <div>아직 점검 기록이 없습니다.</div>}</div>
                 <p className={lastError ? 'storage-admin-error' : 'storage-admin-note'}>{lastError ? `최근 오류: ${lastError}` : 'No recent errors'}</p>
+                <section className="monitor-recovery-panel">
+                  <div className="storage-admin-section-header"><div><h3>연결 복구</h3><p>현재 상태를 진단하고 필요한 항목만 안전하게 복구합니다.</p></div></div>
+                  {macMiniDiagnosis?.checks && <div className="monitor-diagnosis-grid">{Object.entries(macMiniDiagnosis.checks).map(([name, check]) => <span key={name} className={`monitor-diagnosis-item ${check.status === 'healthy' || check.status === 'synced' || check.status === 'ready' ? 'ok' : 'warn'}`}>{name}: {check.status}</span>)}</div>}
+                  <div className="monitor-recovery-actions">
+                    <button type="button" className="approve-button" onClick={loadMacMiniDiagnosis}>연결 진단</button>
+                    <button type="button" className="approve-button" onClick={startMacMiniRecovery} disabled={macMiniRecoveryJob?.status === 'running'}>{macMiniRecoveryJob?.status === 'running' ? '자동 복구 중...' : '자동 복구'}</button>
+                  </div>
+                  <div className="monitor-recovery-advanced">
+                    <strong>고급 복구</strong>
+                    <div className="monitor-recovery-actions">
+                      <button type="button" className="reject-button" onClick={() => runMacMiniAction(restartMacMiniMediaServer, '미디어 서버를 재시작하면 잠시 재생이 중단될 수 있습니다. 계속할까요?')}>미디어 서버 재시작</button>
+                      <button type="button" className="reject-button" onClick={() => runMacMiniAction(restartMacMiniTunnel, 'Tunnel을 재생성하면 잠시 외부 연결이 끊길 수 있습니다. 계속할까요?')}>Tunnel 재생성</button>
+                      <button type="button" className="reject-button" onClick={() => runMacMiniAction(resyncMacMiniVercel, '현재 browser-ready 상태에서 Vercel을 재동기화합니다. 계속할까요?')}>Vercel 재동기화</button>
+                    </div>
+                  </div>
+                  {macMiniRecoveryJob?.status === 'running' && <div className="monitor-recovery-progress">{macMiniRecoveryJob.steps?.map((step) => <div key={step.name}>{step.status === 'success' ? '✓' : step.status === 'running' ? '●' : '○'} {step.name}</div>)}</div>}
+                  {macMiniRecoveryJob?.status === 'success' && <p className="storage-admin-success">연결 복구 완료</p>}
+                  {macMiniRecoveryJob?.status === 'failed' && <p className="storage-admin-error">자동 복구 실패 · {macMiniRecoveryJob.safe_message || '상태를 다시 확인해주세요.'}<br />{macMiniRecoveryJob.recommended_action || ''}</p>}
+                  {macMiniRecoveryError && <p className="storage-admin-error" role="alert">{macMiniRecoveryError}</p>}
+                </section>
               </>
             })()}
           </section>

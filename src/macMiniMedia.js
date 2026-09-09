@@ -11,6 +11,30 @@ const getApiUrl = (path) => {
   return `${baseUrl}${path}`
 }
 
+const authenticatedJsonRequest = async (path, options = {}) => {
+  const { data: { session } = {} } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    const error = new Error('로그인이 필요합니다.')
+    error.status = 401
+    throw error
+  }
+  const response = await fetch(getApiUrl(path), {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    const error = new Error(payload.error || `Mac mini 시스템 API 오류 (${response.status})`)
+    error.status = response.status
+    throw error
+  }
+  return payload
+}
+
 export const formatConversionDuration = (seconds) => {
   const value = Number(seconds)
   if (!Number.isFinite(value) || value < 0) return null
@@ -59,6 +83,24 @@ export const getMacMiniSystemStatus = async (signal) => {
   }
   return payload
 }
+
+export const getMacMiniDiagnosis = (signal) =>
+  authenticatedJsonRequest('/api/system/diagnose', { signal })
+
+export const restartMacMiniMediaServer = () =>
+  authenticatedJsonRequest('/api/system/restart-media-server', { method: 'POST' })
+
+export const restartMacMiniTunnel = () =>
+  authenticatedJsonRequest('/api/system/restart-tunnel', { method: 'POST' })
+
+export const resyncMacMiniVercel = () =>
+  authenticatedJsonRequest('/api/system/resync-vercel', { method: 'POST' })
+
+export const startMacMiniAutoRecovery = () =>
+  authenticatedJsonRequest('/api/system/auto-recover', { method: 'POST' })
+
+export const getMacMiniRecoveryStatus = (jobId, signal) =>
+  authenticatedJsonRequest(`/api/system/recovery-status?job_id=${encodeURIComponent(String(jobId ?? ''))}`, { signal })
 
 export const convertMacMiniVideo = async (relativePath, signal) => {
   const { data: { session } = {} } = await supabase.auth.getSession()

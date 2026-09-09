@@ -5572,3 +5572,41 @@ button.content-status-button {
     display: flex;
   }
 }
+.monitor-recovery-panel {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.monitor-diagnosis-grid,
+.monitor-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.monitor-diagnosis-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 0.86rem;
+}
+
+.monitor-diagnosis-item.ok { background: #ecfdf3; color: #047857; }
+.monitor-diagnosis-item.warn { background: #fff7ed; color: #c2410c; }
+
+.monitor-recovery-advanced { margin-top: 20px; }
+.monitor-recovery-progress { margin-top: 16px; display: grid; gap: 6px; color: #4b5563; }
+
+@media (max-width: 768px) {
+  .monitor-recovery-panel { padding: 16px; }
+  .monitor-recovery-actions > button { flex: 1 1 100%; }
+}
