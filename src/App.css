@@ -5568,7 +5568,7 @@ button.content-status-button {
     display: grid;
   }
 
-  .home-header .mobile-bottom-nav {
+  .app > .mobile-bottom-nav {
     display: flex;
   }
 }

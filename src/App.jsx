@@ -7,6 +7,9 @@ import { supabase } from './supabase'
 import Admin from './Admin'
 import SunoReservation from './SunoReservation'
 import PlayMeBrand from './PlayMeBrand'
+import EducationPage from './components/education/EducationPage'
+import StudyHub from './components/education/StudyHub'
+import { getEducationCourse, isStudyMenu } from './components/education/educationCourses'
 import {
   disableAdminPush,
   enableAdminPush,
@@ -68,6 +71,7 @@ const [notificationActionPending, setNotificationActionPending] = useState(false
 const [pushStatus, setPushStatus] = useState('permission')
 const [pushActionPending, setPushActionPending] = useState(false)
   const navigationHistoryRef = useRef([])
+  const initialEducationPathRef = useRef(window.location.pathname)
     const [playMode, setPlayMode] = useState(() => {
     return (
       localStorage.getItem('playMode') ||
@@ -688,6 +692,19 @@ console.log('메뉴 조회 결과:', { data, error })
   }
 
   setMenus(data ?? [])
+  // Resolve education deep links only against menus allowed for this user.
+  const initialPath = initialEducationPathRef.current
+  initialEducationPathRef.current = null
+  const initialMenu = (data ?? []).find((menu) => menu.route === initialPath)
+  const initialParent = (data ?? []).find((menu) => menu.id === initialMenu?.parent_id)
+  if (isStudyMenu(initialMenu)) {
+    setSelectedMenu(initialMenu)
+    setCurrentRoute(initialMenu.route)
+  } else if (getEducationCourse(initialPath) && isStudyMenu(initialParent)) {
+    setSelectedMenu(initialParent)
+    setSelectedSubMenu(initialMenu)
+    setCurrentRoute(initialPath)
+  }
   setLoadingMenus(false)
 }
   const loadVideos = async () => {
@@ -1516,7 +1533,14 @@ if (historyError) {
     setSelectedSubMenu(null)
     setCurrentRoute(menu.route || '/')
     setShowProfileMenu(false)
-    window.history.pushState({}, '')
+    window.history.pushState({}, '', menu.route || '/')
+  }
+
+  const navigateToSubMenu = (menu) => {
+    navigationHistoryRef.current.push({ currentRoute, selectedMenu, selectedSubMenu, selectedPlaylist })
+    setSelectedSubMenu(menu.name === 'All' || menu.name === 'Playlist' ? null : menu)
+    setCurrentRoute(menu.route || '/')
+    window.history.pushState({}, '', menu.route || '/')
   }
 
   // =========================
@@ -2466,23 +2490,7 @@ if (playMode === 'single') {
               ? 'selected'
               : ''
           }`}
-          onClick={() => {
-  navigationHistoryRef.current.push({
-    currentRoute,
-    selectedMenu,
-    selectedSubMenu,
-    selectedPlaylist,
-  })
-
-  setSelectedSubMenu(
-    menu.name === 'All' || menu.name === 'Playlist'
-      ? null
-      : menu
-  )
-  setCurrentRoute(menu.route || '/')
-  window.history.pushState({}, '')
-  console.log('하위 메뉴 선택:', menu)
-}}
+          onClick={() => navigateToSubMenu(menu)}
         >
           {menu.name}
         </button>
@@ -2497,7 +2505,9 @@ if (playMode === 'single') {
 
           <main className="content">
 
-{currentRoute === '/suno-reservation' ? (
+{getEducationCourse(currentRoute) && isStudyMenu(selectedMenu) && selectedSubMenu?.route === currentRoute ? (
+  <EducationPage route={currentRoute} />
+) : currentRoute === '/suno-reservation' ? (
   <SunoReservation />
 ) : currentRoute === '/library/playlist-detail' ? (
   <div className="playlist-detail-page">
@@ -2816,6 +2826,13 @@ if (playMode === 'single') {
     )}
   </div>
 ) : (
+            <>
+            {isStudyMenu(selectedMenu) && currentRoute === selectedMenu.route && (
+              <StudyHub
+                menus={menus.filter((menu) => menu.level === 2 && menu.parent_id === selectedMenu.id).sort((a, b) => a.sort_order - b.sort_order)}
+                onOpen={navigateToSubMenu}
+              />
+            )}
             <div className={`video-grid ${currentRoute === '/music' ? 'music-video-grid' : ''}`}>
 
               {displayedVideos.map(
@@ -2883,6 +2900,7 @@ if (playMode === 'single') {
               )}
 
             </div>
+            </>
           )}
           </main>
 
