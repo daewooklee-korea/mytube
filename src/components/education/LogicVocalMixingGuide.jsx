@@ -19,6 +19,33 @@ const bands = [
   { range: '6–16kHz', name: 'Air', width: '가장 넓게 사용 가능', reverb: 'Reverb / Stereo Delay', detail: '공기감과 반짝임을 더하는 영역입니다. 잔향과 딜레이를 넓게 펼쳐보세요.', tip: '고역도 과하면 피곤해집니다. Mono로 합쳤을 때 소리가 약해지는지도 확인하세요.', size: 92 },
 ]
 const lessons = ['보컬 믹싱 전체 흐름', 'Side Chain', '주파수별 공간감']
+const sampleTracks = [
+  {
+    title: '01 · 원본 녹음',
+    file: '/audio/logic-vocal-mixing/logic-vocal-dry.wav',
+    description: '이펙터를 걸기 전 목소리입니다. 이후 샘플과 톤, 공간감, 음량 변화를 비교해보세요.',
+  },
+  {
+    title: '02 · Channel EQ',
+    file: '/audio/logic-vocal-mixing/02-logic-channel-eq.wav',
+    description: 'Logic Pro Channel EQ의 Clear Vocals 프리셋으로 저역을 정리하고 선명도를 살린 예시입니다.',
+  },
+  {
+    title: '03 · Compressor',
+    file: '/audio/logic-vocal-mixing/03-logic-compressor.wav',
+    description: 'Logic Pro Compressor의 Natural Vocal 프리셋으로 큰 소리와 작은 소리의 차이를 다듬은 예시입니다.',
+  },
+  {
+    title: '04 · ChromaVerb',
+    file: '/audio/logic-vocal-mixing/04-logic-chromaverb.wav',
+    description: 'Logic Pro ChromaVerb Room 타입으로 보컬 뒤에 짧은 공간감을 더한 예시입니다.',
+  },
+  {
+    title: '05 · Stereo Delay',
+    file: '/audio/logic-vocal-mixing/05-logic-stereo-delay.wav',
+    description: 'Logic Pro Stereo Delay 기본 설정으로 좌우 반복감을 만든 예시입니다.',
+  },
+]
 
 function SignalChain({ items }) {
   return <ol className="edu-chain">{items.map((item, index) => <li key={item}><span>{item}</span>{index < items.length - 1 && <b aria-hidden="true">→</b>}</li>)}</ol>
@@ -30,6 +57,12 @@ export default function LogicVocalMixingGuide() {
   const [bandIndex, setBandIndex] = useState(0)
   const band = bands[bandIndex]
   const course = educationCourses.find((item) => item.route === '/study/logic-vocal-mixing')
+
+  const handleSamplePlay = (event) => {
+    document.querySelectorAll('.edu-sample audio').forEach((audio) => {
+      if (audio !== event.currentTarget) audio.pause()
+    })
+  }
 
   const handleLessonKey = (event) => {
     let next
@@ -51,6 +84,23 @@ export default function LogicVocalMixingGuide() {
         <p>{course.description}</p>
         <span className="edu-tag">3 LESSONS</span><span className="edu-tag">기본 이펙터로 시작하기</span>
       </header>
+      <section className="edu-section edu-samples" aria-labelledby="edu-samples">
+        <span className="edu-eyebrow">LISTEN FIRST</span>
+        <h2 id="edu-samples">직접 녹음한 보컬 샘플</h2>
+        <p>같은 녹음에 Logic Pro 기본 이펙터를 하나씩 적용한 비교 샘플입니다. 작은 볼륨에서 시작해 차이를 들어보세요.</p>
+        <div className="edu-sample-list">
+          {sampleTracks.map((sample) => (
+            <div className="edu-detail edu-sample" key={sample.file}>
+              <h3>{sample.title}</h3>
+              <p>{sample.description}</p>
+              <audio controls preload="metadata" src={sample.file} onPlay={handleSamplePlay}>
+                오디오를 재생할 수 없는 브라우저입니다.
+              </audio>
+            </div>
+          ))}
+        </div>
+        <aside className="edu-tip"><strong>비교 방법</strong> 원본을 먼저 듣고, 같은 문장이 이펙터마다 어떻게 바뀌는지 들어보세요. EQ는 정리감, Compressor는 안정감, Reverb와 Delay는 공간감에 집중하면 좋습니다.</aside>
+      </section>
       <div className="edu-tabs" role="tablist" aria-label="보컬 믹싱 레슨">
         {lessons.map((title, index) => (
           <button key={title} type="button" role="tab" id={`edu-tab-${index}`} aria-controls={`edu-panel-${index}`} aria-selected={lesson === index} tabIndex={lesson === index ? 0 : -1} onClick={() => setLesson(index)} onKeyDown={handleLessonKey}>
