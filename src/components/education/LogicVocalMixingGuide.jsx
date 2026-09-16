@@ -46,6 +46,28 @@ const sampleTracks = [
     description: 'Logic Pro Stereo Delay 기본 설정으로 좌우 반복감을 만든 예시입니다.',
   },
 ]
+const newRecordingTracks = [
+  {
+    title: '01 · 새 녹음 원본',
+    file: '/audio/logic-vocal-mixing/09-new-recording-dry.wav',
+    description: '방금 Logic Pro에서 다시 녹음한 원본입니다. 아래 샘플은 이 녹음 리전에 Logic 기본 이펙터를 직접 켜서 바운스했습니다.',
+  },
+  {
+    title: '02 · EQ + Compressor',
+    file: '/audio/logic-vocal-mixing/10-new-recording-eq-compressor.wav',
+    description: 'Channel EQ와 Compressor를 켜서 저역을 정리하고 목소리의 앞뒤 움직임을 안정시킨 샘플입니다.',
+  },
+  {
+    title: '03 · EQ + Compressor + ChromaVerb',
+    file: '/audio/logic-vocal-mixing/11-new-recording-eq-compressor-chromaverb.wav',
+    description: '정리된 보컬에 ChromaVerb를 더해 뒤쪽 공간감을 만든 샘플입니다. 문장 뒤 잔향을 들어보세요.',
+  },
+  {
+    title: '04 · EQ + Compressor + Stereo Delay',
+    file: '/audio/logic-vocal-mixing/12-new-recording-eq-compressor-stereo-delay.wav',
+    description: '정리된 보컬에 Stereo Delay를 더해 좌우 반복감을 만든 샘플입니다. 원본 중앙과 딜레이의 폭을 비교해보세요.',
+  },
+]
 
 function SignalChain({ items }) {
   return <ol className="edu-chain">{items.map((item, index) => <li key={item}><span>{item}</span>{index < items.length - 1 && <b aria-hidden="true">→</b>}</li>)}</ol>
@@ -100,6 +122,23 @@ export default function LogicVocalMixingGuide() {
           ))}
         </div>
         <aside className="edu-tip"><strong>비교 방법</strong> 원본을 먼저 듣고, 같은 문장이 이펙터마다 어떻게 바뀌는지 들어보세요. EQ는 정리감, Compressor는 안정감, Reverb와 Delay는 공간감에 집중하면 좋습니다.</aside>
+      </section>
+      <section className="edu-section edu-samples" aria-labelledby="edu-new-recording-samples">
+        <span className="edu-eyebrow">NEW RECORDING</span>
+        <h2 id="edu-new-recording-samples">새 녹음으로 다시 만든 Logic 샘플</h2>
+        <p>방금 Logic Pro에서 녹음한 목소리로 만든 비교 샘플입니다. 모두 같은 리전을 Logic 기본 이펙터로 직접 처리해 바운스했습니다.</p>
+        <div className="edu-sample-list">
+          {newRecordingTracks.map((sample) => (
+            <div className="edu-detail edu-sample" key={sample.file}>
+              <h3>{sample.title}</h3>
+              <p>{sample.description}</p>
+              <audio controls preload="metadata" src={sample.file} onPlay={handleSamplePlay}>
+                오디오를 재생할 수 없는 브라우저입니다.
+              </audio>
+            </div>
+          ))}
+        </div>
+        <aside className="edu-tip"><strong>듣는 포인트</strong> 먼저 원본과 EQ + Compressor를 비교하고, 그 다음 ChromaVerb와 Stereo Delay가 보컬 주변의 공간을 어떻게 다르게 만드는지 들어보세요.</aside>
       </section>
       <div className="edu-tabs" role="tablist" aria-label="보컬 믹싱 레슨">
         {lessons.map((title, index) => (
