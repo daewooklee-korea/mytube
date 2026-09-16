@@ -46,6 +46,61 @@ const sampleTracks = [
     description: 'Logic Pro Stereo Delay 기본 설정으로 좌우 반복감을 만든 예시입니다.',
   },
 ]
+
+const proTechniqueDemos = [
+  {
+    title: '01 · 보컬 Volume Automation',
+    focus: '작은 단어는 올리고, 튀는 단어는 내려서 문장 전체가 고르게 들리게 만드는 기법입니다.',
+    script: '“처음엔 작게 말하고, 여기서는 크게 말하고, 마지막은 다시 자연스럽게 말합니다.”',
+    before: {
+      label: 'Before · 볼륨 차이가 큰 원본',
+      file: '/audio/logic-vocal-mixing/13-volume-automation-before.wav',
+      note: '볼륨 오토메이션 실습을 위해 새로 녹음한 원본입니다. 작고 큰 구간의 레벨 차이를 먼저 들어보세요.',
+    },
+    after: {
+      label: 'After · Volume Automation 적용',
+      file: '',
+      note: 'Logic에서 작은 구간은 올리고 큰 구간은 살짝 내려 바운스한 파일을 여기에 연결합니다.',
+    },
+    steps: ['Automation 보기 켜기', '트랙 파라미터를 Volume으로 선택', '작은 단어는 +2~4dB', '튀는 단어는 -2~4dB', '전체 문장이 같은 앞뒤 거리로 들리는지 확인'],
+    tip: '컴프레서가 모든 것을 해결하게 두지 말고, 먼저 손으로 큰 흐름을 정리하면 더 자연스럽습니다.',
+  },
+  {
+    title: '02 · Reverb / Delay를 Bus로 보내기',
+    focus: '원본 보컬은 중앙에 선명하게 두고, 잔향과 딜레이만 Aux Bus에서 따로 넓히는 방식입니다.',
+    script: '“보컬의 몸통은 가운데, 공기감과 잔향은 좌우로 보냅니다.”',
+    before: {
+      label: 'Before · Insert 공간계',
+      file: '',
+      note: '보컬 트랙에 Reverb나 Delay를 직접 걸어 원본까지 흐려지는 예시를 넣을 자리입니다.',
+    },
+    after: {
+      label: 'After · Bus Reverb / Delay',
+      file: '',
+      note: 'Send로 Bus에 보내고 Aux에서 Wet 100% 공간계를 만든 예시를 넣을 자리입니다.',
+    },
+    steps: ['Vocal 트랙 Send에서 Bus 1 선택', 'Aux 1에 ChromaVerb 삽입', 'Aux 1은 Wet 100%', 'Bus 2에는 Stereo Delay 삽입', 'Send 양으로 공간감을 조절'],
+    tip: 'Bus 방식은 공간감을 따로 조절할 수 있어 보컬의 선명함을 유지하기 쉽습니다.',
+  },
+  {
+    title: '03 · Delay / Reverb를 보컬 Side Chain으로 누르기',
+    focus: '보컬이 말할 때는 잔향을 살짝 줄이고, 문장 끝에서는 잔향이 다시 올라오게 만드는 프로들이 자주 쓰는 정리 방식입니다.',
+    script: '“문장 중에는 잔향이 물러나고, 말이 끝나면 공간이 뒤에서 살아납니다.”',
+    before: {
+      label: 'Before · 공간계가 계속 큰 상태',
+      file: '',
+      note: '보컬이 말하는 동안에도 Reverb / Delay가 계속 커서 가사가 흐려지는 예시를 넣을 자리입니다.',
+    },
+    after: {
+      label: 'After · Side Chain Ducking 적용',
+      file: '',
+      note: 'Reverb / Delay Aux에 Compressor를 넣고 Side Chain을 보컬로 받아 1~3dB만 눌러준 예시를 넣을 자리입니다.',
+    },
+    steps: ['Reverb / Delay Aux 뒤에 Compressor 삽입', 'Compressor Side Chain 입력을 Vocal로 선택', 'Ratio 2:1 정도로 시작', 'Gain Reduction이 1~3dB만 움직이게 Threshold 조절', '문장 끝 잔향이 자연스럽게 올라오는지 확인'],
+    tip: 'Side Chain Ducking은 티 나게 누르는 효과보다, 보컬이 말할 때 가사를 깨끗하게 비워주는 용도로 시작하세요.',
+  },
+]
+
 const newRecordingTracks = [
   {
     title: '01 · 새 녹음 원본',
@@ -139,6 +194,43 @@ export default function LogicVocalMixingGuide() {
           ))}
         </div>
         <aside className="edu-tip"><strong>듣는 포인트</strong> 먼저 원본과 EQ + Compressor를 비교하고, 그 다음 ChromaVerb와 Stereo Delay가 보컬 주변의 공간을 어떻게 다르게 만드는지 들어보세요.</aside>
+      </section>
+      <section className="edu-section edu-samples edu-pro-demos" aria-labelledby="edu-pro-technique-samples">
+        <span className="edu-eyebrow">PRO TECHNIQUE LAB</span>
+        <h2 id="edu-pro-technique-samples">프로들이 자주 쓰는 3가지 믹싱 기법</h2>
+        <p>각 기법이 잘 들리도록 따로 녹음해서 전/후를 비교하는 실습 섹션입니다. Logic에서 만든 WAV를 넣으면 해당 카드에서 바로 재생됩니다.</p>
+        <div className="edu-pro-list">
+          {proTechniqueDemos.map((demo) => (
+            <div className="edu-detail edu-pro-card" key={demo.title}>
+              <span className="edu-eyebrow">BEFORE / AFTER</span>
+              <h3>{demo.title}</h3>
+              <p>{demo.focus}</p>
+              <div className="edu-recording-script">
+                <strong>녹음 대본</strong>
+                <span>{demo.script}</span>
+              </div>
+              <div className="edu-compare-grid">
+                {[demo.before, demo.after].map((track) => (
+                  <div className="edu-compare-card" key={track.label}>
+                    <strong>{track.label}</strong>
+                    <p>{track.note}</p>
+                    {track.file ? (
+                      <audio controls preload="metadata" src={track.file} onPlay={handleSamplePlay}>
+                        오디오를 재생할 수 없는 브라우저입니다.
+                      </audio>
+                    ) : (
+                      <span className="edu-pending-audio">Logic 바운스 파일 대기 중</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <ol className="edu-practice-steps">
+                {demo.steps.map((item) => <li key={item}>{item}</li>)}
+              </ol>
+              <aside className="edu-tip"><strong>실습 포인트</strong>{demo.tip}</aside>
+            </div>
+          ))}
+        </div>
       </section>
       <div className="edu-tabs" role="tablist" aria-label="보컬 믹싱 레슨">
         {lessons.map((title, index) => (
