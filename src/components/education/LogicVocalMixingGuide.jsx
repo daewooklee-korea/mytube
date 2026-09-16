@@ -59,8 +59,8 @@ const proTechniqueDemos = [
     },
     after: {
       label: 'After · Volume Automation 적용',
-      file: '',
-      note: 'Logic에서 작은 구간은 올리고 큰 구간은 살짝 내려 바운스한 파일을 여기에 연결합니다.',
+      file: '/audio/logic-vocal-mixing/14-volume-automation-after.wav',
+      note: 'Logic에서 페이더 움직임을 Latch 오토메이션으로 기록해 작은 구간은 앞으로 나오고 큰 구간은 덜 튀게 만든 바운스입니다.',
     },
     steps: ['Automation 보기 켜기', '트랙 파라미터를 Volume으로 선택', '작은 단어는 +2~4dB', '튀는 단어는 -2~4dB', '전체 문장이 같은 앞뒤 거리로 들리는지 확인'],
     tip: '컴프레서가 모든 것을 해결하게 두지 말고, 먼저 손으로 큰 흐름을 정리하면 더 자연스럽습니다.',
