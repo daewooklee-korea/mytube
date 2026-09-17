@@ -1,12 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">PlayMe</title>
+  <desc id="desc">PlayMe music note and play symbol</desc>
   <defs>
-    <linearGradient id="playme-gradient" x1="120" y1="70" x2="330" y2="445" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#f43f8f"/>
-      <stop offset="0.46" stop-color="#ff6b52"/>
-      <stop offset="1" stop-color="#8b3fd6"/>
+    <linearGradient id="playme-gradient" x1="72" y1="493" x2="447" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8A4DFF"/>
+      <stop offset="0.42" stop-color="#D836CA"/>
+      <stop offset="0.68" stop-color="#FF4D8D"/>
+      <stop offset="1" stop-color="#FF8A4D"/>
     </linearGradient>
   </defs>
-  <path fill="url(#playme-gradient)" d="M171 52c-25 0-45 20-45 45v257c-11-4-24-6-37-3-43 8-72 43-66 79 7 39 51 62 96 53 49-10 83-47 83-90V151h99c34 0 61 25 61 56s-27 56-61 56h-17c-25 0-45 20-45 45s20 45 45 45h17c85 0 151-63 151-146S386 52 301 52H171Z"/>
-  <path fill="#fff" d="M246 151c0-13 14-21 25-14l72 45c10 6 10 20 0 27l-72 45c-11 7-25-1-25-14v-89Z"/>
+  <path fill="url(#playme-gradient)" d="M348 48.4Q383.9 60.7 411.9 75.6Q439.9 90.5 456.6 108.8Q473.2 127.2 479.4 138.6Q485.5 150 489 160.5Q492.5 171 494.2 179.8Q496 188.6 496 208.7Q496 228.8 493.4 241.1Q490.7 253.4 487.2 263Q483.7 272.6 475.9 286.7Q468 300.7 451.3 318.2Q434.7 335.7 421.5 342.7Q408.4 349.7 407.5 351.5C377 367 347 383 326 389C293 397 261 376 261 333C261 309 267 295 279 283C306 268 337 251 360 237C374 229 377 215 369 204C366 200 362 197 357 194L254 136C235 125 212 139 212 159L212.2 268.3Q212.2 391.8 209.6 404.9Q206.9 418 197.3 435.6Q187.7 453.1 171.9 467.1Q156.1 481.1 136 488.1Q115.9 495.1 95.7 494.2Q75.6 493.4 62.4 487.2Q49.3 481.1 37.9 468.8Q26.5 456.6 21.3 440.8Q16 425.1 16.9 412.8Q17.8 400.5 25.6 384.8Q33.5 369 43.2 360.2Q52.8 351.5 65.9 345.3Q79.1 339.2 96.6 337.5Q108.8 336.2 114.1 335.7L115.9 95.7C115.9 61 137 33 174 23C219 9 271 20 348 48.4Z"/>
 </svg>
