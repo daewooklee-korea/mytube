@@ -25,6 +25,7 @@ const menuIcons = {
   'book-open': '▤',
   playground: '✦',
   library: '▣',
+  webtoon: '▤',
 }
 
 function App() {
@@ -692,12 +693,16 @@ console.log('메뉴 조회 결과:', { data, error })
   }
 
   setMenus(data ?? [])
-  // Resolve education deep links only against menus allowed for this user.
+  // Resolve deep links only against menus allowed for this user.
   const initialPath = initialEducationPathRef.current
   initialEducationPathRef.current = null
   const initialMenu = (data ?? []).find((menu) => menu.route === initialPath)
   const initialParent = (data ?? []).find((menu) => menu.id === initialMenu?.parent_id)
-  if (isStudyMenu(initialMenu)) {
+  if (initialMenu?.route === '/webtoon' || initialParent?.route === '/webtoon') {
+    setSelectedMenu(initialParent || initialMenu)
+    setSelectedSubMenu(initialParent ? initialMenu : null)
+    setCurrentRoute(initialPath)
+  } else if (isStudyMenu(initialMenu)) {
     setSelectedMenu(initialMenu)
     setCurrentRoute(initialMenu.route)
   } else if (getEducationCourse(initialPath) && isStudyMenu(initialParent)) {
@@ -780,6 +785,7 @@ console.log('메뉴 조회 결과:', { data, error })
 
         video: resolveMediaUrl(video),
         thumbnail: video.thumbnail_url,
+        imagePages: video.image_pages ?? [],
 
         likeCount:
           likeCounts[video.id] ?? 0,
@@ -939,6 +945,7 @@ const loadPlaylistItems = async (playlistId) => {
         time: formatTime(video.created_at),
         video: resolveMediaUrl(video),
         thumbnail: video.thumbnail_url,
+        imagePages: video.image_pages ?? [],
         likeCount: 0,
         isFavorite: false,
         uploaderNickname: '알 수 없음',
@@ -1177,6 +1184,7 @@ useEffect(() => {
       ...video,
       video: resolvedVideo,
       mediaType: video.mediaType ?? video.media_type ?? 'video',
+      imagePages: video.imagePages ?? video.image_pages ?? [],
       thumbnail: video.thumbnail ?? video.thumbnail_url,
     }
   }
@@ -1579,7 +1587,9 @@ if (historyError) {
       video.menuId === selectedSubMenu.id
 
     const matchesMediaType =
-      currentRoute === '/music'
+      currentRoute.startsWith('/webtoon')
+        ? video.imagePages?.length > 0
+        : currentRoute === '/music'
         ? video.mediaType === 'audio'
         : currentRoute === '/video'
           ? video.mediaType === 'video'
@@ -1708,6 +1718,7 @@ if (playMode === 'single') {
         <Upload
           onUpload={handleUpload}
           menus={menus}
+          initialWebtoon={selectedMenu?.route === '/webtoon'}
         />
 
       ) : selectedVideo ? (
@@ -1865,9 +1876,16 @@ if (playMode === 'single') {
                 플레이어
             ========================= */}
 
-            <div className="player">
+            <div className={`player ${selectedVideo.imagePages?.length ? 'webtoon-player' : ''}`}>
 
-              {selectedVideo.mediaType ===
+              {selectedVideo.imagePages?.length > 0 ? (
+                <div className="webtoon-reader" aria-label={`${selectedVideo.title} 웹툰`}>
+                  {selectedVideo.imagePages.map((page, index) => (
+                    <img key={`${index}-${page}`} src={page} alt={`${selectedVideo.title} ${index + 1}페이지`} loading={index ? 'lazy' : 'eager'} />
+                  ))}
+                  <p>마지막 페이지입니다 · {selectedVideo.imagePages.length}페이지</p>
+                </div>
+              ) : selectedVideo.mediaType ===
               'audio' ? (
 
                 /*

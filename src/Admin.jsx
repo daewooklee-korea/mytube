@@ -2921,6 +2921,11 @@ const toggleMenuVisible = async (menu) => {
       return
     }
 
+    if (video.image_pages?.length && (editMediaFile || editMediaType !== 'image')) {
+      alert('웹툰 페이지를 변경하려면 웹툰 업로드에서 새 회차로 등록해주세요.')
+      return
+    }
+
     const currentMediaType =
       Object.hasOwn(mediaTypeOptions, video.media_type)
         ? video.media_type
@@ -4696,6 +4701,7 @@ const toggleMenuVisible = async (menu) => {
                     <label>콘텐츠 타입</label>
                     <select
                       value={editMediaType}
+                      disabled={!!editingVideo?.image_pages?.length}
                       onChange={(e) =>
                         handleEditMediaTypeChange(e.target.value)
                       }
@@ -4811,6 +4817,7 @@ const toggleMenuVisible = async (menu) => {
                     </label>
                     <input
                       key={editMediaType}
+                      disabled={!!editingVideo?.image_pages?.length}
                       type="file"
                       accept={mediaTypeOptions[editMediaType].accept}
                       onChange={(e) => {
@@ -4819,6 +4826,7 @@ const toggleMenuVisible = async (menu) => {
                         }
                       }}
                     />
+                    {editingVideo?.image_pages?.length > 0 && <p>웹툰 {editingVideo.image_pages.length}페이지 · 페이지 교체는 웹툰 업로드에서 새 회차로 등록해주세요.</p>}
                     {editMediaFile && <p>선택한 파일: {editMediaFile.name}</p>}
 
                     <label>현재 커버 이미지</label>

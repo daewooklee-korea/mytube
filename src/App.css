@@ -5612,3 +5612,20 @@ button.content-status-button {
   .monitor-recovery-panel { padding: 16px; }
   .monitor-recovery-actions > button { flex: 1 1 100%; }
 }
+
+/* Webtoon uploads and uninterrupted vertical reading, including mobile. */
+.webtoon-upload fieldset { min-width: 0; border: 0; }
+.webtoon-pages { padding: 0; list-style: none; display: grid; gap: 12px; }
+.webtoon-pages li { display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px solid #ddd; border-radius: 10px; }
+.webtoon-pages img { width: 48px; height: 72px; object-fit: cover; border-radius: 4px; }
+.webtoon-pages span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.webtoon-pages li > div { display: flex; gap: 4px; flex-wrap: wrap; }
+.webtoon-pages button { padding: 8px; min-width: 36px; }
+.player.webtoon-player:not(:has(.audio-player)) { display: block; height: auto; max-height: none; aspect-ratio: auto; overflow: visible; background: #fff; }
+.webtoon-reader { width: min(100%, 800px); margin: 0 auto; }
+.player .webtoon-reader img { display: block; width: 100%; height: auto; max-height: none; border-radius: 0; object-fit: contain; }
+.webtoon-reader p { padding: 24px 12px; text-align: center; color: #555; }
+@media (max-width: 480px) {
+  .webtoon-pages li { flex-wrap: wrap; }
+  .webtoon-pages li > div { margin-left: auto; }
+}

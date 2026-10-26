@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { supabase } from './supabase'
+import WebtoonUpload from './WebtoonUpload'
 import { parseLrc } from './lyrics'
 import {
   convertMacMiniVideo,
@@ -9,7 +10,8 @@ import {
   uploadMacMiniVideo,
 } from './macMiniMedia'
 
-function Upload({ onUpload, menus }) {
+function Upload({ onUpload, menus, initialWebtoon = false }) {
+  const [webtoonMode, setWebtoonMode] = useState(initialWebtoon)
   const [title, setTitle] = useState('')
   const [selectedMenuId, setSelectedMenuId] = useState('')
   const [selectedSubMenuId, setSelectedSubMenuId] = useState('')
@@ -339,10 +341,13 @@ const generateDefaultThumbnail = (icon, fileName) => {
     }
   }
 
+  if (webtoonMode) return <WebtoonUpload menus={menus} onUpload={onUpload} onBack={() => setWebtoonMode(false)} />
+
   return (
     <div className="upload-page">
 
       <h1>업로드</h1>
+      <button type="button" disabled={uploading} onClick={() => setWebtoonMode(true)}>▤ 웹툰 올리기</button>
 
       <div className="upload-box">
 
