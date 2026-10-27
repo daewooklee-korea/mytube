@@ -5776,7 +5776,13 @@ const toggleMenuVisible = async (menu) => {
     disabled={publicMenuPending.includes(menu.id) || savingMenu}
     title={`${menu.is_public ? '공개 중 · 클릭하면 비공개' : '비공개 · 클릭하면 공개'}${menu.is_public && parentMenu && (!parentMenu.is_public || !parentMenu.is_visible || !parentMenu.is_active) ? ' (상위 메뉴 제한으로 현재 외부 열람 불가)' : ''}`}
     onClick={() => toggleMenuPublic(menu)}>
-    <span aria-hidden="true">{menu.is_public ? '🔓' : '🔒'}</span>
+    <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+      {menu.is_public
+        ? <path d="M8 10V6a4 4 0 0 1 8 0" />
+        : <path d="M8 10V6a4 4 0 0 1 8 0v4" />}
+      <rect x="5" y="10" width="14" height="11" rx="2" />
+      <path d="M12 14v3" />
+    </svg>
   </button>
 </td>
 
