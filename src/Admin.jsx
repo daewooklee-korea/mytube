@@ -77,6 +77,7 @@ const [menuRoute, setMenuRoute] = useState('')
 const [menuIcon, setMenuIcon] = useState('')
 const [menuSortOrder, setMenuSortOrder] = useState(0)
 const [menuVisible, setMenuVisible] = useState(true)
+const [menuPublic, setMenuPublic] = useState(false)
 const [menuActive, setMenuActive] = useState(true)
 const [selectedMenuGroupIds, setSelectedMenuGroupIds] = useState([])
 const [savingMenu, setSavingMenu] = useState(false)
@@ -1251,6 +1252,7 @@ const loadMenus = async () => {
     setMenuIcon('')
     setMenuSortOrder(0)
     setMenuVisible(true)
+    setMenuPublic(false)
     setMenuActive(true)
     setSelectedMenuGroupIds([])
   }
@@ -1263,6 +1265,7 @@ const loadMenus = async () => {
     setMenuIcon('')
     setMenuSortOrder(0)
     setMenuVisible(true)
+    setMenuPublic(false)
     setMenuActive(true)
     setSelectedMenuGroupIds([])
     setShowMenuForm(true)
@@ -1276,6 +1279,7 @@ const loadMenus = async () => {
   setMenuIcon(menu.icon ?? '')
   setMenuSortOrder(menu.sort_order ?? 0)
   setMenuVisible(menu.is_visible ?? true)
+  setMenuPublic(menu.is_public ?? false)
   setMenuActive(menu.is_active ?? true)
 
   const { data: menuGroups, error } = await supabase
@@ -1342,6 +1346,7 @@ const loadMenus = async () => {
           : null,
         sort_order: sortOrder,
         is_visible: menuVisible,
+        is_public: menuPublic,
         is_active: menuActive,
         updated_at: new Date().toISOString(),
       }
@@ -5605,6 +5610,11 @@ const toggleMenuVisible = async (menu) => {
                   />
                   {' '}메뉴 활성
                 </label>
+                <label>
+                  <input type="checkbox" checked={menuPublic} onChange={(event) => setMenuPublic(event.target.checked)} /> 로그인 없이 공개
+                </label>
+                <p style={{ fontSize: '13px', color: '#666' }}>공개하면 이 메뉴에 등록된 활성 콘텐츠를 누구나 열람할 수 있습니다. 하위 메뉴도 각각 공개해야 하며, 상위 메뉴가 비공개·숨김·비활성이면 하위 메뉴도 공개되지 않습니다. 작성·수정 권한은 기존 설정을 유지합니다.</p>
+
 
                 <div
                   style={{
@@ -5646,6 +5656,7 @@ const toggleMenuVisible = async (menu) => {
     <th>레벨</th>
     <th>순서</th>
     <th>표시</th>
+    <th>공개 여부</th>
     <th>상태</th>
     <th>작업</th>
   </tr>
@@ -5732,6 +5743,7 @@ const toggleMenuVisible = async (menu) => {
       : '숨김'}
   </button>
 </td>
+<td>{menu.is_public ? '🌐 공개' : '🔒 로그인 필요'}{menu.is_public && parentMenu && (!parentMenu.is_public || !parentMenu.is_visible || !parentMenu.is_active) && <small style={{display: 'block'}}>상위 메뉴 제한 중</small>}</td>
 
                      <td>
   <button

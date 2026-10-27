@@ -1,6 +1,8 @@
 {
   "rewrites": [
-    { "source": "/webtoon", "destination": "/index.html" },
-    { "source": "/webtoon/:path*", "destination": "/index.html" }
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
+    }
   ]
 }

@@ -4,6 +4,7 @@ import { contentShareUrl, shareContent } from './contentShare'
 import './App.css'
 import Upload from './Upload'
 import Login from './Login'
+import PublicBrowse from './PublicBrowse'
 import { supabase } from './supabase'
 import Admin from './Admin'
 import SunoReservation from './SunoReservation'
@@ -31,6 +32,7 @@ const menuIcons = {
 
 function App() {
   const [user, setUser] = useState(null)
+  const [showGuestLogin, setShowGuestLogin] = useState(false)
   const [profile, setProfile] = useState(null)
   const [showAdmin, setShowAdmin] = useState(false)
 
@@ -674,13 +676,13 @@ const loadMenus = async () => {
       sort_order,
       is_visible,
       is_active,
-      menu_permissions!inner (
+      is_public,
+      menu_permissions (
         role
       )
     `)
     .eq('is_active', true)
     .eq('is_visible', true)
-    .eq('menu_permissions.role', profile.role)
     .order('level', { ascending: true })
     .order('sort_order', { ascending: true })
 
@@ -694,12 +696,13 @@ console.log('메뉴 조회 결과:', { data, error })
     return
   }
 
-  setMenus(data ?? [])
+  const permittedMenus = (data ?? []).filter((menu) => menu.is_public || menu.menu_permissions?.some((permission) => permission.role === profile.role))
+  setMenus(permittedMenus)
   // Resolve deep links only against menus allowed for this user.
   const initialPath = initialEducationPathRef.current
   initialEducationPathRef.current = null
-  const initialMenu = (data ?? []).find((menu) => menu.route === initialPath)
-  const initialParent = (data ?? []).find((menu) => menu.id === initialMenu?.parent_id)
+  const initialMenu = permittedMenus.find((menu) => menu.route === initialPath)
+  const initialParent = permittedMenus.find((menu) => menu.id === initialMenu?.parent_id)
   if (initialMenu?.route === '/webtoon' || initialParent?.route === '/webtoon') {
     setSelectedMenu(initialParent || initialMenu)
     setSelectedSubMenu(initialParent ? initialMenu : null)
@@ -1597,7 +1600,7 @@ if (historyError) {
     return (
       <>
         {installBanner}
-        <Login onLogin={() => { checkUser() }} />
+        {showGuestLogin ? <><button type="button" className="back-button" onClick={() => setShowGuestLogin(false)}>← 공개 메뉴 둘러보기</button><Login onLogin={() => { checkUser() }} /></> : <PublicBrowse onLogin={() => { pendingContentRef.current = new URLSearchParams(window.location.search).get('content'); initialEducationPathRef.current = window.location.pathname; setShowGuestLogin(true) }} />}
       </>
     )
   }
