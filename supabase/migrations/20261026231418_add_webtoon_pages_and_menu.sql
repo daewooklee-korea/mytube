@@ -1,5 +1,6 @@
 -- Webtoons are image content: reuse videos RLS and the image storage policy.
--- No existing content, storage objects, grants, or RLS policies are changed.
+-- Existing content and policies are preserved. New cleanup policies are scoped
+-- to the authenticated owner of objects under their own webtoons folder.
 BEGIN;
 ALTER TABLE public.videos ADD COLUMN IF NOT EXISTS image_pages jsonb NOT NULL DEFAULT '[]'::jsonb;
 ALTER TABLE public.videos ADD CONSTRAINT videos_image_pages_check CHECK (
@@ -8,6 +9,19 @@ ALTER TABLE public.videos ADD CONSTRAINT videos_image_pages_check CHECK (
   AND NOT jsonb_path_exists(image_pages, '$[*] ? (@.type() != "string")')
   AND (image_pages = '[]'::jsonb OR media_type = 'image')
 );
+
+-- Storage remove requires SELECT and DELETE. Limit both to the uploader's
+-- webtoon prefix and the owner assigned by Storage at upload time.
+CREATE POLICY "Webtoon owners can select their uploaded pages"
+ON storage.objects FOR SELECT TO authenticated
+USING (bucket_id = 'Videos' AND owner_id = (select auth.uid())::text
+  AND (storage.foldername(name))[1] = 'webtoons'
+  AND (storage.foldername(name))[2] = (select auth.uid())::text);
+CREATE POLICY "Webtoon owners can remove their uploaded pages"
+ON storage.objects FOR DELETE TO authenticated
+USING (bucket_id = 'Videos' AND owner_id = (select auth.uid())::text
+  AND (storage.foldername(name))[1] = 'webtoons'
+  AND (storage.foldername(name))[2] = (select auth.uid())::text);
 
 DO $$
 DECLARE
