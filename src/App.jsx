@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Hls from 'hls.js'
+import { contentShareUrl, shareContent } from './contentShare'
 import './App.css'
 import Upload from './Upload'
 import Login from './Login'
@@ -71,6 +72,10 @@ const [notificationTargetUserId, setNotificationTargetUserId] = useState(null)
 const [notificationActionPending, setNotificationActionPending] = useState(false)
 const [pushStatus, setPushStatus] = useState('permission')
 const [pushActionPending, setPushActionPending] = useState(false)
+  const [shareMessage, setShareMessage] = useState('')
+  const [manualShareUrl, setManualShareUrl] = useState('')
+  const sharePendingRef = useRef(false)
+  const pendingContentRef = useRef(new URLSearchParams(window.location.search).get('content'))
   const navigationHistoryRef = useRef([])
   const initialEducationPathRef = useRef(window.location.pathname)
     const [playMode, setPlayMode] = useState(() => {
@@ -318,23 +323,20 @@ const [playModeMenuOpen, setPlayModeMenuOpen] =
 const handleInstallApp = async () => {
   if (!deferredPrompt) {
     alert(
-      '현재 브라우저에서는 바로 설치할 수 없습니다.\n' +
-      'Chrome 또는 삼성 인터넷에서 PlayMe를 열어주세요.'
+      /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+        ? 'iPhone/iPad에서 설치하기\nSafari의 공유 버튼(□↑) → 홈 화면에 추가 → 추가를 눌러주세요.'
+        : '브라우저 메뉴(⋮ 또는 공유) → 앱 설치 또는 홈 화면에 추가를 선택해주세요.\n메뉴가 없다면 Chrome 또는 삼성 인터넷에서 열어주세요.'
     )
     return
   }
 
-  deferredPrompt.prompt()
-
-  const { outcome } =
+  try {
+    await deferredPrompt.prompt()
     await deferredPrompt.userChoice
-
-  console.log(
-    '앱 설치 결과:',
-    outcome
-  )
-
-  setDeferredPrompt(null)
+    setDeferredPrompt(null)
+  } catch {
+    alert('설치창을 열지 못했습니다. 브라우저 메뉴에서 홈 화면에 추가를 선택해주세요.')
+  }
 }
   const checkUser = async () => {
     const {
@@ -819,6 +821,17 @@ isFavorite:
     )
 
     setVideos(formattedVideos)
+    const contentId = pendingContentRef.current
+    if (contentId !== null) {
+      pendingContentRef.current = null
+      // Consume the link only after authentication and the RLS-filtered query succeed.
+      const cleanUrl = new URL(window.location.href)
+      cleanUrl.searchParams.delete('content')
+      window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash)
+      const content = formattedVideos.find((item) => String(item.id) === contentId)
+      if (content) handleVideoClick(content)
+      else setShareMessage('콘텐츠를 찾을 수 없거나 열람 권한이 없습니다.')
+    }
   }
 
 
@@ -1186,6 +1199,24 @@ useEffect(() => {
       mediaType: video.mediaType ?? video.media_type ?? 'video',
       imagePages: video.imagePages ?? video.image_pages ?? [],
       thumbnail: video.thumbnail ?? video.thumbnail_url,
+    }
+  }
+
+  const handleShare = async () => {
+    if (!selectedVideo || sharePendingRef.current) return
+    sharePendingRef.current = true
+    setShareMessage('')
+    setManualShareUrl('')
+    const url = contentShareUrl(window.location.origin, selectedVideo.id)
+    try {
+      const result = await shareContent(selectedVideo.title, url, navigator)
+      if (result === 'copied') setShareMessage('공유 링크를 복사했습니다.')
+      if (result === 'manual') {
+        setShareMessage('아래 링크를 길게 누르거나 선택해서 복사해주세요.')
+        setManualShareUrl(url)
+      }
+    } finally {
+      sharePendingRef.current = false
     }
   }
 
@@ -1557,11 +1588,10 @@ if (historyError) {
 
   if (!user) {
     return (
-      <Login
-        onLogin={() => {
-          checkUser()
-        }}
-      />
+      <>
+        {!isInstalled && <div className="login-install"><button type="button" className="install-button" onClick={handleInstallApp}>📱 앱 설치</button></div>}
+        <Login onLogin={() => { checkUser() }} />
+      </>
     )
   }
 
@@ -1692,6 +1722,13 @@ if (playMode === 'single') {
 
   return (
     <div className="app">
+      {shareMessage && (
+        <div className="share-feedback" role="status">
+          <span>{shareMessage}</span>
+          {manualShareUrl && <input aria-label="공유 링크" readOnly value={manualShareUrl} onFocus={(event) => event.target.select()} />}
+          <button type="button" aria-label="알림 닫기" onClick={() => { setShareMessage(''); setManualShareUrl('') }}>✕</button>
+        </div>
+      )}
 
       {/* =========================
           관리자
@@ -1729,6 +1766,7 @@ if (playMode === 'single') {
 
         <>
           <header className="header">
+            {!isInstalled && <button type="button" className="install-button" onClick={handleInstallApp}>📱 앱 설치</button>}
 
             <div
               className="logo"
@@ -1962,7 +2000,7 @@ if (playMode === 'single') {
                 {likeCount}
               </button>
 
-              <button>
+              <button type="button" onClick={handleShare}>
                 ↗ 공유
               </button>
 
@@ -2129,7 +2167,7 @@ if (playMode === 'single') {
 
   <PlayMeBrand />
 
-  <button
+  {!isInstalled && <button
     type="button"
     className="install-button"
     onClick={(e) => {
@@ -2138,7 +2176,7 @@ if (playMode === 'single') {
     }}
   >
     📱 앱 설치
-  </button>
+  </button>}
 
 </div>
 

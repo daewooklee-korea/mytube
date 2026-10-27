@@ -3751,7 +3751,6 @@ button.content-status-button {
     letter-spacing: -0.8px;
   }
 
-  .home-header .install-button,
   .home-header .push-toggle-button,
   .home-header .admin-button,
   .home-header .header-username,
@@ -5629,3 +5628,14 @@ button.content-status-button {
   .webtoon-pages li { flex-wrap: wrap; }
   .webtoon-pages li > div { margin-left: auto; }
 }
+
+/* Keep installation visible on narrow mobile headers. */
+@media (max-width: 768px) {
+  .home-header .install-button { display: inline-flex; padding: 6px 8px; margin-left: 6px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+}
+.share-feedback { position: fixed; top: 76px; left: 50%; transform: translateX(-50%); z-index: 10000; width: min(90vw, 480px); padding: 14px; border: 1px solid #555; border-radius: 12px; background: #222; color: #fff; box-shadow: 0 4px 20px #0005; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.share-feedback span { flex: 1; }
+.share-feedback input { width: 100%; padding: 10px; }
+.share-feedback button { cursor: pointer; }
+
+.login-install { position: fixed; top: 12px; right: 12px; z-index: 100; }
