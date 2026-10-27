@@ -1582,6 +1582,13 @@ if (historyError) {
     window.history.pushState({}, '', menu.route || '/')
   }
 
+  const installBanner = !isInstalled && (
+    <div className="mobile-install-banner">
+      <span>PlayMe를 홈 화면에서 바로 열기</span>
+      <button type="button" className="install-button" onClick={handleInstallApp}>📱 설치하기</button>
+    </div>
+  )
+
   // =========================
   // 로그인 안 된 경우
   // =========================
@@ -1589,7 +1596,7 @@ if (historyError) {
   if (!user) {
     return (
       <>
-        {!isInstalled && <div className="login-install"><button type="button" className="install-button" onClick={handleInstallApp}>📱 앱 설치</button></div>}
+        {installBanner}
         <Login onLogin={() => { checkUser() }} />
       </>
     )
@@ -1722,6 +1729,7 @@ if (playMode === 'single') {
 
   return (
     <div className="app">
+      {installBanner}
       {shareMessage && (
         <div className="share-feedback" role="status">
           <span>{shareMessage}</span>
@@ -1766,7 +1774,7 @@ if (playMode === 'single') {
 
         <>
           <header className="header">
-            {!isInstalled && <button type="button" className="install-button" onClick={handleInstallApp}>📱 앱 설치</button>}
+
 
             <div
               className="logo"
@@ -2167,16 +2175,7 @@ if (playMode === 'single') {
 
   <PlayMeBrand />
 
-  {!isInstalled && <button
-    type="button"
-    className="install-button"
-    onClick={(e) => {
-      e.stopPropagation()
-      handleInstallApp()
-    }}
-  >
-    📱 앱 설치
-  </button>}
+
 
 </div>
 

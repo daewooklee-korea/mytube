@@ -5639,3 +5639,10 @@ button.content-status-button {
 .share-feedback button { cursor: pointer; }
 
 .login-install { position: fixed; top: 12px; right: 12px; z-index: 100; }
+
+/* A separate row prevents the mobile header controls from clipping installation. */
+.mobile-install-banner { display: none; }
+@media (max-width: 1024px), (pointer: coarse) {
+  .mobile-install-banner { display: flex; position: relative; z-index: 60; width: 100%; box-sizing: border-box; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: #eef2ff; color: #27336a; font-size: 12px; }
+  .mobile-install-banner .install-button { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; margin: 0; padding: 8px 12px; background: #4338ca; border-color: #4338ca; color: white; }
+}
