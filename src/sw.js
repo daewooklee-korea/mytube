@@ -5,12 +5,22 @@ import {
   precacheAndRoute,
 } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
+import { NetworkFirst } from 'workbox-strategies'
 
 self.skipWaiting()
 clientsClaim()
 cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
-registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html')))
+// Prefer the deployed document so menu settings do not remain on an old app version.
+const navigationNetwork = new NetworkFirst({ cacheName: 'playme-pages', networkTimeoutSeconds: 3 })
+const offlineDocument = createHandlerBoundToURL('index.html')
+registerRoute(new NavigationRoute(async (options) => {
+  try {
+    return await navigationNetwork.handle(options) || await offlineDocument(options)
+  } catch {
+    return offlineDocument(options)
+  }
+}))
 
 self.addEventListener('push', (event) => {
   let data = {}

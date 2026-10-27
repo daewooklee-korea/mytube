@@ -5659,3 +5659,5 @@ button.content-status-button {
   .mobile-install-banner { display: flex; position: relative; z-index: 60; width: 100%; box-sizing: border-box; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: #eef2ff; color: #27336a; font-size: 12px; }
   .mobile-install-banner .install-button { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; margin: 0; padding: 8px 12px; background: #4338ca; border-color: #4338ca; color: white; }
 }
+
+.menu-public-setting { display: block; margin-top: 6px; padding: 5px 8px; border: 1px solid #c7d2fe; border-radius: 6px; background: #eef2ff; color: #3730a3; font-size: 12px; cursor: pointer; white-space: normal; text-align: left; }

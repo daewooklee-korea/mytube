@@ -5611,7 +5611,7 @@ const toggleMenuVisible = async (menu) => {
                   {' '}메뉴 활성
                 </label>
                 <label>
-                  <input type="checkbox" checked={menuPublic} onChange={(event) => setMenuPublic(event.target.checked)} /> 로그인 없이 공개
+                  <input type="checkbox" checked={menuPublic} onChange={(event) => setMenuPublic(event.target.checked)} /> 퍼블릭 공개 (로그인 없이 열람)
                 </label>
                 <p style={{ fontSize: '13px', color: '#666' }}>공개하면 이 메뉴에 등록된 활성 콘텐츠를 누구나 열람할 수 있습니다. 하위 메뉴도 각각 공개해야 하며, 상위 메뉴가 비공개·숨김·비활성이면 하위 메뉴도 공개되지 않습니다. 작성·수정 권한은 기존 설정을 유지합니다.</p>
 
@@ -5656,7 +5656,7 @@ const toggleMenuVisible = async (menu) => {
     <th>레벨</th>
     <th>순서</th>
     <th>표시</th>
-    <th>공개 여부</th>
+    <th>퍼블릭 공개</th>
     <th>상태</th>
     <th>작업</th>
   </tr>
@@ -5708,6 +5708,9 @@ const toggleMenuVisible = async (menu) => {
                         <strong>
                           {menu.name}
                         </strong>
+                        <button type="button" className="menu-public-setting" onClick={() => startEditingMenu(menu)} aria-label={`${menu.name} 퍼블릭 공개 설정`}>
+                          {menu.is_public ? '🌐 퍼블릭 공개' : '🔒 비공개 · 로그인 필요'} · 설정
+                        </button>
                       </td>
 
                       <td>
