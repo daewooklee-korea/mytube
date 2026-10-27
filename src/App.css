@@ -5623,6 +5623,13 @@ button.content-status-button {
 .player.webtoon-player:not(:has(.audio-player)) { display: block; height: auto; max-height: none; aspect-ratio: auto; overflow: visible; background: #fff; }
 .webtoon-reader { width: min(100%, 800px); margin: 0 auto; }
 .player .webtoon-reader img { display: block; width: 100%; height: auto; max-height: none; border-radius: 0; object-fit: contain; }
+/* Separate page images without cropping or changing their proportions. */
+.player .webtoon-reader img + img {
+  margin-top: 24px;
+  border-top: 1px solid #d1d5db;
+  padding-top: 24px;
+  box-sizing: border-box;
+}
 .webtoon-reader p { padding: 24px 12px; text-align: center; color: #555; }
 @media (max-width: 480px) {
   .webtoon-pages li { flex-wrap: wrap; }
