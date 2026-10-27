@@ -78,6 +78,8 @@ const [menuIcon, setMenuIcon] = useState('')
 const [menuSortOrder, setMenuSortOrder] = useState(0)
 const [menuVisible, setMenuVisible] = useState(true)
 const [menuPublic, setMenuPublic] = useState(false)
+const [publicMenuPending, setPublicMenuPending] = useState([])
+const publicMenuPendingRef = useRef(new Set())
 const [menuActive, setMenuActive] = useState(true)
 const [selectedMenuGroupIds, setSelectedMenuGroupIds] = useState([])
 const [savingMenu, setSavingMenu] = useState(false)
@@ -1242,6 +1244,28 @@ const loadMenus = async () => {
   // =========================
   // 메뉴 관리
   // =========================
+
+  const toggleMenuPublic = async (menu) => {
+    if (publicMenuPendingRef.current.has(menu.id)) return
+    publicMenuPendingRef.current.add(menu.id)
+    setPublicMenuPending((ids) => [...ids, menu.id])
+    try {
+      const { data, error } = await supabase.from('menus')
+        .update({ is_public: !menu.is_public, updated_at: new Date().toISOString() })
+        .eq('id', menu.id).eq('is_public', menu.is_public)
+        .select('id,is_public').single()
+      if (error) throw error
+      setMenus((items) => items.map((item) => item.id === data.id ? { ...item, is_public: data.is_public } : item))
+      if (editingMenuId === data.id) setMenuPublic(data.is_public)
+    } catch (error) {
+      console.error('퍼블릭 공개 변경 실패:', error)
+      alert('공개 설정을 변경하지 못했습니다. 상태를 다시 확인한 뒤 시도해주세요.')
+      await loadMenus()
+    } finally {
+      publicMenuPendingRef.current.delete(menu.id)
+      setPublicMenuPending((ids) => ids.filter((id) => id !== menu.id))
+    }
+  }
 
   const resetMenuForm = () => {
     setShowMenuForm(false)
@@ -5708,9 +5732,7 @@ const toggleMenuVisible = async (menu) => {
                         <strong>
                           {menu.name}
                         </strong>
-                        <button type="button" className="menu-public-setting" onClick={() => startEditingMenu(menu)} aria-label={`${menu.name} 퍼블릭 공개 설정`}>
-                          {menu.is_public ? '🌐 퍼블릭 공개' : '🔒 비공개 · 로그인 필요'} · 설정
-                        </button>
+
                       </td>
 
                       <td>
@@ -5746,7 +5768,17 @@ const toggleMenuVisible = async (menu) => {
       : '숨김'}
   </button>
 </td>
-<td>{menu.is_public ? '🌐 공개' : '🔒 로그인 필요'}{menu.is_public && parentMenu && (!parentMenu.is_public || !parentMenu.is_visible || !parentMenu.is_active) && <small style={{display: 'block'}}>상위 메뉴 제한 중</small>}</td>
+<td>
+  <button type="button" className="menu-public-toggle"
+    aria-label={`${menu.name}: ${menu.is_public ? '공개 중, 클릭하면 비공개' : '비공개, 클릭하면 공개'}`}
+    aria-pressed={Boolean(menu.is_public)}
+    aria-busy={publicMenuPending.includes(menu.id)}
+    disabled={publicMenuPending.includes(menu.id) || savingMenu}
+    title={`${menu.is_public ? '공개 중 · 클릭하면 비공개' : '비공개 · 클릭하면 공개'}${menu.is_public && parentMenu && (!parentMenu.is_public || !parentMenu.is_visible || !parentMenu.is_active) ? ' (상위 메뉴 제한으로 현재 외부 열람 불가)' : ''}`}
+    onClick={() => toggleMenuPublic(menu)}>
+    <span aria-hidden="true">{menu.is_public ? '🔓' : '🔒'}</span>
+  </button>
+</td>
 
                      <td>
   <button

@@ -5660,4 +5660,8 @@ button.content-status-button {
   .mobile-install-banner .install-button { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; margin: 0; padding: 8px 12px; background: #4338ca; border-color: #4338ca; color: white; }
 }
 
-.menu-public-setting { display: block; margin-top: 6px; padding: 5px 8px; border: 1px solid #c7d2fe; border-radius: 6px; background: #eef2ff; color: #3730a3; font-size: 12px; cursor: pointer; white-space: normal; text-align: left; }
+
+.menu-public-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; font-size: 22px; cursor: pointer; }
+.menu-public-toggle[aria-pressed="true"] { background: #eef2ff; border-color: #a5b4fc; }
+.menu-public-toggle:disabled { opacity: .5; cursor: wait; }
+.menu-public-toggle:focus-visible { outline: 2px solid #4338ca; outline-offset: 2px; }
