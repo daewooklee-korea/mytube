@@ -1927,7 +1927,10 @@ if (playMode === 'single') {
               {selectedVideo.imagePages?.length > 0 ? (
                 <div className="webtoon-reader" aria-label={`${selectedVideo.title} 웹툰`}>
                   {selectedVideo.imagePages.map((page, index) => (
-                    <img key={`${index}-${page}`} src={page} alt={`${selectedVideo.title} ${index + 1}페이지`} loading={index ? 'lazy' : 'eager'} />
+                    <div className="webtoon-page" key={`${index}-${page}`}>
+                      {index > 0 && <div className="webtoon-page-divider" aria-hidden="true"><span>{index + 1} / {selectedVideo.imagePages.length} 페이지</span></div>}
+                      <img src={page} alt={`${selectedVideo.title} ${index + 1}페이지`} loading={index ? 'lazy' : 'eager'} />
+                    </div>
                   ))}
                   <p>마지막 페이지입니다 · {selectedVideo.imagePages.length}페이지</p>
                 </div>
