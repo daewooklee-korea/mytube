@@ -84,6 +84,18 @@ export const getMacMiniSystemStatus = async (signal) => {
   return payload
 }
 
+export const getMacMiniDailyReport = async (signal) => {
+  const response = await fetch(getApiUrl('/api/system/daily-report'), { signal })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(payload.error || `Mac mini 일일 리포트 API 오류 (${response.status})`)
+  }
+  if (!payload || !payload.usage || !payload.services || !payload.storage) {
+    throw new Error('Mac mini 일일 리포트 응답 형식이 올바르지 않습니다.')
+  }
+  return payload
+}
+
 export const getMacMiniDiagnosis = (signal) =>
   authenticatedJsonRequest('/api/system/diagnose', { signal })
 

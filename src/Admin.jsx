@@ -6,6 +6,7 @@ import {
   formatConversionDuration,
   getMacMiniConversionStatus,
   getMacMiniDiagnosis,
+  getMacMiniDailyReport,
   getMacMiniRecoveryStatus,
   getMacMiniStorageStatus,
   getMacMiniSystemStatus,
@@ -134,6 +135,8 @@ const [savingMenu, setSavingMenu] = useState(false)
   const [loadingMacMiniSystem, setLoadingMacMiniSystem] = useState(false)
   const [macMiniSystemCheckedAt, setMacMiniSystemCheckedAt] = useState(null)
   const [macMiniSystemLog, setMacMiniSystemLog] = useState([])
+  const [macMiniDailyReport, setMacMiniDailyReport] = useState(null)
+  const [macMiniDailyReportError, setMacMiniDailyReportError] = useState('')
   const [macMiniDiagnosis, setMacMiniDiagnosis] = useState(null)
   const [macMiniDiagnosisLoading, setMacMiniDiagnosisLoading] = useState(false)
   const [macMiniDiagnosisCheckedAt, setMacMiniDiagnosisCheckedAt] = useState(null)
@@ -393,6 +396,16 @@ const [savingMenu, setSavingMenu] = useState(false)
           const data = await getMacMiniSystemStatus()
           if (!disposed) {
             setMacMiniSystemStatus(data)
+            getMacMiniDailyReport()
+              .then((report) => {
+                if (!disposed) {
+                  setMacMiniDailyReport(report)
+                  setMacMiniDailyReportError('')
+                }
+              })
+              .catch((error) => {
+                if (!disposed) setMacMiniDailyReportError(error.message || '일일 리포트를 불러오지 못했습니다.')
+              })
             getMacMiniDiagnosis().then(setMacMiniDiagnosis).catch(() => {})
             setMacMiniSystemError('')
             setMacMiniSystemCheckedAt(checkedAt)
@@ -4941,6 +4954,52 @@ const toggleMenuVisible = async (menu) => {
             {loadingMacMiniSystem && <p>상태를 불러오는 중...</p>}
             <div className="monitor-check-meta">마지막 확인: {macMiniSystemCheckedAt || '-'} · 30초 자동 확인 · 실패 시 3회 재시도</div>
             {macMiniSystemError && <div className="storage-admin-error" role="alert">Mac mini unavailable · {macMiniSystemError}</div>}
+            {macMiniDailyReport && (() => {
+              const report = macMiniDailyReport
+              const usage = report.usage
+              const starts = usage.playback_starts || {}
+              const weekdayLabels = ['월', '화', '수', '목', '금', '토', '일']
+              const peakHour = (usage.hourly_distribution_7d || []).reduce((best, count, hour) => count > best.count ? { hour, count } : best, { hour: 0, count: 0 })
+              const peakWeekday = (usage.weekday_distribution_7d || []).reduce((best, count, day) => count > best.count ? { day, count } : best, { day: 0, count: 0 })
+              const conversion = report.conversion || {}
+              return (
+                <section className="daily-report" aria-labelledby="daily-report-title">
+                  <div className="daily-report-header">
+                    <div>
+                      <div className="daily-report-kicker">DAILY OPERATIONS</div>
+                      <h3 id="daily-report-title">PlayMe 일일 리포트</h3>
+                      <p>{new Date(report.generated_at).toLocaleString('ko-KR')} 기준</p>
+                    </div>
+                    <span className={`daily-report-status ${report.overall_status === 'normal' ? 'ok' : 'warn'}`}>
+                      {report.overall_status === 'normal' ? '정상' : '주의'}
+                    </span>
+                  </div>
+                  <div className="daily-report-metrics">
+                    <div><span>최근 활동</span><strong>{usage.activity_last_5_minutes ? '5분 내 재생' : '현재 없음'}</strong><small>{usage.latest_media_request_at ? new Date(usage.latest_media_request_at).toLocaleString('ko-KR') : '재생 기록 없음'}</small></div>
+                    <div><span>24시간 재생 시작</span><strong>{starts.last_24_hours ?? 0}<em>회</em></strong><small>고유 이용자 수집 안 됨</small></div>
+                    <div><span>7일 재생 시작</span><strong>{starts.last_7_days ?? 0}<em>회</em></strong><small>{peakHour.count ? `최다 ${String(peakHour.hour).padStart(2, '0')}시` : '분포 데이터 없음'}</small></div>
+                    <div><span>30일 재생 시작</span><strong>{starts.last_30_days ?? 0}<em>회</em></strong><small>{peakWeekday.count ? `최다 ${weekdayLabels[peakWeekday.day]}요일` : '분포 데이터 없음'}</small></div>
+                  </div>
+                  <div className="daily-report-grid">
+                    <div className="daily-report-panel">
+                      <h4>이용 현황</h4>
+                      <dl><div><dt>활성 접속자</dt><dd>확인 불가</dd></div><div><dt>고유 방문자</dt><dd>수집 안 됨</dd></div><div><dt>로그인 횟수</dt><dd>수집 안 됨</dd></div><div><dt>신규·재방문</dt><dd>수집 안 됨</dd></div></dl>
+                      <p>{usage.measurement_note}</p>
+                    </div>
+                    <div className="daily-report-panel">
+                      <h4>변환 및 저장</h4>
+                      <dl><div><dt>진행 중</dt><dd>{conversion.processing ?? 0}건</dd></div><div><dt>실패</dt><dd>{conversion.failed ?? 0}건</dd></div><div><dt>변환 필요</dt><dd>{conversion.needed ?? 0}건</dd></div><div><dt>디스크 여유</dt><dd>{formatFileSize(report.storage?.disk?.free_bytes)}</dd></div></dl>
+                    </div>
+                    <div className="daily-report-panel daily-report-errors">
+                      <h4>최근 오류</h4>
+                      {report.recent_errors?.length ? report.recent_errors.map((error, index) => <p key={`${error.occurred_at || 'error'}-${index}`}><strong>{error.source === 'tunnel' ? 'Tunnel' : 'Media'}</strong>{error.message}</p>) : <p className="daily-report-empty">최근 24시간 오류 없음</p>}
+                    </div>
+                  </div>
+                  <div className="daily-report-actions"><strong>권장 조치</strong>{report.recommendations?.map((item) => <span key={item}>{item}</span>)}</div>
+                </section>
+              )
+            })()}
+            {macMiniDailyReportError && <div className="storage-admin-error" role="alert">일일 리포트 · {macMiniDailyReportError}</div>}
             {macMiniSystemStatus && (() => {
               const { media_server: media, tunnel, vercel, storage, last_error: lastError } = macMiniSystemStatus
               const badge = (label, tone) => <span className={`monitor-badge ${tone}`}><i className="monitor-light" aria-hidden="true" />{label}</span>
