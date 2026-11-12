@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#140f25"><title>아이돌 카드 퀴즈</title>
+<style>
+:root{color-scheme:dark;--ink:#f9f2ff;--soft:#c7b6de;--pink:#ffc1f6;--line:#614977}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% 0,#422654,#140f25 60%);color:var(--ink);font:16px system-ui,sans-serif;min-height:100dvh}main{max-width:470px;margin:auto;padding:24px 18px 30px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:26px}h1,h2,p{margin:0}h1{font-size:23px}.eyebrow{font-size:11px;font-weight:850;letter-spacing:.17em;color:var(--pink);margin-bottom:7px}.counter{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--soft)}.track{height:5px;background:#493552;border-radius:20px;margin:9px 0 18px;overflow:hidden}.track i{display:block;height:100%;background:#fda6e9;transition:width .2s}.panel{border:1px solid var(--line);border-radius:20px;padding:19px;background:#261c39;box-shadow:0 12px 34px #10091b66}.prompt{min-height:110px;margin-bottom:14px}.prompt h2{font-size:clamp(21px,5.6vw,26px);line-height:1.35;word-break:keep-all}.choices{display:grid;gap:9px}button{font:inherit;cursor:pointer;color:inherit;border-radius:12px}button:focus-visible{outline:2px solid white;outline-offset:3px}.outline{background:#332541;border:1px solid var(--line);min-height:44px;padding:8px 12px;font-size:13px;white-space:nowrap}.choice{width:100%;text-align:left;min-height:53px;padding:9px 13px;background:#2e223f;border:1px solid #5b4671;display:flex;align-items:center;gap:12px;font-weight:750}.choice span{width:27px;height:27px;display:grid;place-items:center;border-radius:7px;background:#514064;color:#fbdbff;font-size:13px}.choice:disabled{cursor:default}.choice.right{background:#25443f;border-color:#79d9bc}.choice.wrong{background:#522d45;border-color:#fb91b7}.feedback{margin-top:14px;padding:13px;border-left:3px solid var(--pink);color:var(--soft);background:#2e223f;border-radius:8px;line-height:1.5}.primary{width:100%;min-height:48px;background:linear-gradient(105deg,#ffb8f2,#bb9bff);border:0;color:#281238;font-weight:850;margin-top:14px}.collection{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:15px}.card{position:relative;min-height:112px;padding:12px;border:1px solid #9f6baf;border-radius:14px;overflow:hidden;background:radial-gradient(ellipse at 90% 10%,#754178,#3a2854 60%);display:flex;flex-direction:column;justify-content:center;gap:4px}.card .group{font-size:10px;color:#ffd1f7;letter-spacing:.12em;font-weight:800}.card strong{font-size:22px}.card .song{color:var(--soft);font-size:13px}.card.locked{background:#251c35;border-color:#584366;color:var(--soft)}.reward{margin-top:12px;animation:pop .35s ease}.reward .card{min-height:90px}.sub{margin-top:8px;color:var(--soft);line-height:1.5}[hidden]{display:none!important}@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+.group-list{display:grid;gap:10px;margin-top:15px}.group-box{width:100%;text-align:left;border:1px solid var(--line);background:linear-gradient(100deg,#3a2854,#2d213e);padding:14px;display:grid;grid-template-columns:1fr auto;gap:4px 8px}.group-box strong{font-size:17px}.group-box small{color:var(--soft);grid-column:1}.group-box .open-mark{grid-column:2;grid-row:1/3;align-self:center;color:var(--pink)}.group-card-slot{margin-top:14px}.group-card-slot .card{min-height:76px}.album-back{margin:0 0 12px}.card.locked small{color:var(--soft);font-size:12px}
+
+.generation-list{border:0;margin:14px 0 0;padding:0;display:grid;gap:8px;min-width:0}.generation-list legend{padding:0;margin-bottom:8px;font-weight:750}.generation-row{display:flex;gap:10px;align-items:center;min-height:48px;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:#2e223f;cursor:pointer}.generation-row:has(input:checked){border-color:#da9cdf;background:#3f2a50}.generation-row input{width:18px;height:18px;accent-color:#ffb8f2;flex:none}.generation-row strong{white-space:nowrap}.generation-row small{color:var(--soft);margin-left:auto;text-align:right;line-height:1.35}.generation-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.primary:disabled{opacity:.55;cursor:default}.game-mode{margin-bottom:12px;display:flex;gap:8px;align-items:center;justify-content:space-between;color:var(--soft);font-size:13px}
+
+.mode-pick{display:block;margin-top:14px;font-weight:750}.mode-pick select{display:block;width:100%;margin-top:7px;padding:11px;border-radius:10px;background:#2e223f;color:inherit;border:1px solid var(--line);font:inherit}.photo-box{margin-top:12px}.portrait{display:block;max-width:100%;width:auto;height:auto;max-height:290px;margin:auto;border-radius:12px}.photo-box p{color:var(--soft);margin:10px 0}.source{display:inline-block;margin-top:10px;color:var(--pink);font-size:13px}.generation-row small{overflow-wrap:anywhere}
+</style></head><body><main>
+<header><div><div class="eyebrow">K-POP COLLECTION</div><h1>아이돌 카드 퀴즈</h1><a href="/" style="color:inherit">← PlayMe 홈</a></div><button class="outline" id="toggle"></button></header>
+<section id="setup" class="panel">
+<div class="eyebrow">1–5세대 · K-POP</div><h2 id="setupTitle" tabindex="-1">어느 세대로 풀까요?</h2>
+<p class="sub">한 세대만 고르거나 여러 세대를 섞어 풀어요.</p>
+<label class="mode-pick">게임 방식
+<select id="mode"><option value="standard">그룹·멤버 퀴즈</option><option value="lyrics">가사로 노래 맞히기</option><option value="photo">사진으로 멤버 맞히기</option></select>
+</label>
+<div class="generation-actions"><button id="allGenerations" class="outline">전체 세대 선택</button><button id="clearGenerations" class="outline">선택 해제</button></div>
+<fieldset class="generation-list" id="generations"><legend>세대 선택</legend></fieldset>
+<p class="sub" id="selectionStatus" role="status"></p>
+<button class="primary" id="start">퀴즈 시작 →</button>
+<button class="outline album-back" id="cancelSetup" style="margin-top:10px" hidden>풀던 판 계속하기</button>
+</section>
+<section id="game" hidden>
+<div class="game-mode"><span id="roundMode"></span><button id="changeMode" class="outline">방식·세대 바꾸기</button></div>
+<div class="counter"><span id="progress"></span><span id="score"></span></div><div class="track"><i id="bar"></i></div>
+<div class="panel prompt"><div class="eyebrow" id="group"></div><h2 id="question" tabindex="-1"></h2>
+<div class="photo-box" id="photoBox" hidden><div id="portrait"></div><p id="photoStatus" role="status"></p><button class="outline" id="skipPhoto">사진 문제 건너뛰기</button></div>
+</div>
+<div class="choices" id="options"></div>
+<div id="feedback" class="feedback" role="status" hidden></div>
+<div id="credits" hidden></div>
+<div id="reward" class="reward" hidden><div class="eyebrow">새 카드 획득</div><div id="rewardCard"></div></div>
+<button class="primary" id="next" hidden>다음 문제 →</button>
+</section>
+<section class="panel" id="result" hidden><div class="eyebrow">ROUND COMPLETE</div><h2 id="resultTitle" tabindex="-1"></h2><p class="sub" id="resultDetail"></p><button class="primary" id="replay">같은 방식으로 다시 풀기</button><button class="primary" id="changeResultMode">방식·세대 고르기</button><button class="primary" id="viewCards">수집함 보기</button></section>
+<section id="album" hidden><div class="eyebrow" id="cardCount"></div><h2 id="albumTitle" tabindex="-1">나의 아이돌 카드</h2><p class="sub">그룹 보관함을 열어 멤버 카드를 확인하세요.</p><label class="mode-pick">보관함 세대<select id="albumFilter"><option value="">전체 세대</option><option value="1">1세대</option><option value="2">2세대</option><option value="3">3세대</option><option value="4">4세대</option><option value="5">5세대</option></select></label><div class="group-list" id="groups"></div></section>
+<section id="groupAlbum" hidden>
+<button class="outline album-back" id="backToGroups">‹ 전체 보관함</button>
+<div class="eyebrow" id="groupCount"></div><h2 id="groupTitle" tabindex="-1"></h2>
+<div class="group-card-slot" id="groupCard"></div>
+<p class="sub">멤버 카드</p><div class="collection" id="cards"></div>
+</section>
+</main><script>
+const featured=[
+ ['nayeon','TWICE','솔로곡 〈POP!〉을 부른 멤버는?','나연','POP!',['지효','사나','모모']],
+ ['jungkook','BTS','솔로 싱글 〈Seven〉을 발표한 멤버는?','정국','Seven',['뷔','진','지민']],
+ ['jennie','BLACKPINK','솔로 싱글 〈SOLO〉를 발표한 멤버는?','제니','SOLO',['로제','리사','지수']],
+ ['karina','aespa','에스파의 멤버는 누구일까요?','카리나','에스파 멤버',['나연','홍은채','지수']],
+ ['sakura','LE SSERAFIM','르세라핌의 멤버는 누구일까요?','사쿠라','르세라핌 멤버',['지젤','미나','로제']],
+ ['lisa','BLACKPINK','〈MONEY〉를 솔로 음반에 수록한 멤버는?','리사','MONEY',['지수','로제','제니']],
+ ['jihyo','TWICE','솔로곡 〈Killin’ Me Good〉을 발표한 멤버는?','지효','Killin’ Me Good',['채영','미나','다현']],
+ ['jhope','BTS','솔로 앨범 《Jack In The Box》를 발표한 멤버는?','제이홉','Jack In The Box',['RM','슈가','진']]
+].map(([id,group,question,answer,detail,wrong])=>({id,group,question,answer,detail,wrong,type:'member'}));
+const generations=[1,2,3,4,5];
+const groups=[
+ {gen:1,id:'hot',name:'H.O.T.',members:['문희준','장우혁','토니 안','강타','이재원'],clue:['문희준','장우혁','강타']},
+ {gen:1,id:'ses',name:'S.E.S.',members:['바다','유진','슈'],clue:['바다','유진','슈']},
+ {gen:2,id:'shinee',name:'SHINee',members:['온유','종현','키','민호','태민'],clue:['온유','키','태민'],era:'데뷔 멤버'},
+ {gen:2,id:'2ne1',name:'2NE1',members:['CL','박봄','산다라박','공민지'],clue:['CL','박봄','산다라박']},
+ {gen:3,id:'twice',name:'TWICE',members:['나연','정연','모모','사나','지효','미나','다현','채영','쯔위'],clue:['정연','모모','사나']},
+ {gen:3,id:'bts',name:'BTS',members:['RM','진','슈가','제이홉','지민','뷔','정국'],clue:['RM','지민','정국']},
+ {gen:3,id:'blackpink',name:'BLACKPINK',members:['지수','제니','로제','리사'],clue:['지수','로제','리사']},
+ {gen:4,id:'aespa',name:'aespa',members:['카리나','지젤','윈터','닝닝'],clue:['지젤','윈터','닝닝']},
+ {gen:4,id:'le-sserafim',name:'LE SSERAFIM',members:['사쿠라','김채원','허윤진','카즈하','홍은채'],clue:['김채원','허윤진','카즈하']},
+ {gen:5,id:'riize',name:'RIIZE',members:['쇼타로','은석','성찬','원빈','소희','앤톤'],clue:['쇼타로','성찬','원빈']},
+ {gen:5,id:'illit',name:'ILLIT',members:['윤아','민주','모카','원희','이로하'],clue:['모카','원희','이로하']}
+];
+groups.push(...[{"gen":1,"id":"extra-1-1","name":"핑클","members":["이효리","옥주현","이진","성유리"],"song":"영원한 사랑","agency":"DSP 계열 (데뷔 당시)"},{"gen":1,"id":"extra-1-2","name":"젝스키스","members":["은지원"],"song":"커플","agency":""},{"gen":1,"id":"extra-1-3","name":"g.o.d","members":["박준형"],"song":"어머님께","agency":""},{"gen":1,"id":"extra-1-4","name":"신화","members":["에릭"],"song":"Brand New","agency":""},{"gen":1,"id":"extra-1-5","name":"베이비복스","members":["윤은혜"],"song":"Get Up","agency":""},{"gen":1,"id":"extra-1-6","name":"NRG","members":["이성진"],"song":"할 수 있어","agency":""},{"gen":1,"id":"extra-1-7","name":"디바","members":["채리나"],"song":"왜 불러","agency":""},{"gen":1,"id":"extra-1-8","name":"룰라","members":["김지현"],"song":"날개 잃은 천사","agency":""},{"gen":1,"id":"extra-1-9","name":"코요태","members":["신지"],"song":"순정","agency":""},{"gen":1,"id":"extra-1-10","name":"쿨","members":["이재훈"],"song":"애상","agency":""},{"gen":1,"id":"extra-1-11","name":"샾","members":["이지혜"],"song":"Sweety","agency":""},{"gen":1,"id":"extra-1-12","name":"클릭비","members":["오종혁"],"song":"백전무패","agency":""},{"gen":1,"id":"extra-1-13","name":"플라이 투 더 스카이","members":["환희"],"song":"Missing You","agency":""},{"gen":1,"id":"extra-1-14","name":"UN","members":["김정훈"],"song":"파도","agency":""},{"gen":1,"id":"extra-1-15","name":"쥬얼리","members":["박정아"],"song":"One More Time","agency":""},{"gen":1,"id":"extra-1-16","name":"슈가","members":["아유미"],"song":"Shine","agency":""},{"gen":1,"id":"extra-1-17","name":"밀크","members":["서현진"],"song":"Come To Me","agency":""},{"gen":1,"id":"extra-1-18","name":"T.T.Ma","members":["소이"],"song":"My Baby","agency":""},{"gen":1,"id":"extra-1-19","name":"샤크라","members":["정려원"],"song":"한","agency":""},{"gen":1,"id":"extra-1-20","name":"파파야","members":["고나은"],"song":"사랑만들기","agency":""},{"gen":2,"id":"extra-2-1","name":"2PM","members":["준케이","닉쿤","택연","우영","준호","찬성"],"song":"우리집","agency":"JYP"},{"gen":2,"id":"extra-2-2","name":"동방신기","members":["유노윤호"],"song":"주문-MIROTIC","agency":""},{"gen":2,"id":"extra-2-3","name":"슈퍼주니어","members":["이특"],"song":"Sorry, Sorry","agency":""},{"gen":2,"id":"extra-2-4","name":"빅뱅","members":["태양"],"song":"거짓말","agency":""},{"gen":2,"id":"extra-2-5","name":"소녀시대","members":["태연"],"song":"Gee","agency":""},{"gen":2,"id":"extra-2-6","name":"원더걸스","members":["선미"],"song":"Tell Me","agency":""},{"gen":2,"id":"extra-2-7","name":"카라","members":["박규리"],"song":"Mr.","agency":""},{"gen":2,"id":"extra-2-8","name":"2AM","members":["조권"],"song":"죽어도 못 보내","agency":""},{"gen":2,"id":"extra-2-9","name":"f(x)","members":["크리스탈"],"song":"첫 사랑니","agency":""},{"gen":2,"id":"extra-2-10","name":"티아라","members":["은정"],"song":"Roly-Poly","agency":""},{"gen":2,"id":"extra-2-11","name":"비스트","members":["양요섭"],"song":"Fiction","agency":""},{"gen":2,"id":"extra-2-12","name":"포미닛","members":["현아"],"song":"Hot Issue","agency":""},{"gen":2,"id":"extra-2-13","name":"엠블랙","members":["이준"],"song":"Y","agency":""},{"gen":2,"id":"extra-2-14","name":"인피니트","members":["김성규"],"song":"내꺼하자","agency":""},{"gen":2,"id":"extra-2-15","name":"씨스타","members":["효린"],"song":"Touch My Body","agency":""},{"gen":2,"id":"extra-2-16","name":"미쓰에이","members":["수지"],"song":"Bad Girl Good Girl","agency":""},{"gen":2,"id":"extra-2-17","name":"B1A4","members":["산들"],"song":"이게 무슨 일이야","agency":""},{"gen":2,"id":"extra-2-18","name":"블락비","members":["지코"],"song":"HER","agency":""},{"gen":2,"id":"extra-2-19","name":"에이핑크","members":["정은지"],"song":"NoNoNo","agency":""},{"gen":2,"id":"extra-2-20","name":"틴탑","members":["니엘"],"song":"긴 생머리 그녀","agency":""},{"gen":3,"id":"extra-3-1","name":"세븐틴","members":["에스쿱스","정한","조슈아","준","호시","원우","우지","디에잇","민규","도겸","승관","버논","디노"],"song":"아낀다","agency":"PLEDIS"},{"gen":3,"id":"extra-3-2","name":"EXO","members":["백현"],"song":"으르렁","agency":""},{"gen":3,"id":"extra-3-3","name":"레드벨벳","members":["슬기"],"song":"빨간 맛","agency":""},{"gen":3,"id":"extra-3-4","name":"GOT7","members":["잭슨"],"song":"딱 좋아","agency":""},{"gen":3,"id":"extra-3-5","name":"마마무","members":["솔라"],"song":"넌 is 뭔들","agency":""},{"gen":3,"id":"extra-3-6","name":"여자친구","members":["은하"],"song":"시간을 달려서","agency":""},{"gen":3,"id":"extra-3-7","name":"오마이걸","members":["유아"],"song":"Dolphin","agency":""},{"gen":3,"id":"extra-3-8","name":"몬스타엑스","members":["셔누"],"song":"무단침입","agency":""},{"gen":3,"id":"extra-3-9","name":"비투비","members":["서은광"],"song":"그리워하다","agency":""},{"gen":3,"id":"extra-3-10","name":"빅스","members":["레오"],"song":"저주인형","agency":""},{"gen":3,"id":"extra-3-11","name":"뉴이스트","members":["백호"],"song":"FACE","agency":""},{"gen":3,"id":"extra-3-12","name":"AOA","members":["설현"],"song":"심쿵해","agency":""},{"gen":3,"id":"extra-3-13","name":"EXID","members":["하니"],"song":"위아래","agency":""},{"gen":3,"id":"extra-3-14","name":"B.A.P","members":["방용국"],"song":"Warrior","agency":""},{"gen":3,"id":"extra-3-15","name":"러블리즈","members":["케이"],"song":"Ah-Choo","agency":""},{"gen":3,"id":"extra-3-16","name":"우주소녀","members":["보나"],"song":"이루리","agency":""},{"gen":3,"id":"extra-3-17","name":"펜타곤","members":["후이"],"song":"빛나리","agency":""},{"gen":3,"id":"extra-3-18","name":"Wanna One","members":["강다니엘"],"song":"Energetic","agency":""},{"gen":3,"id":"extra-3-19","name":"드림캐쳐","members":["지유"],"song":"Chase Me","agency":""},{"gen":3,"id":"extra-3-20","name":"KARD","members":["BM"],"song":"Hola Hola","agency":""},{"gen":4,"id":"extra-4-1","name":"IVE","members":["안유진","가을","레이","장원영","리즈","이서"],"song":"ELEVEN","agency":"STARSHIP"},{"gen":4,"id":"extra-4-2","name":"Stray Kids","members":["방찬"],"song":"神메뉴","agency":""},{"gen":4,"id":"extra-4-3","name":"ATEEZ","members":["홍중"],"song":"WAVE","agency":""},{"gen":4,"id":"extra-4-4","name":"투모로우바이투게더","members":["연준"],"song":"어느날 머리에서 뿔이 자랐다","agency":""},{"gen":4,"id":"extra-4-5","name":"ITZY","members":["예지"],"song":"달라달라","agency":""},{"gen":4,"id":"extra-4-6","name":"ENHYPEN","members":["정원"],"song":"Drunk-Dazed","agency":""},{"gen":4,"id":"extra-4-7","name":"NewJeans","members":["하니"],"song":"Hype Boy","agency":""},{"gen":4,"id":"extra-4-8","name":"i-dle","members":["소연"],"song":"LATATA","agency":""},{"gen":4,"id":"extra-4-9","name":"NMIXX","members":["릴리"],"song":"DICE","agency":""},{"gen":4,"id":"extra-4-10","name":"STAYC","members":["시은"],"song":"ASAP","agency":""},{"gen":4,"id":"extra-4-11","name":"TREASURE","members":["최현석"],"song":"BOY","agency":""},{"gen":4,"id":"extra-4-12","name":"ONEUS","members":["서호"],"song":"발키리","agency":""},{"gen":4,"id":"extra-4-13","name":"위아이","members":["김요한"],"song":"TWILIGHT","agency":""},{"gen":4,"id":"extra-4-14","name":"크래비티","members":["세림"],"song":"My Turn","agency":""},{"gen":4,"id":"extra-4-15","name":"케플러","members":["최유진"],"song":"WA DA DA","agency":""},{"gen":4,"id":"extra-4-16","name":"Billlie","members":["츠키"],"song":"GingaMingaYo","agency":""},{"gen":4,"id":"extra-4-17","name":"퍼플키스","members":["나고은"],"song":"Ponzona","agency":""},{"gen":4,"id":"extra-4-18","name":"P1Harmony","members":["기호"],"song":"SIREN","agency":""},{"gen":4,"id":"extra-4-19","name":"위클리","members":["이수진"],"song":"After School","agency":""},{"gen":4,"id":"extra-4-20","name":"EVERGLOW","members":["이유"],"song":"Bon Bon Chocolat","agency":""},{"gen":5,"id":"extra-5-1","name":"BOYNEXTDOOR","members":["성호","리우","명재현","태산","이한","운학"],"song":"One and Only","agency":"KOZ"},{"gen":5,"id":"extra-5-2","name":"ZEROBASEONE","members":["성한빈"],"song":"In Bloom","agency":""},{"gen":5,"id":"extra-5-3","name":"TWS","members":["신유"],"song":"첫 만남은 계획대로 되지 않아","agency":""},{"gen":5,"id":"extra-5-4","name":"BABYMONSTER","members":["아현"],"song":"SHEESH","agency":""},{"gen":5,"id":"extra-5-5","name":"KISS OF LIFE","members":["나띠"],"song":"Shhh","agency":""},{"gen":5,"id":"extra-5-6","name":"NCT WISH","members":["시온"],"song":"WISH","agency":""},{"gen":5,"id":"extra-5-7","name":"MEOVV","members":["엘라"],"song":"MEOW","agency":""},{"gen":5,"id":"extra-5-8","name":"izna","members":["마이"],"song":"IZNA","agency":""},{"gen":5,"id":"extra-5-9","name":"KiiiKiii","members":["지유"],"song":"I DO ME","agency":""},{"gen":5,"id":"extra-5-10","name":"Hearts2Hearts","members":["카르멘"],"song":"The Chase","agency":""},{"gen":5,"id":"extra-5-11","name":"KickFlip","members":["계훈"],"song":"Mama Said","agency":""},{"gen":5,"id":"extra-5-12","name":"CORTIS","members":["마틴"],"song":"What You Want","agency":""},{"gen":5,"id":"extra-5-13","name":"ALLDAY PROJECT","members":["애니"],"song":"FAMOUS","agency":""},{"gen":5,"id":"extra-5-14","name":"UNIS","members":["나나"],"song":"SUPERWOMAN","agency":""},{"gen":5,"id":"extra-5-15","name":"RESCENE","members":["원이"],"song":"UhUh","agency":""},{"gen":5,"id":"extra-5-16","name":"tripleS","members":["윤서연"],"song":"Rising","agency":""},{"gen":5,"id":"extra-5-17","name":"82MAJOR","members":["남성모"],"song":"FIRST CLASS","agency":""},{"gen":5,"id":"extra-5-18","name":"xikers","members":["민재"],"song":"TRICKY HOUSE","agency":""},{"gen":5,"id":"extra-5-19","name":"EVNNE","members":["케이타"],"song":"TROUBLE","agency":""},{"gen":5,"id":"extra-5-20","name":"AMPERS&ONE","members":["나캠든"],"song":"On And On","agency":""}]);
+groups.sort((a,b)=>a.gen-b.gen);
+function memberDistractors(group,others,offset){
+ const names=new Set();
+ for(const [i,other] of others.entries()){
+  const name=other.members[(offset+i)%other.members.length];
+  if(!group.members.includes(name))names.add(name);
+  if(names.size===3)break;
+ }
+ return [...names];
+}
+for(const [index,g] of groups.entries()){
+ const peers=groups.filter(other=>other!==g&&other.gen===g.gen);
+ const others=[...peers,...groups.filter(other=>other.gen!==g.gen).sort((a,b)=>Math.abs(a.gen-g.gen)-Math.abs(b.gen-g.gen))];
+ g.groupQuiz={id:'group-'+g.id,group:g.name,question:g.song?'〈'+g.song+'〉을 발표했고 '+g.members[0]+'이(가) 활동한 그룹은?':g.clue.join(' · ')+' 멤버들이 속한 그룹은?',answer:g.name,detail:g.gen+'세대'+(g.song?' · '+g.song:' · '+g.members.length+'인조')+(g.era?' · '+g.era:'')+(g.agency?' · '+g.agency:''),wrong:others.slice(0,3).map(other=>other.name),type:'group'};
+ g.memberQuiz=g.members.map((name,i)=>featured.find(q=>q.group===g.name&&q.answer===name)??{
+  id:g.id+'-member-'+i,group:g.name,question:'다음 중 '+g.name+'의 '+(g.era||'멤버')+'는?',answer:name,detail:'멤버 카드',
+  wrong:memberDistractors(g,others,i+index),type:'member'
+ });
+ for(const q of [g.groupQuiz,...g.memberQuiz])q.gen=g.gen;
+}
+const groupQuiz=groups.map(g=>g.groupQuiz);
+const memberQuiz=groups.flatMap(g=>g.memberQuiz);
+const quiz=[...groupQuiz,...memberQuiz];
+const photoRoundLimit=8;
+const photoAppearances=new Map();
+const modes={standard:'그룹·멤버',lyrics:'가사 퀴즈',photo:'사진 퀴즈'};
+const lyricsQuiz=[
+ ['hot','Candy','단지 널 사랑해',['빛','행복','전사의 후예'],'https://music.bugs.co.kr/track/71606'],
+ ['shinee','누난 너무 예뻐','가슴이 말해준다 누가 뭐래도',['산소 같은 너','줄리엣','Ring Ding Dong'],'https://music.bugs.co.kr/track/2568191'],
+ ['bts','Dynamite','a game of ping pong',['Butter','Permission to Dance','Boy With Luv'],'https://btsfanchants.com/songs/dynamite'],
+ ['aespa','Next Level','결속은 나의 무기',['Black Mamba','Savage','Spicy'],'https://www.melon.com/song/detail.htm?songId=33487342'],
+ ['illit','Magnetic','넌 J 난 완전 P',['Lucky Girl Syndrome','Cherish (My Love)','Tick-Tack'],'https://www.melon.com/song/lyrics.htm?songId=37347911']
+].map(([groupId,answer,line,wrong,source])=>{
+ const g=groups.find(group=>group.id===groupId);
+ return {gen:g.gen,question:'“'+line+'”가 나오는 곡은?',answer,wrong,reward:g.groupQuiz,source};
+});
+const photoQuiz=[
+ ['ses','유진','d/d8/Eugene_at_the_2011_Metrocity_fashion_show.jpg','KIYOUNG KIM','2.0',['바다','슈','옥주현']],
+ ['shinee','태민','0/0c/Taemin.jpg','Charlie52523','4.0',['온유','키','민호'],true],
+ ['twice','나연','0/03/Nayeon_in_2022.jpg','Pearly Gates','3.0',['지효','사나','모모']],
+ ['aespa','카리나','0/01/Aespa_Karina_카리나_20240618_05.png','티비텐','3.0',['윈터','지젤','닝닝']],
+ ['illit','원희','2/2a/2605206_ILLIT_WONHEE_CHANEL_Photo_Call_7.jpg','K-POPIT 케이팝잇','4.0',['모카','민주','이로하']]
+,
+ ["extra-1-1","이효리","f/f7/Lee_Hyori_from_acrofan.jpg","acrofan.com","3.0",null,true],
+ ["shinee","온유","9/90/Onew_at_SHINee_World_Concert_in_Seoul_02.jpg","85246.tistory","4.0",null,false],
+ ["2ne1","산다라박","0/09/Sandara_Park_-_2NE1_2011.jpg","Dương (Flickr)","2.0",null,false],
+ ["2ne1","박봄","6/65/Park_Bom_-_2NE1_2011.jpg","Dương (Flickr)","2.0",null,false],
+ ["2ne1","CL","f/fe/CL_cropped_2010.jpg","Korea.net / Korean Culture and Information Service","2.0",null,true],
+ ["2ne1","공민지","b/bf/Minzy_cropped.jpg","Korea.net / Korean Culture and Information Service","2.0",null,true],
+ ["aespa","닝닝","1/1a/Aespa_Ningning_2024_MMA_2.jpg","10Asia","3.0",null,false],
+ ["illit","민주","0/06/ILLIT_Minju_at_Canada_Goose_Photo_Call.png","K-POPIT 케이팝잇","3.0",null,false],
+ ["illit","모카","7/78/ILLIT_Moka_at_Canada_Goose_Photo_Call.png","K-POPIT 케이팝잇","3.0",null,false],
+ ["illit","이로하","9/9e/ILLIT_Iroha_at_Canada_Goose_Photo_Call.png","K-POPIT 케이팝잇","3.0",null,false],
+ ["illit","윤아","4/40/ILLIT_Yunah_at_Canada_Goose_Photo_Call.png","K-POPIT 케이팝잇","3.0",null,false],
+ ["riize","쇼타로","9/9d/Shotaro_of_Riize_at_the_2024_Melon_Music_Awards.png","TenAsia","3.0",null,false],
+ ["riize","앤톤","7/7c/Anton_of_Riize_at_the_2024_Melon_Music_Awards.png","TenAsia","3.0",null,false],
+ ["riize","성찬","e/ee/Sungchan_of_Riize_at_the_2024_Melon_Music_Awards.png","TenAsia","3.0",null,false],
+ ["extra-1-1","성유리","5/58/Marie_Claire_Korea_MODERN_LADY_with_성유리.jpg","Marie Claire Korea","3.0",null,false],
+ ["extra-1-1","옥주현","e/ee/Ock_Joo-hyun_in_Mata_Hari_musical_2022.png","K-POPIT 케이팝잇","3.0",null,false],
+ ["extra-1-1","이진","b/b7/Lee_Jin_from_acrofan.jpg","acrofan.com","3.0",null,true],
+ ["extra-1-5","윤은혜","4/4e/Yoon_Eun-Hye.jpg","KIYOUNG KIM","2.0",null,false],
+ ["aespa","윈터","d/d2/250111_aespa_Winter_01.jpg","snow plumflower","2.0",null,true],
+ ["blackpink","제니","d/da/Jennie_Kim_2023.jpg","K-POPIT 케이팝잇","3.0",null,false],
+ ["blackpink","리사","1/1c/20240314_Lisa_Manoban_12.jpg","티비텐","3.0",null,false],
+ ["blackpink","지수","2/2d/250219_블랙핑크_지수_Jisoo.jpg","티비텐","3.0",null,false]
+].map(([groupId,answer,file,author,license,wrong,shareAlike])=>{
+ const g=groups.find(group=>group.id===groupId);
+ const peers=g.members.filter(name=>name!==answer);
+ const otherGroups=groups.filter(other=>other!==g&&other.gen===g.gen);
+ const alternatives=wrong??[...new Set([...peers,...memberDistractors(g,otherGroups,0)])].slice(0,3);
+ return {gen:g.gen,question:'사진 속 멤버는 누구일까요?',answer,wrong:alternatives,reward:g.memberQuiz.find(q=>q.answer===answer),
+ photo:'https://upload.wikimedia.org/wikipedia/commons/'+encodeURI(file),source:'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(file.slice(5)),author,license,shareAlike};
+});
+const $=id=>document.getElementById(id);
+const key='idol-quiz-cards-v1';
+let owned=new Set();
+try{const saved=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(saved))owned=new Set(saved.filter(id=>quiz.some(q=>q.id===id)));}catch{}
+let round=[],step=0,score=0,answered=false,view='setup',previous='setup',selectedGroup=null;
+let activeGenerations=[],activeMode='standard',returnFromSetup=null,photoReady=false,skipped=0,photoTimer;
+const choices=new Map();
+for(const gen of generations){
+ const row=document.createElement('label');row.className='generation-row';
+ const input=document.createElement('input');input.type='checkbox';input.checked=true;
+ const title=document.createElement('strong');title.textContent=gen+'세대';
+ const sample=document.createElement('small');sample.textContent=groups.filter(g=>g.gen===gen).length+'개 그룹';
+ row.append(input,title,sample);$('generations').append(row);choices.set(gen,input);
+ input.onchange=updateSelection;
+}
+function selection(){return generations.filter(gen=>choices.get(gen).checked);}
+function modeLabel(selected){return selected.length===generations.length?'전체 세대':selected.map(gen=>gen+'세대').join(' · ');}
+function updateSelection(){
+ const selected=selection();
+ $('start').disabled=selected.length===0;
+ const mode=$('mode').value;
+ const photoCount=mode==='photo'?photoQuiz.filter(q=>selected.includes(q.gen)).length:0;
+ const count=mode==='standard'?8:mode==='photo'?Math.min(photoRoundLimit,photoCount):selected.length;
+ $('selectionStatus').textContent=selected.length?modeLabel(selected)+' · '+count+'문제'+(mode==='photo'?' / 사진 '+photoCount+'장 · 인터넷 필요':''):'한 세대 이상 골라주세요.';
+}
+function setSelection(selected){
+ for(const gen of generations)choices.get(gen).checked=selected.includes(gen);
+ updateSelection();
+}
+function openSetup(){
+ returnFromSetup=view;
+ $('mode').value=activeMode;
+ setSelection(activeGenerations);
+ $('cancelSetup').hidden=false;
+ $('cancelSetup').textContent=view==='game'?'풀던 판 계속하기':'결과로 돌아가기';
+ switchView('setup');
+}
+$('mode').onchange=updateSelection;
+$('albumFilter').onchange=renderAlbum;
+$('allGenerations').onclick=()=>setSelection(generations);
+$('clearGenerations').onclick=()=>setSelection([]);
+$('changeMode').onclick=openSetup;
+$('changeResultMode').onclick=openSetup;
+$('cancelSetup').onclick=()=>switchView(returnFromSetup);
+function shuffle(items){
+ const shuffled=[...items];
+ for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+ return shuffled;
+}
+function switchView(next,focus=true){
+ view=next;
+ for(const name of ['setup','game','result','album','groupAlbum'])$(name).hidden=name!==view;
+ $('toggle').textContent=view==='groupAlbum'?'전체 보관함':view==='album'?'돌아가기':'수집함 '+owned.size+'/'+quiz.length;
+ if(view==='album')renderAlbum();
+ if(view==='groupAlbum')renderGroup();
+ if(focus)$(view==='groupAlbum'?'groupTitle':view==='album'?'albumTitle':view==='result'?'resultTitle':view==='setup'?'setupTitle':'question').focus();
+}
+function card(q,unlocked){
+ const div=document.createElement('div');div.className='card'+(unlocked?'':' locked');
+ if(!unlocked){div.textContent=q.type==='group'?'잠긴 그룹 카드':'잠긴 멤버 카드';return div;}
+ for(const [tag,cls,value] of [['span','group',q.group],['strong','name',q.answer],['span','song',q.detail]]){
+  const part=document.createElement(tag);part.className=cls;part.textContent=value;div.append(part);
+ }
+ return div;
+}
+function renderAlbum(){
+ $('cardCount').textContent=owned.size+' / '+quiz.length+' 카드 수집';
+ $('groups').replaceChildren(...groups.filter(g=>!$('albumFilter').value||g.gen===Number($('albumFilter').value)).map(g=>{
+  const count=g.memberQuiz.filter(q=>owned.has(q.id)).length;
+  const button=document.createElement('button');button.className='group-box';
+  const title=document.createElement('strong');title.textContent=g.name;
+  const status=document.createElement('small');
+  status.textContent=g.gen+'세대 · '+(owned.has(g.groupQuiz.id)?'그룹 카드 획득':'그룹 카드 미획득')+' · 멤버 '+count+'/'+g.memberQuiz.length+(g.song&&g.memberQuiz.length===1?' (대표 멤버)':'');
+  const mark=document.createElement('span');mark.className='open-mark';mark.textContent='›';mark.setAttribute('aria-hidden','true');
+  button.append(title,status,mark);
+  button.onclick=()=>{selectedGroup=g;switchView('groupAlbum');};
+  return button;
+ }));
+}
+function renderGroup(){
+ const g=selectedGroup;
+ $('groupTitle').textContent=g.name;
+ $('groupCount').textContent=g.gen+'세대 · 멤버 '+g.memberQuiz.filter(q=>owned.has(q.id)).length+' / '+g.memberQuiz.length+' 수집';
+ $('groupCard').replaceChildren(card(g.groupQuiz,owned.has(g.groupQuiz.id)));
+ $('cards').replaceChildren(...g.memberQuiz.map(q=>card(q,owned.has(q.id))));
+}
+function renderScore(){$('score').textContent='정답 '+score+'개';}
+function renderQuestion(focus){
+ const q=round[step];answered=false;
+ const category=activeMode==='standard'?(q.type==='group'?'그룹 이름 맞히기':'멤버 이름 맞히기 · '+q.group):modes[activeMode];
+ $('group').textContent=q.gen+'세대 · '+category;$('question').textContent=q.question;
+ $('progress').textContent='문제 '+(step+1)+' / '+round.length;renderScore();
+ $('bar').style.width=((step+1)/round.length*100)+'%';
+ for(const id of ['feedback','next','reward','credits'])$(id).hidden=true;
+ renderPhoto(q);
+ $('options').replaceChildren();
+ shuffle([q.answer,...q.wrong]).forEach((name,i)=>{
+  const button=document.createElement('button');button.className='choice';button.dataset.name=name;button.disabled=Boolean(q.photo)&&!photoReady;
+  const letter=document.createElement('span');letter.textContent='ABCD'[i];letter.setAttribute('aria-hidden','true');
+  button.append(letter,document.createTextNode(name));
+  button.onclick=()=>choose(name);$('options').append(button);
+ });
+ if(focus)$('question').focus();
+}
+function sourceLink(label,url){
+ const link=document.createElement('a');link.className='source';link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=label;
+ return link;
+}
+function showCredits(q){
+ if(!q.source)return;
+ const credit=q.photo?'사진 원본 · '+q.author:'가사 출처';
+ $('credits').replaceChildren(sourceLink(credit,q.source));
+ if(q.photo){
+  const code=q.shareAlike?'by-sa':'by';
+  $('credits').append(document.createTextNode(' · '),sourceLink('CC '+code.toUpperCase()+' '+q.license,'https://creativecommons.org/licenses/'+code+'/'+q.license+'/'));
+ }
+ $('credits').hidden=false;
+}
+function renderPhoto(q){
+ clearTimeout(photoTimer);photoReady=!q.photo;
+ $('photoBox').hidden=!q.photo;$('portrait').replaceChildren();
+ if(!q.photo)return;
+ $('skipPhoto').hidden=false;$('photoStatus').textContent='사진 불러오는 중…';
+ const image=document.createElement('img');image.className='portrait';image.alt='퀴즈 속 아이돌 멤버 사진';image.hidden=true;
+ $('portrait').append(image);
+ const failed=()=>{
+  if($('portrait').firstChild!==image||answered||photoReady)return;
+  clearTimeout(photoTimer);$('photoStatus').textContent='사진을 불러오지 못했어요. 이 문제는 점수에 반영하지 않고 건너뛸 수 있어요.';
+ };
+ image.onerror=failed;
+ image.onload=()=>{
+  if($('portrait').firstChild!==image||answered)return;
+  clearTimeout(photoTimer);photoReady=true;image.hidden=false;$('photoStatus').textContent='';
+  for(const button of $('options').children)button.disabled=false;
+ };
+ photoTimer=setTimeout(failed,8000);
+ image.src=q.photo;
+}
+function choose(name){
+ if(answered||view!=='game'||!photoReady)return;
+ answered=true;
+ const q=round[step],correct=name===q.answer;
+ for(const button of $('options').children){
+  button.disabled=true;
+  if(button.dataset.name===q.answer)button.classList.add('right');
+  else if(button.dataset.name===name)button.classList.add('wrong');
+ }
+ const reward=q.reward??q;
+ const label=activeMode==='lyrics'?reward.group+' 〈'+q.answer+'〉':reward.type==='group'?q.answer:reward.group+' '+q.answer;
+ if(q.photo)$('skipPhoto').hidden=true;
+ showCredits(q);
+ $('feedback').textContent=correct?'정답! '+label+(owned.has(reward.id)?' 카드는 이미 수집했어요.':' 카드를 발견했어요.'):'정답은 '+label+'입니다.';
+ $('feedback').hidden=false;
+ if(correct){
+  score++;renderScore();
+  if(!owned.has(reward.id)){
+   owned.add(reward.id);
+   try{localStorage.setItem(key,JSON.stringify([...owned]));}catch{$('feedback').textContent+=' 이번 플레이에 카드가 기록됐어요.';}
+   $('rewardCard').replaceChildren(card(reward,true));$('reward').hidden=false;
+   $('toggle').textContent='수집함 '+owned.size+'/'+quiz.length;
+  }
+  try{navigator.vibrate?.(25);}catch{}
+ }
+ $('next').textContent=step+1===round.length?'결과 보기 →':'다음 문제 →';$('next').hidden=false;
+ $('next').scrollIntoView({block:'nearest'});
+}
+function openAlbum(){previous=view;switchView('album');}
+$('toggle').onclick=()=>{
+ if(view==='groupAlbum')switchView('album');
+ else if(view==='album')switchView(previous);
+ else openAlbum();
+};
+$('backToGroups').onclick=()=>switchView('album');
+$('viewCards').onclick=openAlbum;
+$('skipPhoto').onclick=()=>{
+ if(view!=='game'||answered||!round[step].photo)return;
+ answered=true;skipped++;advance();
+};
+function advance(){
+ if(!answered||view!=='game')return;
+ clearTimeout(photoTimer);
+ step++;
+ if(step<round.length){renderQuestion(true);return;}
+ const counted=round.length-skipped;
+ $('resultTitle').textContent=counted?counted+'문제 중 '+score+'개 정답':'채점한 문제가 없어요';
+ $('resultDetail').textContent='카드 '+owned.size+' / '+quiz.length+'장을 모았어요.'+(skipped?' 사진 '+skipped+'문제 건너뜀.':'')+(activeMode==='standard'?' 다음 판에서는 아직 모으지 못한 카드의 문제가 먼저 나와요.':'');
+ switchView('result');
+}
+$('next').onclick=advance;
+function prioritized(pool){
+ return [...shuffle(pool.filter(q=>!owned.has(q.id))),...shuffle(pool.filter(q=>owned.has(q.id)))];
+}
+function makeRound(selected,mode){
+ if(mode==='lyrics')return shuffle(lyricsQuiz.filter(q=>selected.includes(q.gen)));
+ if(mode==='photo')return makePhotoRound(selected);
+ const queues=shuffle(selected).map(gen=>({
+  group:prioritized(groupQuiz.filter(q=>q.gen===gen)),
+  member:prioritized(memberQuiz.filter(q=>q.gen===gen))
+ }));
+ const questions=[];
+ for(let i=0;i<8;i++){
+  const queue=queues[i%queues.length];
+  const preferred=i<2?'group':'member';
+  const fallback=preferred==='group'?'member':'group';
+  questions.push(queue[preferred].shift()??queue[fallback].shift());
+ }
+ return shuffle(questions);
+}
+function makePhotoRound(selected){
+ const queues=shuffle(selected).map(gen=>shuffle(photoQuiz.filter(q=>q.gen===gen))
+  .sort((a,b)=>(photoAppearances.get(a.photo)??0)-(photoAppearances.get(b.photo)??0)));
+ const questions=[];
+ while(questions.length<photoRoundLimit&&queues.some(queue=>queue.length)){
+  for(const queue of queues){
+   if(!queue.length||questions.length===photoRoundLimit)continue;
+   questions.push(queue.shift());
+  }
+ }
+ for(const q of questions)photoAppearances.set(q.photo,(photoAppearances.get(q.photo)??0)+1);
+ return shuffle(questions);
+}
+function start(selected,mode){
+ if(!selected.length)return;
+ activeGenerations=[...selected];activeMode=mode;round=makeRound(activeGenerations,activeMode);
+ $('roundMode').textContent=modes[activeMode]+' · '+modeLabel(activeGenerations);
+ step=0;score=0;skipped=0;switchView('game',false);renderQuestion(true);
+}
+$('replay').onclick=()=>start(activeGenerations,activeMode);
+$('start').onclick=()=>start(selection(),$('mode').value);
+updateSelection();
+switchView('setup',false);
+</script></body></html>
