@@ -3998,7 +3998,7 @@ button.content-status-button {
 
   .mobile-bottom-nav button {
     display: grid;
-    min-width: 54px;
+    min-width: 0;
     min-height: 52px;
     flex: 1 1 0;
     place-items: center;

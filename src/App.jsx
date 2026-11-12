@@ -2525,6 +2525,10 @@ if (playMode === 'single') {
         </button>
       )
     })}
+  <button type="button" className="main-menu-item" onClick={() => window.location.assign('/games/idol-card-quiz.html')}>
+    <span className="menu-icon" aria-hidden="true">🎮</span>
+    <span className="menu-label">게임</span>
+  </button>
 </nav>
 
 {/* =========================
@@ -2997,6 +3001,10 @@ if (playMode === 'single') {
                 </button>
               )
             })}
+            <button type="button" onClick={() => window.location.assign('/games/idol-card-quiz.html')}>
+              <span aria-hidden="true">🎮</span>
+              <span>게임</span>
+            </button>
           </nav>
 
         </>
