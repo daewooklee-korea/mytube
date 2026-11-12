@@ -107,6 +107,7 @@ export default function PublicBrowse({ onLogin }) {
     </header>
     <nav className="public-nav" aria-label="공개 메뉴">
       <button type="button" onClick={() => navigate('/')}>전체</button>
+      <button type="button" onClick={() => window.location.assign('/games/idol-card-quiz.html')}>게임</button>
       {menus.map((menu) => <button type="button" key={menu.id} aria-current={activeMenu?.id === menu.id ? 'page' : undefined} onClick={() => navigate(menu.route || `/?menu=${menu.id}`, null)}>{menu.parent_id ? '↳ ' : ''}{menu.name}</button>)}
     </nav>
     <main className="public-main">
