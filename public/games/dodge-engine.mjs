@@ -5,7 +5,7 @@ const clamp = (x, min, max) => Math.max(min, Math.min(max, x))
 
 export function difficultyAt(seconds) {
   const level = Math.min(3, 1 + Math.floor(Math.max(0, seconds) / 10))
-  return { level, boxesPerWave: level, interval: 0.9 - (level - 1) * 0.12, speed: 175 + Math.min(30, Math.max(0, seconds)) * 2.5 }
+  return { level, interval: 2.15 - (level - 1) * 0.25, speed: 175 + Math.min(30, Math.max(0, seconds)) * 2.5 }
 }
 
 export function createGame(random = Math.random) {
@@ -16,40 +16,40 @@ export function intersects(a, b) {
   return Math.abs(a.x - b.x) * 2 < a.w + b.w && Math.abs(a.y - b.y) * 2 < a.h + b.h
 }
 
-export const SHAPES = ['rectangle', 'square', 'circle', 'triangle', 'diamond', 'hexagon', 'heart', 'star', 'flower', 'waterfall']
-export function vertices(o) {
- const points = o.shape === 'heart' ? [[0,-.24],[.13,-.43],[.27,-.5],[.41,-.44],[.5,-.29],[.49,-.1],[.37,.1],[0,.5],[-.37,.1],[-.49,-.1],[-.5,-.29],[-.41,-.44],[-.27,-.5],[-.13,-.43]]
-  : o.shape === 'star' ? Array.from({length:10},(_,i)=>{const angle=-Math.PI/2+i*Math.PI/5,r=i%2?.22:.5;return [Math.cos(angle)*r,Math.sin(angle)*r]})
-  : o.shape === 'flower' ? Array.from({length:60},(_,i)=>{const angle=-Math.PI/2+i*Math.PI/30,r=.36+.14*Math.cos(i*Math.PI/5);return [Math.cos(angle)*r,Math.sin(angle)*r]})
-  : o.shape === 'triangle' ? [[0,-.5],[.5,.5],[-.5,.5]]
-  : o.shape === 'diamond' ? [[0,-.5],[.5,0],[0,.5],[-.5,0]]
-  : o.shape === 'hexagon' ? [[-.25,-.5],[.25,-.5],[.5,0],[.25,.5],[-.25,.5],[-.5,0]]
-  : [[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]]
- return points.map(([x,y])=>({x:o.x+x*o.w,y:o.y+y*o.h}))
+// Each 1 is an individual rectangular obstacle, not a painted silhouette.
+export const FORMATIONS = {
+ heart: ['01100110','11111111','11111111','01111110','00111100','00011000'],
+ flower: ['000111000','000111000','110010011','111111111','110111011','000111000','000010000','000110000','000010000'],
+ waterfall: ['1111111','1010101','1010101','1010101','1010101','1010101','1010101','1010101','1010101','1010101'],
+ arrow: ['0001000','0011100','0111110','1111111','0001000','0001000','0001000'],
+ diamond: ['0001000','0011100','0110110','1100011','0110110','0011100','0001000']
 }
-export function hitsObstacle(player, obstacle) {
- if (!intersects(player, obstacle)) return false
- if (obstacle.shape === 'circle') {
-  const dx = Math.max(0, Math.abs(player.x-obstacle.x)-player.w/2)
-  const dy = Math.max(0, Math.abs(player.y-obstacle.y)-player.h/2)
-  return dx*dx+dy*dy < (obstacle.w/2)**2
- }
- const a=vertices(player), b=vertices(obstacle)
- // Concave silhouettes are a union of triangles, preserving their empty
- // notches rather than treating the whole convex hull as solid.
- if(['heart','star','flower'].includes(obstacle.shape)){
-  return b.some((point,i)=>polygonsIntersect(a,[{x:obstacle.x,y:obstacle.y},point,b[(i+1)%b.length]]))
- }
- return polygonsIntersect(a,b)
+export const CELL_SIZE = 12
+export const CELL_PITCH = 16
+export const hitsObstacle = intersects
+
+export function formationBlocks(name, center, top, speed, mirror = false) {
+ const rows = FORMATIONS[name]
+ const width = (rows[0].length - 1) * CELL_PITCH + CELL_SIZE
+ const blocks = []
+ rows.forEach((row, r)=>[...row].forEach((cell,c)=>{
+  if(cell==='1')blocks.push({x:center-width/2+CELL_SIZE/2+(mirror?row.length-1-c:c)*CELL_PITCH,
+   y:top+CELL_SIZE/2+r*CELL_PITCH,w:CELL_SIZE,h:CELL_SIZE,speed,formation:name})
+ }))
+ return blocks
 }
-function polygonsIntersect(a,b) {
- for(const polygon of [a,b]) for(let i=0;i<polygon.length;i++){
-  const p=polygon[i],q=polygon[(i+1)%polygon.length],axis={x:q.y-p.y,y:p.x-q.x}
-  const project=points=>points.map(v=>v.x*axis.x+v.y*axis.y)
-  const pa=project(a),pb=project(b)
-  if(Math.max(...pa)<=Math.min(...pb)||Math.max(...pb)<=Math.min(...pa))return false
- }
- return true
+export function createFormation(random, speed) {
+ const names = Object.keys(FORMATIONS)
+ const sample = ()=>clamp(random(),0,.999999)
+ const name = names[Math.floor(sample()*names.length)]
+ const rows = FORMATIONS[name]
+ const width = (rows[0].length - 1) * CELL_PITCH + CELL_SIZE
+ const height = (rows.length - 1) * CELL_PITCH + CELL_SIZE
+ // Explicitly mix edge-aligned and interior formations: every pattern stays
+ // recognizable on screen, while both edges remain exposed to real blocks.
+ const placement=sample(), offset=sample()
+ const left=placement<.3?0:placement<.6?WIDTH-width:offset*(WIDTH-width)
+ return formationBlocks(name,left+width/2,-height,speed,sample()<.5)
 }
 
 // Fixed simulation steps keep the timer, speed and collision checks independent of refresh rate.
@@ -68,18 +68,7 @@ export function advance(game, seconds, input = {}) {
     game.spawnIn -= step
     if (game.spawnIn <= 0) {
       const difficulty = difficultyAt(game.elapsed)
-      // Include partially clipped blocks on both sides. Restricting centers
-      // to the inside of the arena gives edge campers only half the exposure.
-      // Stratified samples still spread each wave across the full range.
-      const width = 38
-      const span = WIDTH + width
-      for (let i = 0; i < difficulty.boxesPerWave; i++) {
-        const sample = clamp(game.random(), 0, 0.999999)
-        const x = -width / 2 + (i + sample) * span / difficulty.boxesPerWave
-        const shape = SHAPES[Math.floor(clamp(game.random(), 0, 0.999999) * SHAPES.length)]
-        const height = shape === 'waterfall' ? 64 : shape === 'rectangle' ? 28 : width
-        game.obstacles.push({ x, y: -height / 2, shape, w: width, h: height, speed: difficulty.speed })
-      }
+      game.obstacles.push(...createFormation(game.random, difficulty.speed))
       game.spawnIn += difficulty.interval
     }
     for (const obstacle of game.obstacles) {

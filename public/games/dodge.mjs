@@ -1,4 +1,4 @@
-import { createGame, advance, difficultyAt, vertices, WIDTH, HEIGHT } from './dodge-engine.mjs'
+import { createGame, advance, difficultyAt, formationBlocks, WIDTH, HEIGHT } from './dodge-engine.mjs'
 import { HALL_KEY, cleanEntries, registerScore } from './dodge-leaderboard.mjs'
 const $ = id => document.getElementById(id)
 const board = $('board'), ctx = board.getContext('2d')
@@ -88,30 +88,16 @@ function paint() {
  const offset=reducedMotion?0:(game.elapsed*30)%42
  for(let y=-42+offset;y<HEIGHT;y+=42){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(WIDTH,y);ctx.stroke()}
  for(let x=0;x<=WIDTH;x+=72){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,HEIGHT);ctx.stroke()}
- const renderObstacles=game.status==='ready'?[{x:70,y:85,w:38,h:38,shape:'flower'},{x:250,y:150,w:38,h:64,shape:'waterfall'},{x:140,y:290,w:38,h:38,shape:'diamond'}]:game.obstacles
+ const renderObstacles=game.status==='ready'?[...formationBlocks('heart',90,40,0),...formationBlocks('flower',260,180,0)]:game.obstacles
  for(const o of renderObstacles){
-  ctx.shadowColor='#ff6f97';ctx.shadowBlur=reducedMotion?0:14;ctx.fillStyle='#ff6f97'
-  ctx.beginPath()
-  if(o.shape==='circle')ctx.arc(o.x,o.y,o.w/2,0,Math.PI*2)
-  else {const points=vertices(o);ctx.moveTo(points[0].x,points[0].y);for(const point of points.slice(1))ctx.lineTo(point.x,point.y);ctx.closePath()}
-  ctx.fill();ctx.shadowBlur=0
-  if(o.shape==='flower'){
-   ctx.fillStyle='#ffe5a3';ctx.beginPath();ctx.arc(o.x,o.y,5,0,Math.PI*2);ctx.fill()
-  }else if(o.shape==='waterfall'){
-   // Moving streaks stay inside the solid curtain used by collision checks.
-   ctx.save();ctx.clip();ctx.strokeStyle='#ffe4ee';ctx.lineWidth=2
-   const flow=reducedMotion?0:(game.elapsed*65)%22
-   for(let column=0;column<4;column++)for(let row=-1;row<4;row++){
-    const x=o.x-o.w/2+6+column*9,y=o.y-o.h/2+row*22+flow+(column%2)*8
-    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+10);ctx.stroke()
-   }
-   ctx.restore()
-  }
+  ctx.shadowColor='#ff6f97';ctx.shadowBlur=reducedMotion?0:5;ctx.fillStyle='#ff6f97'
+  ctx.fillRect(o.x-o.w/2,o.y-o.h/2,o.w,o.h);ctx.shadowBlur=0
+  ctx.fillStyle='#ffd0df';ctx.fillRect(o.x-o.w/2+2,o.y-o.h/2+2,o.w-4,2)
  }
  const p=game.player;ctx.fillStyle='#73dcff';ctx.shadowColor='#73dcff';ctx.shadowBlur=reducedMotion?0:19;roundBox(p.x-p.w/2,p.y-p.h/2,p.w,p.h,7);ctx.shadowBlur=0;ctx.fillStyle='#12344c';roundBox(p.x-7,p.y-4,4,4,1);roundBox(p.x+3,p.y-4,4,4,1)
  ctx.strokeStyle='#73dcff45';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(18,HEIGHT-30);ctx.lineTo(WIDTH-18,HEIGHT-30);ctx.stroke()
  $('time').textContent=game.elapsed.toFixed(1);$('score').textContent=game.score.toLocaleString()
- const difficulty=difficultyAt(game.elapsed);$('difficulty').textContent=`LEVEL ${difficulty.level} · 한 번에 ${difficulty.boxesPerWave}개`
+ const difficulty=difficultyAt(game.elapsed);$('difficulty').textContent=`LEVEL ${difficulty.level} · 블록 패턴`
 }
 function loop(now){
  const dt=last?(now-last)/1000:0;last=now
