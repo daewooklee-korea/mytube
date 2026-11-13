@@ -1,4 +1,4 @@
-import { createGame, advance, difficultyAt, WIDTH, HEIGHT, GOAL } from './dodge-engine.mjs'
+import { createGame, advance, difficultyAt, WIDTH, HEIGHT } from './dodge-engine.mjs'
 import { HALL_KEY, cleanEntries, registerScore } from './dodge-leaderboard.mjs'
 const $ = id => document.getElementById(id)
 const board = $('board'), ctx = board.getContext('2d')
@@ -16,7 +16,7 @@ function renderHall(entries = readHall()) {
   $('hallList').replaceChildren(); $('hallEmpty').hidden = entries.length > 0
   entries.forEach((row, index) => {
     const li=document.createElement('li'),rank=document.createElement('span'),name=document.createElement('span'),score=document.createElement('span'),time=document.createElement('small')
-    rank.className='rank';rank.textContent=String(index+1).padStart(2,'0');name.className='hall-name';name.textContent=row.name;score.className='hall-points';score.textContent=`${row.score.toLocaleString()}점`;time.textContent=row.score === 30 ? '30초 달성' : `생존 ${row.score}초 이상`;score.append(time);li.append(rank,name,score);$('hallList').append(li)
+    rank.className='rank';rank.textContent=String(index+1).padStart(2,'0');name.className='hall-name';name.textContent=row.name;score.className='hall-points';score.textContent=`${row.score.toLocaleString()}점`;time.textContent=`생존 ${row.score}초 이상`;score.append(time);li.append(rank,name,score);$('hallList').append(li)
   })
 }
 renderHall()
@@ -53,10 +53,9 @@ function finish() {
   clearInput();$('pause').disabled=true
   const record=game.elapsed>best.elapsed+.001 || (game.elapsed>=best.elapsed-.001 && game.score>best.score)
   if(record){best={elapsed:game.elapsed,score:game.score};try{localStorage.setItem('playme-dodge-best-v3',JSON.stringify(best))}catch{/* Optional local record. */}showBest()}
-  const won=game.status==='won'
-  overlay(won?'MISSION COMPLETE':'SO CLOSE. ONE MORE?',won?'30초, 살아남았다!':'앗, 부딪혔어요.',`${game.elapsed.toFixed(1)}초 생존 · ${game.score.toLocaleString()}점\n${won?'틈을 찾는 감각, 제법인데요?':'다음 틈은 분명 보일 거예요.'}`,'다시 도전',record?'이 기기의 최고 기록을 갱신했어요!':'다시 시작하면 시간과 점수가 초기화됩니다.')
+  overlay('SO CLOSE. ONE MORE?','앗, 부딪혔어요.',`${game.elapsed.toFixed(1)}초 생존 · ${game.score.toLocaleString()}점\n다음 틈은 분명 보일 거예요.`,'다시 도전',record?'이 기기의 최고 기록을 갱신했어요!':'다시 시작하면 시간과 점수가 초기화됩니다.')
   if(game.score>0){pendingRecord={score:game.score};$('hallForm').hidden=false;$('openHall').hidden=false;$('pendingScore').textContent=`이번 기록: ${game.score.toLocaleString()}점 · 생존 ${game.elapsed.toFixed(2)}초`;renderHall()}
-  $('announcement').textContent=won?'성공! 30초를 버텼습니다.':`${game.elapsed.toFixed(1)}초 만에 충돌했습니다. 다시 도전할 수 있습니다.`;tone(won?1000:170,.25);$('start').focus({preventScroll:true})
+  $('announcement').textContent=`${game.elapsed.toFixed(1)}초 만에 충돌했습니다. 다시 도전할 수 있습니다.`;tone(170,.25);$('start').focus({preventScroll:true})
 }
 $('start').addEventListener('click',()=>{if(game.status!=='paused')game=createGame();tone();beginCountdown()})
 $('pause').addEventListener('click',pause)
@@ -93,19 +92,19 @@ function paint() {
  for(const o of renderObstacles){ctx.shadowColor='#ff6f97';ctx.shadowBlur=reducedMotion?0:14;ctx.fillStyle='#ff6f97';roundBox(o.x-o.w/2,o.y-o.h/2,o.w,o.h,5);ctx.shadowBlur=0;ctx.fillStyle='#ffbad0';roundBox(o.x-o.w/2+5,o.y-o.h/2+4,o.w-10,3,1)}
  const p=game.player;ctx.fillStyle='#73dcff';ctx.shadowColor='#73dcff';ctx.shadowBlur=reducedMotion?0:19;roundBox(p.x-p.w/2,p.y-p.h/2,p.w,p.h,7);ctx.shadowBlur=0;ctx.fillStyle='#12344c';roundBox(p.x-7,p.y-4,4,4,1);roundBox(p.x+3,p.y-4,4,4,1)
  ctx.strokeStyle='#73dcff45';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(18,HEIGHT-30);ctx.lineTo(WIDTH-18,HEIGHT-30);ctx.stroke()
- $('time').textContent=Math.max(0,GOAL-game.elapsed).toFixed(1);$('score').textContent=game.score.toLocaleString();$('progress').style.width=`${game.elapsed/GOAL*100}%`
+ $('time').textContent=game.elapsed.toFixed(1);$('score').textContent=game.score.toLocaleString()
  const difficulty=difficultyAt(game.elapsed);$('difficulty').textContent=`LEVEL ${difficulty.level} · 한 번에 ${difficulty.boxesPerWave}개`
 }
 function loop(now){
  const dt=last?(now-last)/1000:0;last=now
  if(game.status==='countdown'){
   const left=3-Math.floor((now-countdownAt)/1000)
-  if(left<=0){$('countdown').hidden=true;game.status='running';$('pause').disabled=false;last=now;clearInput();$('announcement').textContent='시작! 30초 동안 장애물을 피하세요.'}
+  if(left<=0){$('countdown').hidden=true;game.status='running';$('pause').disabled=false;last=now;clearInput();$('announcement').textContent='시작! 부딪힐 때까지 계속 장애물을 피하세요.'}
   else if(left!==countdownNumber){countdownNumber=left;$('countdown').textContent=String(left);tone(400+left*100,.06)}
  }else if(game.status==='running'){
   // A long stalled frame pauses rather than teleporting obstacles into the player.
   if(dt>.25)pause()
-  else{const left=keys.has('arrowleft')||keys.has('a'),right=keys.has('arrowright')||keys.has('d');const direction=(right?1:0)-(left?1:0)+Array.from(held.values()).reduce((a,b)=>a+b,0);advance(game,dt,{direction,target});if(['lost','won'].includes(game.status))finish()}
+  else{const left=keys.has('arrowleft')||keys.has('a'),right=keys.has('arrowright')||keys.has('d');const direction=(right?1:0)-(left?1:0)+Array.from(held.values()).reduce((a,b)=>a+b,0);advance(game,dt,{direction,target});if(game.status==='lost')finish()}
  }
  paint();requestAnimationFrame(loop)
 }

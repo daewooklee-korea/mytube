@@ -20,6 +20,6 @@ test('name normalization and validation prevent empty names and markup',()=>{
 })
 test('invalid stored data and out-of-range scores are rejected',()=>{
  assert.deepEqual(cleanEntries(null),[])
- assert.deepEqual(cleanEntries([{name:'가짜',score:99999,at:1}]),[])
- for(const score of [0,-1,31,1.5,NaN])assert.throws(()=>registerScore([],'이름',score))
+ assert.equal(registerScore([],'장기생존',99999,1).entries[0].score,99999)
+ for(const score of [0,-1,Number.MAX_SAFE_INTEGER+1,1.5,NaN])assert.throws(()=>registerScore([],'이름',score))
 })

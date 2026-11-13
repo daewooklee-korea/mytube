@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b101c">
-  <meta name="description" content="손가락 하나로 장애물을 피하고 30초를 버텨보세요. PlayMe 무료 미니게임. 로그인 없이 휴대폰과 PC에서 플레이할 수 있습니다.">
-  <title>30초의 틈 · 장애물 피하기 | PlayMe</title>
+  <meta name="description" content="손가락 하나로 장애물을 피해 최대한 오래 살아남으세요. PlayMe 무료 미니게임. 로그인 없이 휴대폰과 PC에서 플레이할 수 있습니다.">
+  <title>끝없는 틈 · 장애물 피하기 | PlayMe</title>
   <link rel="stylesheet" href="./dodge.css">
 </head>
 <body>
   <main class="arcade">
     <header class="game-header"><a class="brand" href="/games/" aria-label="PlayMe 게임 목록"><img src="/playme-logo.svg" alt=""><span>Play<span class="pink">Me</span><small>ARCADE</small></span></a><div class="header-actions"><button id="sound" class="icon-button" aria-pressed="false" aria-label="효과음 켜기">소리 OFF</button><a class="text-link" href="/games/">게임 목록 ↗</a></div></header>
-    <section class="intro"><div class="eyebrow"><span></span> ONE FINGER. THIRTY SECONDS.</div><h1>30초의 <em>틈.</em></h1><p>떨어지는 블록 사이로, 끝까지 살아남기.</p></section>
-    <div class="hud"><div><small>남은 시간</small><strong><span id="time">30.0</span><i>s</i></strong></div><div class="hud-score"><small>이번 점수</small><strong id="score">0</strong></div><button id="pause" class="pause-button" disabled aria-label="일시정지">Ⅱ</button></div>
+    <section class="intro"><div class="eyebrow"><span></span> ONE FINGER. ENDLESS SURVIVAL.</div><h1>끝없는 <em>틈.</em></h1><p>떨어지는 블록 사이로, 끝까지 살아남기.</p></section>
+    <div class="hud"><div><small>생존 시간</small><strong><span id="time">0.0</span><i>s</i></strong></div><div class="hud-score"><small>이번 점수</small><strong id="score">0</strong></div><button id="pause" class="pause-button" disabled aria-label="일시정지">Ⅱ</button></div>
     <div class="difficulty-strip"><span id="difficulty">LEVEL 1 · 한 번에 1개</span><span>1초 = 1점</span></div>
-    <div class="progress" aria-hidden="true"><i id="progress"></i></div>
+    <div class="progress" aria-hidden="true"></div>
     <section class="arena" aria-label="장애물 피하기 게임">
       <canvas id="board" width="720" height="1020" tabindex="0" role="img" aria-label="게임 화면. 방향키 또는 A와 D로 좌우 이동. 휴대폰은 화면을 누른 채 드래그. P 또는 Escape로 일시정지."></canvas>
-      <div id="overlay" class="overlay"><div class="overlay-content"><div id="overlayLabel" class="eyebrow">THE 30 SECOND CHALLENGE</div><h2 id="overlayTitle">딱 30초.<br>버틸 수 있나요?</h2><p id="overlayText">파란 캐릭터를 움직여<br>분홍 블록을 피하세요.</p><button id="start" class="primary">도전 시작 <span>→</span></button><button id="openHall" class="hall-jump" hidden>이름 남기고 순위 등록 ↓</button><p id="result" class="result" hidden></p></div></div>
+      <div id="overlay" class="overlay"><div class="overlay-content"><div id="overlayLabel" class="eyebrow">THE ENDLESS CHALLENGE</div><h2 id="overlayTitle">끝이 없는 도전.<br>얼마나 버틸까요?</h2><p id="overlayText">파란 캐릭터를 움직여<br>분홍 블록을 피하세요.</p><button id="start" class="primary">도전 시작 <span>→</span></button><button id="openHall" class="hall-jump" hidden>이름 남기고 순위 등록 ↓</button><p id="result" class="result" hidden></p></div></div>
       <div id="countdown" class="countdown" hidden aria-live="polite"></div>
       <div class="arena-tag" aria-hidden="true">KEEP MOVING · FIND THE GAP</div>
     </section>
@@ -35,7 +35,7 @@
       <p id="hallStatus" class="hall-status" role="status"></p>
       <p class="hall-footnote">같은 이름은 가장 높은 점수만 표시해요. 동점이면 먼저 등록한 기록이 앞섭니다. 브라우저 데이터를 지우면 기록도 사라져요.</p>
     </section>
-    <details class="rules"><summary>플레이 방법과 점수</summary><p>30초를 버티면 성공, 한 번 닿으면 종료됩니다. 10초마다 난이도가 올라가 한 번에 떨어지는 박스가 1개 → 2개 → 3개로 늘어납니다. 블록의 몸체가 닿았을 때만 충돌하며 빛나는 테두리는 포함하지 않습니다. 생존 1초당 1점으로, 10초는 10점, 30초는 30점입니다. 1초 미만은 점수에 포함하지 않습니다. 블록을 피한 개수에 따른 추가 점수는 없습니다.</p><p>손을 떼거나 이동 키를 놓으면 멈춥니다. 다른 창으로 이동하면 자동 일시정지됩니다. 최고 기록은 현재 브라우저에만 저장되며, 브라우저 데이터를 지우면 사라집니다.</p></details>
+    <details class="rules"><summary>플레이 방법과 점수</summary><p>시간 제한 없이 계속 진행되며, 한 번 닿으면 종료됩니다. 10초마다 한 번에 떨어지는 박스가 1개 → 2개 → 3개로 늘어나며, 20초 이후에는 3개씩 계속 떨어집니다. 블록의 몸체가 닿았을 때만 충돌하며 빛나는 테두리는 포함하지 않습니다. 생존 1초당 1점으로, 60초는 60점, 120초는 120점입니다. 1초 미만은 점수에 포함하지 않습니다. 블록을 피한 개수에 따른 추가 점수는 없습니다.</p><p>손을 떼거나 이동 키를 놓으면 멈춥니다. 다른 창으로 이동하면 자동 일시정지됩니다. 최고 기록은 현재 브라우저에만 저장되며, 브라우저 데이터를 지우면 사라집니다.</p></details>
     <footer>쇼츠 속 아이디어가 진짜 게임으로. <a href="https://www.youtube.com/shorts/aiWOPsmkmGs" target="_blank" rel="noopener noreferrer">제작 이야기 ↗</a><a href="/">PlayMe 홈</a></footer>
     <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
   </main>
