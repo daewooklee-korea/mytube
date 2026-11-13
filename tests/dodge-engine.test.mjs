@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createGame, advance, intersects, difficultyAt, hitsObstacle, FORMATIONS, formationBlocks, createFormation, WIDTH } from '../public/games/dodge-engine.mjs'
+import { createGame, advance, intersects, difficultyAt, hitsObstacle, FORMATIONS, formationBlocks, createFormation, CELL_SIZE, CELL_PITCH, WIDTH } from '../public/games/dodge-engine.mjs'
 
 const running = (random = () => 0) => Object.assign(createGame(random), { status: 'running' })
 test('same elapsed time, movement and score at 30, 60 and 144 FPS', () => {
@@ -18,7 +18,7 @@ test('near miss survives; body contact ends round',()=>{
  const g=running();g.obstacles=[{x:g.player.x,y:g.player.y,w:38,h:28,speed:0}];advance(g,1/60);assert.equal(g.status,'lost');const elapsed=g.elapsed;advance(g,10);assert.equal(g.elapsed,elapsed)
 })
 test('survival continues beyond 30 seconds and scores keep increasing',()=>{
- const g=running();g.player.y=-100;advance(g,30.1);assert.equal(g.status,'running');assert.equal(g.score,30);advance(g,90);assert.equal(g.status,'running');assert.ok(Math.abs(g.elapsed-120.1)<1e-6);assert.equal(g.score,120)
+ const g=running();g.player.y=-1000;advance(g,30.1);assert.equal(g.status,'running');assert.equal(g.score,30);advance(g,90);assert.equal(g.status,'running');assert.ok(Math.abs(g.elapsed-120.1)<1e-6);assert.equal(g.score,120)
 })
 test('paused simulation stays frozen; a new round resets everything',()=>{
  const g=running();advance(g,1);g.status='paused';const before=JSON.stringify(g);advance(g,5,{direction:1});assert.equal(JSON.stringify(g),before);const fresh=createGame();assert.equal(fresh.elapsed,0);assert.equal(fresh.score,0);assert.equal(fresh.obstacles.length,0);assert.equal(fresh.player.x,180)
@@ -29,7 +29,7 @@ test('points depend only on time, never on passed boxes',()=>{
 test('difficulty increases formation cadence and speed without overlapping entire waves',()=>{
  for(const t of [0,10,20,30]){
   const d=difficultyAt(t)
-  const maxHeight=Math.max(...Object.values(FORMATIONS).map(rows=>rows.length*16))
+  const maxHeight=Math.max(...Object.values(FORMATIONS).map(rows=>(rows.length-1)*CELL_PITCH+CELL_SIZE))
   assert.ok(d.interval*d.speed>maxHeight+28+60)
  }
  assert.ok(difficultyAt(20).interval<difficultyAt(0).interval)
@@ -38,14 +38,14 @@ test('every formation is made of distinct small rectangular blocks',()=>{
  for(const [name,rows] of Object.entries(FORMATIONS)){
   const blocks=formationBlocks(name,180,0,200)
   assert.equal(blocks.length,rows.join('').replaceAll('0','').length)
-  assert.ok(blocks.length>15)
-  assert.ok(blocks.every(b=>b.w===12&&b.h===12&&b.formation===name))
+  assert.ok(blocks.length>=10)
+  assert.ok(blocks.every(b=>b.w===CELL_SIZE&&b.h===CELL_SIZE&&b.formation===name))
   assert.equal(new Set(blocks.map(b=>`${b.x},${b.y}`)).size,blocks.length)
  }
 })
 test('empty spaces inside a formation do not collide, occupied cells do',()=>{
  const blocks=formationBlocks('diamond',180,0,200)
- assert.equal(blocks.some(b=>hitsObstacle({x:180,y:54,w:2,h:2},b)),false)
+ assert.equal(blocks.some(b=>hitsObstacle({x:180,y:3*CELL_PITCH+CELL_SIZE/2,w:2,h:2},b)),false)
  const block=blocks[0]
  assert.equal(hitsObstacle({x:block.x,y:block.y,w:2,h:2},block),true)
 })
@@ -80,4 +80,35 @@ test('edge camping has comparable survival time to interior positions',()=>{
  })
  const interior=(means[1]+means[2]+means[3])/3
  for(const edge of [means[0],means[4]])assert.ok(edge/interior>.8&&edge/interior<1.2,JSON.stringify(means))
+})
+
+test('blocks are separated by a gap wider than the player',()=>{
+ assert.ok(CELL_PITCH-CELL_SIZE>=28+4)
+ for(const name of Object.keys(FORMATIONS)){
+  const blocks=formationBlocks(name,180,0,150)
+  for(let i=0;i<blocks.length;i++)for(let j=i+1;j<blocks.length;j++)assert.equal(intersects(blocks[i],blocks[j]),false)
+ }
+})
+test('idle players receive visible aimed blocks; movement resets the idle timer',()=>{
+ const g=running(balancedRandom(9));advance(g,2.4)
+ assert.equal(g.obstacles.some(o=>o.tracking),false)
+ advance(g,.2);const shots=g.obstacles.filter(o=>o.tracking)
+ assert.equal(shots.length,3);assert.ok(shots.every(o=>o.x===180&&o.y<40))
+ advance(g,.1,{direction:1});assert.equal(g.stillTime,0);assert.equal(g.trackerIn,2.5)
+ assert.ok(shots.every(o=>o.x===180),'shots do not home after launch')
+})
+test('later play gets faster and denser rather than stopping at level three',()=>{
+ for(const t of [10,30,60,120]){
+  assert.ok(difficultyAt(t).speed>difficultyAt(t-10).speed)
+  assert.ok(difficultyAt(t).density>difficultyAt(t-10).density)
+ }
+ const sparse=createFormation(balancedRandom(42),150,0),dense=createFormation(balancedRandom(42),150,.4)
+ assert.ok(dense.length>sparse.length)
+})
+
+test('holding against either wall does not bypass idle pressure',()=>{
+ for(const [x,direction] of [[18,-1],[342,1]]){
+  const g=running(balancedRandom(17));g.player.x=x;advance(g,5,{direction})
+  assert.equal(g.status,'lost');assert.ok(g.elapsed<5)
+ }
 })

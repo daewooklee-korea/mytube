@@ -88,16 +88,16 @@ function paint() {
  const offset=reducedMotion?0:(game.elapsed*30)%42
  for(let y=-42+offset;y<HEIGHT;y+=42){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(WIDTH,y);ctx.stroke()}
  for(let x=0;x<=WIDTH;x+=72){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,HEIGHT);ctx.stroke()}
- const renderObstacles=game.status==='ready'?[...formationBlocks('heart',90,40,0),...formationBlocks('flower',260,180,0)]:game.obstacles
+ const renderObstacles=game.status==='ready'?[...formationBlocks('heart',180,30,0)]:game.obstacles
  for(const o of renderObstacles){
-  ctx.shadowColor='#ff6f97';ctx.shadowBlur=reducedMotion?0:5;ctx.fillStyle='#ff6f97'
+  ctx.shadowColor=o.tracking?'#ffcd66':'#ff6f97';ctx.shadowBlur=reducedMotion?0:5;ctx.fillStyle=o.tracking?'#ffcd66':'#ff6f97'
   ctx.fillRect(o.x-o.w/2,o.y-o.h/2,o.w,o.h);ctx.shadowBlur=0
   ctx.fillStyle='#ffd0df';ctx.fillRect(o.x-o.w/2+2,o.y-o.h/2+2,o.w-4,2)
  }
  const p=game.player;ctx.fillStyle='#73dcff';ctx.shadowColor='#73dcff';ctx.shadowBlur=reducedMotion?0:19;roundBox(p.x-p.w/2,p.y-p.h/2,p.w,p.h,7);ctx.shadowBlur=0;ctx.fillStyle='#12344c';roundBox(p.x-7,p.y-4,4,4,1);roundBox(p.x+3,p.y-4,4,4,1)
  ctx.strokeStyle='#73dcff45';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(18,HEIGHT-30);ctx.lineTo(WIDTH-18,HEIGHT-30);ctx.stroke()
  $('time').textContent=game.elapsed.toFixed(1);$('score').textContent=game.score.toLocaleString()
- const difficulty=difficultyAt(game.elapsed);$('difficulty').textContent=`LEVEL ${difficulty.level} · 블록 패턴`
+ const difficulty=difficultyAt(game.elapsed);$('difficulty').textContent=`LEVEL ${difficulty.level} · ${game.stillTime>1.2?'멈추면 노란 추적 블록!':'계속 움직이세요'}`
 }
 function loop(now){
  const dt=last?(now-last)/1000:0;last=now
