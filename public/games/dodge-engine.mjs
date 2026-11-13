@@ -68,14 +68,14 @@ export function advance(game, seconds, input = {}) {
     game.spawnIn -= step
     if (game.spawnIn <= 0) {
       const difficulty = difficultyAt(game.elapsed)
-      // Jitter across the entire arena instead of five fixed lanes. Each
-      // wave gets one sample per band, so blocks spread out without leaving
-      // permanent gaps between columns (including at the arena edges).
+      // Include partially clipped blocks on both sides. Restricting centers
+      // to the inside of the arena gives edge campers only half the exposure.
+      // Stratified samples still spread each wave across the full range.
       const width = 38
-      const span = WIDTH - width
+      const span = WIDTH + width
       for (let i = 0; i < difficulty.boxesPerWave; i++) {
         const sample = clamp(game.random(), 0, 0.999999)
-        const x = width / 2 + (i + sample) * span / difficulty.boxesPerWave
+        const x = -width / 2 + (i + sample) * span / difficulty.boxesPerWave
         const shape = SHAPES[Math.floor(clamp(game.random(), 0, 0.999999) * SHAPES.length)]
         const height = shape === 'waterfall' ? 64 : shape === 'rectangle' ? 28 : width
         game.obstacles.push({ x, y: -height / 2, shape, w: width, h: height, speed: difficulty.speed })

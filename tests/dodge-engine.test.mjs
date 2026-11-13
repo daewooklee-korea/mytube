@@ -40,11 +40,11 @@ test('stationary players are hit across the arena, including old lane gaps and e
   assert.equal(g.status,'lost',`stationary x=${x}, seed=${seed}`)
  }
 })
-test('spawn positions vary continuously and boxes stay inside the arena',()=>{
+test('spawn positions vary continuously and cover both edges with partially visible blocks',()=>{
  const g=running(seeded(42));g.player.y=-100;const positions=[]
  for(let i=0;i<100;i++){g.spawnIn=0;advance(g,1/120);positions.push(...g.obstacles.map(o=>o.x));g.obstacles=[]}
  assert.equal(new Set(positions).size,100)
- assert.ok(positions.every(x=>x>=19&&x<=WIDTH-19))
+ assert.ok(positions.every(x=>x>=-19&&x<=WIDTH+19))
  assert.ok(positions.some(x=>x>60&&x<84),'old safe gap receives blocks')
 })
 
@@ -78,4 +78,20 @@ test('flower petals and waterfall height use their visible collision geometry',(
  assert.equal(hitsObstacle({x:21,y:0,w:1,h:1},waterfall),false)
  const g=running(()=>.999999);g.spawnIn=0;advance(g,1/120)
  assert.equal(g.obstacles[0].shape,'waterfall');assert.equal(g.obstacles[0].h,64)
+})
+
+function balancedRandom(seed) {
+ return ()=>{let t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296}
+}
+test('edge camping has comparable survival time to interior positions',()=>{
+ const means=[18,90,180,270,342].map(x=>{
+  let total=0
+  for(let seed=1;seed<=1000;seed++){
+   const g=running(balancedRandom(seed));g.player.x=x;advance(g,120)
+   assert.equal(g.status,'lost');total+=g.elapsed
+  }
+  return total/1000
+ })
+ const interior=(means[1]+means[2]+means[3])/3
+ for(const edge of [means[0],means[4]])assert.ok(edge/interior>.8&&edge/interior<1.2,JSON.stringify(means))
 })
