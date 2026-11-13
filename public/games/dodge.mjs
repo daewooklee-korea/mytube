@@ -1,14 +1,37 @@
-import { createGame, advance, WIDTH, HEIGHT, GOAL } from './dodge-engine.mjs'
+import { createGame, advance, difficultyAt, WIDTH, HEIGHT, GOAL } from './dodge-engine.mjs'
+import { HALL_KEY, cleanEntries, registerScore } from './dodge-leaderboard.mjs'
 const $ = id => document.getElementById(id)
 const board = $('board'), ctx = board.getContext('2d')
 ctx.scale(2, 2)
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
 let game = createGame(), last = 0, countdownAt = null, countdownNumber = null, best = { elapsed: 0, score: 0 }, sound = false, audio = null
 let target = null, dragId = null
+let pendingRecord = null
 const keys = new Set(), held = new Map()
-try { const b = JSON.parse(localStorage.getItem('playme-dodge-best-v1')); if (Number.isFinite(b?.elapsed) && Number.isFinite(b?.score)) best = b } catch { /* Storage may be disabled. */ }
+try { const b = JSON.parse(localStorage.getItem('playme-dodge-best-v2')); if (Number.isFinite(b?.elapsed) && Number.isFinite(b?.score)) best = b } catch { /* Storage may be disabled. */ }
 function showBest() { $('best').textContent = best.elapsed > 0 ? `${best.elapsed.toFixed(1)}초 · ${best.score.toLocaleString()}점` : '아직 기록이 없어요' }
 showBest()
+function readHall() { try { return cleanEntries(JSON.parse(localStorage.getItem(HALL_KEY))) } catch { return [] } }
+function renderHall(entries = readHall()) {
+  $('hallList').replaceChildren(); $('hallEmpty').hidden = entries.length > 0
+  entries.forEach((row, index) => {
+    const li=document.createElement('li'),rank=document.createElement('span'),name=document.createElement('span'),score=document.createElement('span'),time=document.createElement('small')
+    rank.className='rank';rank.textContent=String(index+1).padStart(2,'0');name.className='hall-name';name.textContent=row.name;score.className='hall-points';score.textContent=`${row.score.toLocaleString()}점`;time.textContent=`생존 ${(row.score/100).toFixed(2)}초`;score.append(time);li.append(rank,name,score);$('hallList').append(li)
+  })
+}
+renderHall()
+window.addEventListener('storage',e=>{if(e.key===HALL_KEY)renderHall()})
+$('openHall').addEventListener('click',()=>{$('hallForm').scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'center'});$('playerName').focus({preventScroll:true})})
+$('hallForm').addEventListener('submit',e=>{
+  e.preventDefault();if(!pendingRecord)return
+  try {
+    const result=registerScore(readHall(),$('playerName').value,pendingRecord.score)
+    // Only show a saved rank after durable browser storage succeeds.
+    localStorage.setItem(HALL_KEY,JSON.stringify(result.entries));renderHall(result.entries)
+    $('hallStatus').textContent=result.rank?(result.improved?`${result.name} 님, ${result.rank}위에 등록됐어요!`:`${result.name} 님의 기존 최고 점수를 유지했어요. 현재 ${result.rank}위입니다.`):'기록을 확인했어요. 현재 상위 5위에는 들지 못했지만 다시 도전할 수 있어요.'
+    $('hallForm').hidden=true;$('openHall').hidden=true;pendingRecord=null
+  } catch(error) { $('hallStatus').textContent=error.name==='QuotaExceededError'||error.name==='SecurityError'?'브라우저 저장 공간을 사용할 수 없어 등록하지 못했어요. 저장 설정을 확인해주세요.':error.message }
+})
 function clearInput() { keys.clear(); held.clear(); target = null; dragId = null }
 function tone(freq = 650, length = .08) {
   if (!sound) return
@@ -19,7 +42,7 @@ function overlay(label, title, text, button, detail='') {
   $('result').textContent=detail;$('result').hidden=!detail;$('overlay').hidden=false
 }
 function beginCountdown() {
-  clearInput();$('overlay').hidden=true; game.status='countdown';countdownAt=performance.now();countdownNumber=null;$('countdown').hidden=false;$('pause').disabled=true; board.focus({preventScroll:true})
+  clearInput();pendingRecord=null;$('hallForm').hidden=true;$('openHall').hidden=true;$('hallStatus').textContent='';$('overlay').hidden=true; game.status='countdown';countdownAt=performance.now();countdownNumber=null;$('countdown').hidden=false;$('pause').disabled=true; board.focus({preventScroll:true})
 }
 function pause() {
   if (!['running','countdown'].includes(game.status)) return
@@ -29,9 +52,10 @@ function pause() {
 function finish() {
   clearInput();$('pause').disabled=true
   const record=game.elapsed>best.elapsed+.001 || (game.elapsed>=best.elapsed-.001 && game.score>best.score)
-  if(record){best={elapsed:game.elapsed,score:game.score};try{localStorage.setItem('playme-dodge-best-v1',JSON.stringify(best))}catch{/* Optional local record. */}showBest()}
+  if(record){best={elapsed:game.elapsed,score:game.score};try{localStorage.setItem('playme-dodge-best-v2',JSON.stringify(best))}catch{/* Optional local record. */}showBest()}
   const won=game.status==='won'
   overlay(won?'MISSION COMPLETE':'SO CLOSE. ONE MORE?',won?'30초, 살아남았다!':'앗, 부딪혔어요.',`${game.elapsed.toFixed(1)}초 생존 · ${game.score.toLocaleString()}점\n${won?'틈을 찾는 감각, 제법인데요?':'다음 틈은 분명 보일 거예요.'}`,'다시 도전',record?'이 기기의 최고 기록을 갱신했어요!':'다시 시작하면 시간과 점수가 초기화됩니다.')
+  if(game.score>0){pendingRecord={score:game.score};$('hallForm').hidden=false;$('openHall').hidden=false;$('pendingScore').textContent=`이번 기록: ${game.score.toLocaleString()}점 · 생존 ${(game.score/100).toFixed(2)}초`;renderHall()}
   $('announcement').textContent=won?'성공! 30초를 버텼습니다.':`${game.elapsed.toFixed(1)}초 만에 충돌했습니다. 다시 도전할 수 있습니다.`;tone(won?1000:170,.25);$('start').focus({preventScroll:true})
 }
 $('start').addEventListener('click',()=>{if(game.status!=='paused')game=createGame();tone();beginCountdown()})
@@ -70,6 +94,7 @@ function paint() {
  const p=game.player;ctx.fillStyle='#73dcff';ctx.shadowColor='#73dcff';ctx.shadowBlur=reducedMotion?0:19;roundBox(p.x-p.w/2,p.y-p.h/2,p.w,p.h,7);ctx.shadowBlur=0;ctx.fillStyle='#12344c';roundBox(p.x-7,p.y-4,4,4,1);roundBox(p.x+3,p.y-4,4,4,1)
  ctx.strokeStyle='#73dcff45';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(18,HEIGHT-30);ctx.lineTo(WIDTH-18,HEIGHT-30);ctx.stroke()
  $('time').textContent=Math.max(0,GOAL-game.elapsed).toFixed(1);$('score').textContent=game.score.toLocaleString();$('progress').style.width=`${game.elapsed/GOAL*100}%`
+ const difficulty=difficultyAt(game.elapsed);$('difficulty').textContent=`LEVEL ${difficulty.level} · 한 번에 ${difficulty.boxesPerWave}개`
 }
 function loop(now){
  const dt=last?(now-last)/1000:0;last=now
