@@ -1,4 +1,4 @@
-import { createGame, advance, difficultyAt, WIDTH, HEIGHT } from './dodge-engine.mjs'
+import { createGame, advance, difficultyAt, vertices, WIDTH, HEIGHT } from './dodge-engine.mjs'
 import { HALL_KEY, cleanEntries, registerScore } from './dodge-leaderboard.mjs'
 const $ = id => document.getElementById(id)
 const board = $('board'), ctx = board.getContext('2d')
@@ -88,8 +88,14 @@ function paint() {
  const offset=reducedMotion?0:(game.elapsed*30)%42
  for(let y=-42+offset;y<HEIGHT;y+=42){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(WIDTH,y);ctx.stroke()}
  for(let x=0;x<=WIDTH;x+=72){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,HEIGHT);ctx.stroke()}
- const renderObstacles=game.status==='ready'?[{x:70,y:85,w:38,h:28},{x:250,y:175,w:38,h:28},{x:140,y:290,w:38,h:28}]:game.obstacles
- for(const o of renderObstacles){ctx.shadowColor='#ff6f97';ctx.shadowBlur=reducedMotion?0:14;ctx.fillStyle='#ff6f97';roundBox(o.x-o.w/2,o.y-o.h/2,o.w,o.h,5);ctx.shadowBlur=0;ctx.fillStyle='#ffbad0';roundBox(o.x-o.w/2+5,o.y-o.h/2+4,o.w-10,3,1)}
+ const renderObstacles=game.status==='ready'?[{x:70,y:85,w:38,h:38,shape:'circle'},{x:250,y:175,w:38,h:38,shape:'triangle'},{x:140,y:290,w:38,h:38,shape:'diamond'}]:game.obstacles
+ for(const o of renderObstacles){
+  ctx.shadowColor='#ff6f97';ctx.shadowBlur=reducedMotion?0:14;ctx.fillStyle='#ff6f97'
+  ctx.beginPath()
+  if(o.shape==='circle')ctx.arc(o.x,o.y,o.w/2,0,Math.PI*2)
+  else {const points=vertices(o);ctx.moveTo(points[0].x,points[0].y);for(const point of points.slice(1))ctx.lineTo(point.x,point.y);ctx.closePath()}
+  ctx.fill();ctx.shadowBlur=0
+ }
  const p=game.player;ctx.fillStyle='#73dcff';ctx.shadowColor='#73dcff';ctx.shadowBlur=reducedMotion?0:19;roundBox(p.x-p.w/2,p.y-p.h/2,p.w,p.h,7);ctx.shadowBlur=0;ctx.fillStyle='#12344c';roundBox(p.x-7,p.y-4,4,4,1);roundBox(p.x+3,p.y-4,4,4,1)
  ctx.strokeStyle='#73dcff45';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(18,HEIGHT-30);ctx.lineTo(WIDTH-18,HEIGHT-30);ctx.stroke()
  $('time').textContent=game.elapsed.toFixed(1);$('score').textContent=game.score.toLocaleString()

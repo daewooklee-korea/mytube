@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createGame, advance, intersects, difficultyAt, WIDTH } from '../public/games/dodge-engine.mjs'
+import { createGame, advance, intersects, difficultyAt, hitsObstacle, SHAPES, WIDTH } from '../public/games/dodge-engine.mjs'
 
 const running = (random = () => 0) => Object.assign(createGame(random), { status: 'running' })
 test('same elapsed time, movement and score at 30, 60 and 144 FPS', () => {
@@ -46,4 +46,15 @@ test('spawn positions vary continuously and boxes stay inside the arena',()=>{
  assert.equal(new Set(positions).size,100)
  assert.ok(positions.every(x=>x>=19&&x<=WIDTH-19))
  assert.ok(positions.some(x=>x>60&&x<84),'old safe gap receives blocks')
+})
+
+test('all six shapes spawn and collision follows visible outlines',()=>{
+ const g=running(seeded(123));g.player.y=-100;const shapes=new Set()
+ for(let i=0;i<200;i++){g.spawnIn=0;advance(g,1/120);g.obstacles.forEach(o=>shapes.add(o.shape));g.obstacles=[]}
+ assert.deepEqual([...shapes].sort(),[...SHAPES].sort())
+ for(const shape of SHAPES){
+  const o={x:0,y:0,w:38,h:38,shape}
+  assert.equal(hitsObstacle({x:0,y:0,w:4,h:4},o),true)
+  if(['circle','triangle','diamond','hexagon'].includes(shape))assert.equal(hitsObstacle({x:18,y:-18,w:2,h:2},o),false)
+ }
 })

@@ -16,6 +16,31 @@ export function intersects(a, b) {
   return Math.abs(a.x - b.x) * 2 < a.w + b.w && Math.abs(a.y - b.y) * 2 < a.h + b.h
 }
 
+export const SHAPES = ['rectangle', 'square', 'circle', 'triangle', 'diamond', 'hexagon']
+export function vertices(o) {
+ const points = o.shape === 'triangle' ? [[0,-.5],[.5,.5],[-.5,.5]]
+  : o.shape === 'diamond' ? [[0,-.5],[.5,0],[0,.5],[-.5,0]]
+  : o.shape === 'hexagon' ? [[-.25,-.5],[.25,-.5],[.5,0],[.25,.5],[-.25,.5],[-.5,0]]
+  : [[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]]
+ return points.map(([x,y])=>({x:o.x+x*o.w,y:o.y+y*o.h}))
+}
+export function hitsObstacle(player, obstacle) {
+ if (!intersects(player, obstacle)) return false
+ if (obstacle.shape === 'circle') {
+  const dx = Math.max(0, Math.abs(player.x-obstacle.x)-player.w/2)
+  const dy = Math.max(0, Math.abs(player.y-obstacle.y)-player.h/2)
+  return dx*dx+dy*dy < (obstacle.w/2)**2
+ }
+ const a=vertices(player), b=vertices(obstacle)
+ for(const polygon of [a,b]) for(let i=0;i<polygon.length;i++){
+  const p=polygon[i],q=polygon[(i+1)%polygon.length],axis={x:q.y-p.y,y:p.x-q.x}
+  const project=points=>points.map(v=>v.x*axis.x+v.y*axis.y)
+  const pa=project(a),pb=project(b)
+  if(Math.max(...pa)<=Math.min(...pb)||Math.max(...pb)<=Math.min(...pa))return false
+ }
+ return true
+}
+
 // Fixed simulation steps keep the timer, speed and collision checks independent of refresh rate.
 export function advance(game, seconds, input = {}) {
   if (game.status !== 'running' || !Number.isFinite(seconds) || seconds <= 0) return game
@@ -40,13 +65,14 @@ export function advance(game, seconds, input = {}) {
       for (let i = 0; i < difficulty.boxesPerWave; i++) {
         const sample = clamp(game.random(), 0, 0.999999)
         const x = width / 2 + (i + sample) * span / difficulty.boxesPerWave
-        game.obstacles.push({ x, y: -25, w: width, h: 28, speed: difficulty.speed })
+        const shape = SHAPES[Math.floor(clamp(game.random(), 0, 0.999999) * SHAPES.length)]
+        game.obstacles.push({ x, y: -25, shape, w: width, h: shape === 'rectangle' ? 28 : width, speed: difficulty.speed })
       }
       game.spawnIn += difficulty.interval
     }
     for (const obstacle of game.obstacles) {
       obstacle.y += obstacle.speed * step
-      if (intersects(game.player, obstacle)) game.status = 'lost'
+      if (hitsObstacle(game.player, obstacle)) game.status = 'lost'
     }
     const passed = game.obstacles.filter(o => o.y - o.h / 2 > HEIGHT)
     game.dodged += passed.length
