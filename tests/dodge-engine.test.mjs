@@ -48,7 +48,7 @@ test('spawn positions vary continuously and boxes stay inside the arena',()=>{
  assert.ok(positions.some(x=>x>60&&x<84),'old safe gap receives blocks')
 })
 
-test('all eight shapes spawn and collision follows visible outlines',()=>{
+test('all ten shapes spawn and collision follows visible outlines',()=>{
  const g=running(seeded(123));g.player.y=-100;const shapes=new Set()
  for(let i=0;i<200;i++){g.spawnIn=0;advance(g,1/120);g.obstacles.forEach(o=>shapes.add(o.shape));g.obstacles=[]}
  assert.deepEqual([...shapes].sort(),[...SHAPES].sort())
@@ -67,4 +67,15 @@ test('heart notch and star gaps remain empty while lobes and tips collide',()=>{
  assert.equal(hit('star',0,-45),true)
  assert.equal(hit('star',25,-30),false)
  assert.equal(hit('star',0,0),true)
+})
+
+test('flower petals and waterfall height use their visible collision geometry',()=>{
+ const flower={x:0,y:0,w:100,h:100,shape:'flower'}
+ assert.equal(hitsObstacle({x:0,y:-45,w:1,h:1},flower),true)
+ assert.equal(hitsObstacle({x:25,y:-43.3,w:1,h:1},flower),false)
+ const waterfall={x:0,y:0,w:38,h:64,shape:'waterfall'}
+ assert.equal(hitsObstacle({x:0,y:30,w:1,h:1},waterfall),true)
+ assert.equal(hitsObstacle({x:21,y:0,w:1,h:1},waterfall),false)
+ const g=running(()=>.999999);g.spawnIn=0;advance(g,1/120)
+ assert.equal(g.obstacles[0].shape,'waterfall');assert.equal(g.obstacles[0].h,64)
 })
