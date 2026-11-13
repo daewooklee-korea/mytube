@@ -10,6 +10,11 @@ import { NetworkFirst } from 'workbox-strategies'
 self.skipWaiting()
 clientsClaim()
 cleanupOutdatedCaches()
+// Game documents must not be intercepted by a stale precached HTML route.
+registerRoute(
+  ({ request, url }) => request.mode === 'navigate' && url.pathname.startsWith('/games/'),
+  new NetworkFirst({ cacheName: 'playme-game-pages', networkTimeoutSeconds: 3 })
+)
 precacheAndRoute(self.__WB_MANIFEST)
 // Prefer the deployed document so menu settings do not remain on an old app version.
 const navigationNetwork = new NetworkFirst({ cacheName: 'playme-pages', networkTimeoutSeconds: 3 })
