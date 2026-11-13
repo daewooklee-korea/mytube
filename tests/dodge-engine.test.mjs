@@ -48,7 +48,7 @@ test('spawn positions vary continuously and boxes stay inside the arena',()=>{
  assert.ok(positions.some(x=>x>60&&x<84),'old safe gap receives blocks')
 })
 
-test('all six shapes spawn and collision follows visible outlines',()=>{
+test('all eight shapes spawn and collision follows visible outlines',()=>{
  const g=running(seeded(123));g.player.y=-100;const shapes=new Set()
  for(let i=0;i<200;i++){g.spawnIn=0;advance(g,1/120);g.obstacles.forEach(o=>shapes.add(o.shape));g.obstacles=[]}
  assert.deepEqual([...shapes].sort(),[...SHAPES].sort())
@@ -57,4 +57,14 @@ test('all six shapes spawn and collision follows visible outlines',()=>{
   assert.equal(hitsObstacle({x:0,y:0,w:4,h:4},o),true)
   if(['circle','triangle','diamond','hexagon'].includes(shape))assert.equal(hitsObstacle({x:18,y:-18,w:2,h:2},o),false)
  }
+})
+
+test('heart notch and star gaps remain empty while lobes and tips collide',()=>{
+ const hit=(shape,x,y)=>hitsObstacle({x,y,w:1,h:1},{x:0,y:0,w:100,h:100,shape})
+ assert.equal(hit('heart',0,-40),false)
+ assert.equal(hit('heart',27,-40),true)
+ assert.equal(hit('heart',0,40),true)
+ assert.equal(hit('star',0,-45),true)
+ assert.equal(hit('star',25,-30),false)
+ assert.equal(hit('star',0,0),true)
 })

@@ -88,7 +88,7 @@ function paint() {
  const offset=reducedMotion?0:(game.elapsed*30)%42
  for(let y=-42+offset;y<HEIGHT;y+=42){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(WIDTH,y);ctx.stroke()}
  for(let x=0;x<=WIDTH;x+=72){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,HEIGHT);ctx.stroke()}
- const renderObstacles=game.status==='ready'?[{x:70,y:85,w:38,h:38,shape:'circle'},{x:250,y:175,w:38,h:38,shape:'triangle'},{x:140,y:290,w:38,h:38,shape:'diamond'}]:game.obstacles
+ const renderObstacles=game.status==='ready'?[{x:70,y:85,w:38,h:38,shape:'heart'},{x:250,y:175,w:38,h:38,shape:'star'},{x:140,y:290,w:38,h:38,shape:'diamond'}]:game.obstacles
  for(const o of renderObstacles){
   ctx.shadowColor='#ff6f97';ctx.shadowBlur=reducedMotion?0:14;ctx.fillStyle='#ff6f97'
   ctx.beginPath()
