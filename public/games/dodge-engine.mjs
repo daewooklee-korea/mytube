@@ -1,7 +1,7 @@
 export const WIDTH = 360
 export const HEIGHT = 510
 export const GOAL = 30
-export const SCORE_PER_SECOND = 100
+export const SCORE_PER_SECOND = 1
 const clamp = (x, min, max) => Math.max(min, Math.min(max, x))
 
 export function difficultyAt(seconds) {

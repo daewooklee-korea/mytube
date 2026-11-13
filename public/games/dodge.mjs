@@ -8,15 +8,15 @@ let game = createGame(), last = 0, countdownAt = null, countdownNumber = null, b
 let target = null, dragId = null
 let pendingRecord = null
 const keys = new Set(), held = new Map()
-try { const b = JSON.parse(localStorage.getItem('playme-dodge-best-v2')); if (Number.isFinite(b?.elapsed) && Number.isFinite(b?.score)) best = b } catch { /* Storage may be disabled. */ }
+try { const b = JSON.parse(localStorage.getItem('playme-dodge-best-v3')) || JSON.parse(localStorage.getItem('playme-dodge-best-v2')); if (Number.isFinite(b?.elapsed) && Number.isFinite(b?.score)) best = { elapsed: b.elapsed, score: Math.floor(b.elapsed + 1e-8) } } catch { /* Storage may be disabled. */ }
 function showBest() { $('best').textContent = best.elapsed > 0 ? `${best.elapsed.toFixed(1)}초 · ${best.score.toLocaleString()}점` : '아직 기록이 없어요' }
 showBest()
-function readHall() { try { return cleanEntries(JSON.parse(localStorage.getItem(HALL_KEY))) } catch { return [] } }
+function readHall() { try { return cleanEntries(JSON.parse(localStorage.getItem(HALL_KEY)) ?? (JSON.parse(localStorage.getItem('playme-dodge-hall-v2')) || []).map(row => ({ ...row, score: Math.floor(row.score / 100) }))) } catch { return [] } }
 function renderHall(entries = readHall()) {
   $('hallList').replaceChildren(); $('hallEmpty').hidden = entries.length > 0
   entries.forEach((row, index) => {
     const li=document.createElement('li'),rank=document.createElement('span'),name=document.createElement('span'),score=document.createElement('span'),time=document.createElement('small')
-    rank.className='rank';rank.textContent=String(index+1).padStart(2,'0');name.className='hall-name';name.textContent=row.name;score.className='hall-points';score.textContent=`${row.score.toLocaleString()}점`;time.textContent=`생존 ${(row.score/100).toFixed(2)}초`;score.append(time);li.append(rank,name,score);$('hallList').append(li)
+    rank.className='rank';rank.textContent=String(index+1).padStart(2,'0');name.className='hall-name';name.textContent=row.name;score.className='hall-points';score.textContent=`${row.score.toLocaleString()}점`;time.textContent=row.score === 30 ? '30초 달성' : `생존 ${row.score}초 이상`;score.append(time);li.append(rank,name,score);$('hallList').append(li)
   })
 }
 renderHall()
@@ -52,10 +52,10 @@ function pause() {
 function finish() {
   clearInput();$('pause').disabled=true
   const record=game.elapsed>best.elapsed+.001 || (game.elapsed>=best.elapsed-.001 && game.score>best.score)
-  if(record){best={elapsed:game.elapsed,score:game.score};try{localStorage.setItem('playme-dodge-best-v2',JSON.stringify(best))}catch{/* Optional local record. */}showBest()}
+  if(record){best={elapsed:game.elapsed,score:game.score};try{localStorage.setItem('playme-dodge-best-v3',JSON.stringify(best))}catch{/* Optional local record. */}showBest()}
   const won=game.status==='won'
   overlay(won?'MISSION COMPLETE':'SO CLOSE. ONE MORE?',won?'30초, 살아남았다!':'앗, 부딪혔어요.',`${game.elapsed.toFixed(1)}초 생존 · ${game.score.toLocaleString()}점\n${won?'틈을 찾는 감각, 제법인데요?':'다음 틈은 분명 보일 거예요.'}`,'다시 도전',record?'이 기기의 최고 기록을 갱신했어요!':'다시 시작하면 시간과 점수가 초기화됩니다.')
-  if(game.score>0){pendingRecord={score:game.score};$('hallForm').hidden=false;$('openHall').hidden=false;$('pendingScore').textContent=`이번 기록: ${game.score.toLocaleString()}점 · 생존 ${(game.score/100).toFixed(2)}초`;renderHall()}
+  if(game.score>0){pendingRecord={score:game.score};$('hallForm').hidden=false;$('openHall').hidden=false;$('pendingScore').textContent=`이번 기록: ${game.score.toLocaleString()}점 · 생존 ${game.elapsed.toFixed(2)}초`;renderHall()}
   $('announcement').textContent=won?'성공! 30초를 버텼습니다.':`${game.elapsed.toFixed(1)}초 만에 충돌했습니다. 다시 도전할 수 있습니다.`;tone(won?1000:170,.25);$('start').focus({preventScroll:true})
 }
 $('start').addEventListener('click',()=>{if(game.status!=='paused')game=createGame();tone();beginCountdown()})
