@@ -32,11 +32,15 @@ export function advance(game, seconds, input = {}) {
     game.spawnIn -= step
     if (game.spawnIn <= 0) {
       const difficulty = difficultyAt(game.elapsed)
-      const lanes = [0, 1, 2, 3, 4]
+      // Jitter across the entire arena instead of five fixed lanes. Each
+      // wave gets one sample per band, so blocks spread out without leaving
+      // permanent gaps between columns (including at the arena edges).
+      const width = 38
+      const span = WIDTH - width
       for (let i = 0; i < difficulty.boxesPerWave; i++) {
-        const index = Math.floor(clamp(game.random(), 0, 0.999999) * lanes.length)
-        const lane = lanes.splice(index, 1)[0]
-        game.obstacles.push({ x: 36 + lane * 72, y: -25, w: 38, h: 28, speed: difficulty.speed })
+        const sample = clamp(game.random(), 0, 0.999999)
+        const x = width / 2 + (i + sample) * span / difficulty.boxesPerWave
+        game.obstacles.push({ x, y: -25, w: width, h: 28, speed: difficulty.speed })
       }
       game.spawnIn += difficulty.interval
     }

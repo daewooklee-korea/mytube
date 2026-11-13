@@ -26,7 +26,24 @@ test('paused simulation stays frozen; a new round resets everything',()=>{
 test('points depend only on time, never on passed boxes',()=>{
  const g=running();g.obstacles=[{x:36,y:530,w:38,h:28,speed:0}];advance(g,.5);assert.equal(g.dodged,1);assert.equal(g.score,0);advance(g,.5);assert.equal(g.score,1)
 })
-test('waves grow from one to two to three distinct boxes, leaving safe lanes',()=>{
+test('waves grow from one to two to three distinct boxes, spread across the arena',()=>{
  for(const [t,count] of [[0,1],[9.99,1],[10,2],[19.99,2],[20,3],[30,3]])assert.equal(difficultyAt(t).boxesPerWave,count)
  for(const [t,count] of [[0,1],[10,2],[20,3]]){const g=running();g.elapsed=t;g.spawnIn=0;advance(g,1/120);assert.equal(g.obstacles.length,count);assert.equal(new Set(g.obstacles.map(o=>o.x)).size,count)}
+})
+
+function seeded(seed) {
+ return () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296 }
+}
+test('stationary players are hit across the arena, including old lane gaps and edges',()=>{
+ for(const seed of [1,42,2026]) for(let x=18;x<=342;x+=3){
+  const g=running(seeded(seed));g.player.x=x;advance(g,120)
+  assert.equal(g.status,'lost',`stationary x=${x}, seed=${seed}`)
+ }
+})
+test('spawn positions vary continuously and boxes stay inside the arena',()=>{
+ const g=running(seeded(42));g.player.y=-100;const positions=[]
+ for(let i=0;i<100;i++){g.spawnIn=0;advance(g,1/120);positions.push(...g.obstacles.map(o=>o.x));g.obstacles=[]}
+ assert.equal(new Set(positions).size,100)
+ assert.ok(positions.every(x=>x>=19&&x<=WIDTH-19))
+ assert.ok(positions.some(x=>x>60&&x<84),'old safe gap receives blocks')
 })
