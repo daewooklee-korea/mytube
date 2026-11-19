@@ -2529,6 +2529,16 @@ if (playMode === 'single') {
     <span className="menu-icon" aria-hidden="true">🎮</span>
     <span className="menu-label">게임</span>
   </button>
+  <a
+    className="main-menu-item ai-chat-menu-link"
+    href="/api/ai-chat"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="AI 채팅 (새 창에서 열기)"
+  >
+    <span className="menu-icon" aria-hidden="true">✦</span>
+    <span className="menu-label">AI 채팅 ↗</span>
+  </a>
 </nav>
 
 {/* =========================

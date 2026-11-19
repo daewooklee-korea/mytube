@@ -4430,6 +4430,11 @@ button.content-status-button {
   color: #222222;
 }
 
+.ai-chat-menu-link {
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
 .main-menu-item.selected {
   background: #1a1a1a;
   color: #ffffff;
