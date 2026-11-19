@@ -108,6 +108,7 @@ export default function PublicBrowse({ onLogin }) {
     <nav className="public-nav" aria-label="공개 메뉴">
       <button type="button" onClick={() => navigate('/')}>전체</button>
       <button type="button" onClick={() => window.location.assign('/games/')}>게임</button>
+      <a className="public-ai-chat-link" href="/api/ai-chat" target="_blank" rel="noopener noreferrer" aria-label="AI 채팅 (새 창에서 열기)">AI 채팅 ↗</a>
       {menus.map((menu) => <button type="button" key={menu.id} aria-current={activeMenu?.id === menu.id ? 'page' : undefined} onClick={() => navigate(menu.route || `/?menu=${menu.id}`, null)}>{menu.parent_id ? '↳ ' : ''}{menu.name}</button>)}
     </nav>
     <main className="public-main">
